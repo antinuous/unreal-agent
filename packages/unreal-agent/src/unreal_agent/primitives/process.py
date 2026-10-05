@@ -4,7 +4,7 @@ import os
 import signal
 import stat
 import subprocess
-from collections.abc import Callable
+from collections.abc import Buffer, Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag
 from typing import Final, Protocol
@@ -281,7 +281,7 @@ def _resolve(waiter: asyncio.Future[None]) -> None:
 class ProcessCommand:
     argv: list[str]
     directory: str | None
-    environment: dict[str, str] | None
+    environment: dict[bytes, str] | None
     stdin: File | None = None
     stdout: File | None = None
     stderr: File | None = None
@@ -699,15 +699,58 @@ def _child_descriptor(file: File | None) -> int:
     return subprocess.DEVNULL if file is None else file.fileno()
 
 
-def _environment(entries: list[str] | None) -> dict[str, str] | None:
+class _VerbatimEntry(bytes):
+    """An environment entry Popen must pass unchanged.
+
+    Go passes entries without a name or without "=" to the child as-is. Popen
+    builds each entry as `key + b"=" + value` and rejects keys containing "=",
+    so such an entry is a bytes key that bypasses both steps, paired with an
+    empty value. Identity equality keeps repeated entries apart, as Go does. This
+    relies on CPython's POSIX `Popen._execute_child`.
+    """
+
+    __slots__ = ()
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    def __hash__(self) -> int:
+        return id(self)
+
+    def __contains__(self, item: object) -> bool:
+        return False
+
+    def __add__(self, value: Buffer, /) -> bytes:
+        return bytes(self)
+
+
+def _environment(entries: list[str] | None) -> dict[bytes, str] | None:
+    """Deduplicate like Go's os/exec: the last entry for a name wins, in its position."""
     if entries is None:
         return None
-    environment: dict[str, str] = {}
-    for entry in entries:
+    kept: list[str] = []
+    seen: set[str] = set()
+    for entry in reversed(entries):
+        index = entry.find("=")
+        if index == 0:
+            index = entry.find("=", 1)
+            index = 0 if index < 0 else index
+        if index < 0:
+            if entry:
+                kept.append(entry)
+            continue
+        name = entry[:index]
+        if name in seen:
+            continue
+        seen.add(name)
+        kept.append(entry)
+    environment: dict[bytes, str] = {}
+    for entry in reversed(kept):
         name, separator, value = entry.partition("=")
         if separator and name:
-            environment.pop(name, None)
-            environment[name] = value
+            environment[os.fsencode(name)] = value
+        else:
+            environment[_VerbatimEntry(os.fsencode(entry))] = ""
     return environment
 
 

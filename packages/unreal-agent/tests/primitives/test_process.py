@@ -919,6 +919,23 @@ async def test_process_uses_explicit_empty_environment() -> None:
     assert result(events[1], ProcessExitResult) == ProcessExitResult(0, 0)
 
 
+async def test_process_passes_environment_entries_like_go() -> None:
+    events = await collect_events(
+        start_with_all_pipes(
+            request(
+                path="/usr/bin/env",
+                environment=["FOO", "A=1", "=x=y", "", "A=2", "BAR", "BAR"],
+            )
+        ).events
+    )
+    assert [event.type for event in events] == [
+        PrimitiveEventType.PROCESS_STARTED,
+        PrimitiveEventType.PROCESS_OUTPUT,
+        PrimitiveEventType.PROCESS_EXITED,
+    ]
+    assert result(events[1], ProcessOutputResult).data == b"FOO\n=x=y\nA=2\nBAR\nBAR\n"
+
+
 async def test_process_selects_parent_pipes() -> None:
     events = await collect_events(
         start(
