@@ -79,7 +79,7 @@ async def test_coordinator_submission_boundary_survives_recovery(stage: str) -> 
     if stage != "in flight":
         await run.respond(0, response)
         if stage != "response write failed":
-            want = replace(want, Input=[*original, *response.Output, *suffix])
+            want = replace(want, Input=[*original, *(response.Output or []), *suffix])
     if stage == "response committed":
         assert len(run.calls) == 2, "next request did not place the response before late inputs"
         assert run.calls[1].request == want, (
@@ -142,7 +142,9 @@ async def test_coordinator_steering_commits_pending_suffix_before_new_response()
     await run.update(1, Status.COMPLETED)
     response = text_response("Current response.")
     await run.respond(1, response)
-    want = replace(want, Input=[*want.Input, *response.Output, text_result("call-1", COMPLETED)])
+    want = replace(
+        want, Input=[*want.Input, *(response.Output or []), text_result("call-1", COMPLETED)]
+    )
     assert len(run.calls) == 3, "new response did not land at the replacement request boundary"
     assert run.calls[2].request == want, (
         "new response did not land at the replacement request boundary"
@@ -246,7 +248,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
         first,
         Input=[
             *first.Input,
-            *response.Output,
+            *(response.Output or []),
             text_result("call-0", COMPLETED),
             text_result("C", TOOL_CALL_RUNNING_PAYLOAD),
         ],
@@ -272,7 +274,9 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
     await wait()
     second_response = text_response("Waiting for C.")
     await run.respond(1, second_response)
-    want = replace(want, Input=[*want.Input, *second_response.Output, text_result("C", COMPLETED)])
+    want = replace(
+        want, Input=[*want.Input, *(second_response.Output or []), text_result("C", COMPLETED)]
+    )
     assert len(run.calls) == 3, "new completion was not delivered after its in-flight response"
     assert run.calls[2].request == want, (
         "new completion was not delivered after its in-flight response"

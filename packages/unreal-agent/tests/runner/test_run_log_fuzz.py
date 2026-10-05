@@ -129,7 +129,7 @@ def assert_execution_log(
                 )
                 responded.add(value.TurnID)
                 responses.append(value.Response)
-                for output in value.Response.Output:
+                for output in value.Response.Output or []:
                     if isinstance(output.Data, ToolCall):
                         calls[output.Data.CallID] = value.TurnID
             case ToolCallStatus() as value:
@@ -220,6 +220,7 @@ async def run_log_case(
                         call.Arguments = "{"
                     case _:
                         valid_calls.add(call.CallID)
+                assert response.Output is not None
                 response.Output.append(
                     LLMItem(ProviderID=call.CallID, Type=ItemType.TOOL_CALL, Data=call)
                 )

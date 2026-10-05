@@ -348,7 +348,7 @@ async def test_view_image_reads_workspace_file_and_returns_resized_data_url(
     manager = new_manager()
     await manager.add(
         Operation(
-            ID=status.WaitingFor[0],
+            ID=(status.WaitingFor or [])[0],
             Type=spec.Type,
             Version=spec.Version,
             State=spec.State,

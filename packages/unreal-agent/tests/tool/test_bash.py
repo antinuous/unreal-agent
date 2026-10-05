@@ -296,7 +296,7 @@ def test_translator_accepts_empty_command() -> None:
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments='{"command":""}'))
     assert status.Error == ""
-    assert len(status.WaitingFor) == 1
+    assert len(status.WaitingFor or []) == 1
     assert len(ctx.specs) == 1
 
 
@@ -363,7 +363,7 @@ def test_translator_preserves_escaped_nul_commands(command: str) -> None:
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments=encode({"command": command}).decode()))
     assert status.Error == ""
-    assert len(status.WaitingFor) == 1
+    assert len(status.WaitingFor or []) == 1
     assert len(ctx.specs) == 1
     assert decode(bytes(ctx.specs[0].State), ShellState).Input.Command == command
 

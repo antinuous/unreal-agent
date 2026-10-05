@@ -144,8 +144,8 @@ async def test_coordinator_restores_session() -> None:
     built = builder.build()
     want_input = with_preamble(
         loop_state_user_message("hello"),
-        response.Output[0],
-        response.Output[1],
+        (response.Output or [])[0],
+        (response.Output or [])[1],
         loop_state_text_result(call.CallID, "error:invalid arguments"),
     )
     assert built.request.Input == want_input, (
@@ -174,6 +174,7 @@ def test_coordinator_applies_turn_types() -> None:
 async def test_coordinator_restores_ordinary_response_during_compaction() -> None:
     run = new_stop_test_run(0)
     response = text_response("Ordinary response")
+    assert response.Output is not None
     response.Output.append(
         LLMItem(Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="old-call", Name="unknown"))
     )
@@ -191,7 +192,7 @@ async def test_coordinator_restores_ordinary_response_during_compaction() -> Non
     ]
     await run.current._load_history()
     built = run.dependencies.context_builder.build()
-    want = [*with_preamble(loop_state_user_message("hello")), *response.Output]
+    want = [*with_preamble(loop_state_user_message("hello")), *(response.Output or [])]
     message = "earlier ordinary response was lost or treated as a compaction response"
     assert built.request.Input == want, message
     assert run.current._state.current_turn_type == TurnType.COMPACTION, message
@@ -1640,12 +1641,12 @@ async def test_coordinator_run_schedules_tool_calls_without_status_before_dispat
     status = store.appended_statuses[0]
     assert status.TurnID == "turn-1", f"appended status = {status!r}"
     assert status.CallID == missing.CallID, f"appended status = {status!r}"
-    assert len(status.Status.WaitingFor) == 2, f"appended status = {status!r}"
+    assert len(status.Status.WaitingFor or []) == 2, f"appended status = {status!r}"
     assert len(status.Operations) == 2, f"appended status = {status!r}"
     want_operations: dict[str, Operation] = {}
     for index, value in enumerate(status.Operations):
         assert value.ID != "", f"scheduled operation {index} = {value!r}"
-        assert status.Status.WaitingFor[index] == value.ID, (
+        assert (status.Status.WaitingFor or [])[index] == value.ID, (
             f"scheduled operation {index} = {value!r}"
         )
         assert value.Status == Status.READY, f"scheduled operation {index} = {value!r}"

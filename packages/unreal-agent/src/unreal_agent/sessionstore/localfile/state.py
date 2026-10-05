@@ -284,13 +284,14 @@ def _validate_status_operation_references(
         return
     if not operations:
         raise StoreError("successful status must initialize at least one operation")
-    if len(status.WaitingFor) != len(operations):
+    waiting_for = status.WaitingFor or []
+    if len(waiting_for) != len(operations):
         raise StoreError(
-            f"status waits for {len(status.WaitingFor)} operations, initialized {len(operations)}"
+            f"status waits for {len(waiting_for)} operations, initialized {len(operations)}"
         )
     initialized = {value.ID for value in operations}
     waiting: set[str] = set()
-    for id in status.WaitingFor:
+    for id in waiting_for:
         if id in waiting:
             raise StoreError(f"status repeats operation {go_quote(id)}")
         waiting.add(id)

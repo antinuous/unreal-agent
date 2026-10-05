@@ -653,8 +653,8 @@ async def test_responses_stream_retry_discards_partial_attempt(disconnect: bool)
     got = await adapter.respond(valid_request(), RequestOptions())
     assert len(bodies) == 2
     assert got.ID == "new"
-    assert len(got.Output) == 1
-    assert cast(Message, got.Output[0].Data).Text == "fallback"
+    assert len(got.Output or []) == 1
+    assert cast(Message, (got.Output or [])[0].Data).Text == "fallback"
     assert bodies[0] == bodies[1], "retry changed request body"
 
 
@@ -688,9 +688,9 @@ async def test_responses_traces_assembled_response() -> None:
     adapter = new_adapter(handler, endpoint="https://example.test", trace=traces.append)
     response = await adapter.respond(valid_request(), RequestOptions())
     assert response.ID == "r"
-    assert len(response.Output) == 1
+    assert len(response.Output or []) == 1
     assert len(traces) == 1
-    assert cast(Message, response.Output[0].Data).Text == "fallback"
+    assert cast(Message, (response.Output or [])[0].Data).Text == "fallback"
 
 
 @pytest.mark.parametrize(
@@ -1155,8 +1155,8 @@ async def test_exchange_restarts_failed_generation(kind: str, code: str) -> None
     assert response.Failure is None
     assert len(sent) == 2
     assert len(traces) == 1
-    assert len(response.Output) == 1
-    assert cast(Message, response.Output[0].Data).Text == "fallback"
+    assert len(response.Output or []) == 1
+    assert cast(Message, (response.Output or [])[0].Data).Text == "fallback"
     assert sent[0] == sent[1]
     assert sent[0][1] != ""
 

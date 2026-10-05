@@ -681,13 +681,14 @@ def independent_tool_calls(count: int) -> tuple[FakeStore, Registry]:
         stored_item(1, ItemKind.TURN, Turn(ID="turn-1", Type=TurnType.REGULAR)),
         stored_item(2, ItemKind.MODEL_RESPONSE, ModelResponse()),
     ]
-    response = ModelResponse(TurnID="turn-1")
+    output: list[LLMItem] = []
+    response = ModelResponse(TurnID="turn-1", Response=Response(Output=output))
     for index in range(count):
         value = Operation(
             ID=f"operation-{index}", Type=TYPE_SHELL, Version=1, Status=Status.AWAITING
         )
         call = ToolCall(CallID=f"call-{index}", Name=VIEW_IMAGE_NAME, Arguments="{}")
-        response.Response.Output.append(LLMItem(Type=ItemType.TOOL_CALL, Data=call))
+        output.append(LLMItem(Type=ItemType.TOOL_CALL, Data=call))
         store.resume.operations.append(replace(value))
         store.history.append(
             stored_item(

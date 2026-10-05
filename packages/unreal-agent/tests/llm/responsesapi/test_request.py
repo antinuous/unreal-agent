@@ -493,7 +493,7 @@ def test_request_body_replays_rejected_tool_call_from_history() -> None:
     restored = decode(history, StoreItem)
     assert isinstance(restored.Data, ModelResponse)
     response = restored.Data.Response
-    call = response.Output[0].Data
+    call = (response.Output or [])[0].Data
     assert isinstance(call, ToolCall)
     translator = bash.new(bash.Config())
     tool_context = _ReplayToolContext()

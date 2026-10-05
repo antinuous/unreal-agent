@@ -191,7 +191,7 @@ async def test_heartbeat_waits_for_all_operations_of_call() -> None:
     run = new_heartbeat_test_run(2)
     response = cast(ModelResponse, run.store.history[1].Data)
     run.store.history[1].Data = replace(
-        response, Response=replace(response.Response, Output=response.Response.Output[:1])
+        response, Response=replace(response.Response, Output=(response.Response.Output or [])[:1])
     )
     status = cast(ToolCallStatus, run.store.history[2].Data)
     operations = list(run.store.resume.operations)

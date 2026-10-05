@@ -386,9 +386,9 @@ async def test_ollama_live_tool_round_trip() -> None:
         )
         response = await client.respond(request, RequestOptions())
         assert response.Failure is None
-        request.Input.extend(response.Output)
+        request.Input.extend(response.Output or [])
         calls = 0
-        for item in response.Output:
+        for item in response.Output or []:
             if isinstance(item.Data, ToolCall):
                 assert item.Data.Name == "read_secret"
                 assert item.Data.CallID != ""
@@ -407,7 +407,8 @@ async def test_ollama_live_tool_round_trip() -> None:
         assert response.Failure is None
         assert response.Stop == StopReason.COMPLETE
         assert any(
-            isinstance(item.Data, Message) and secret in item.Data.Text for item in response.Output
+            isinstance(item.Data, Message) and secret in item.Data.Text
+            for item in (response.Output or [])
         ), "model did not return the tool result"
 
 
@@ -660,12 +661,12 @@ async def test_providers_only_return_terminal_response(name: str) -> None:
             release.set()
             response = await asyncio.wait_for(task, 5)
     assert response.Stop == StopReason.COMPLETE
-    assert len(response.Output) == 2
+    assert len(response.Output or []) == 2
     assert len(traces) == 1
     assert traces[0].status_code == 200
     assert traces[0].response_body == PROVIDER_RESPONSE
-    call = response.Output[0].Data
-    message = response.Output[1].Data
+    call = (response.Output or [])[0].Data
+    message = (response.Output or [])[1].Data
     assert isinstance(call, ToolCall)
     assert isinstance(message, Message)
     assert call.CallID == "call-1"

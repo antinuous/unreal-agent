@@ -186,16 +186,16 @@ def test_collected_items_fallback(output: bytes) -> None:
     response = decode_response(body)
     if output == b',"output":[' + FALLBACK_MESSAGE + b"]":
         assert body == terminal
-        assert len(response.Output) == 1
+        assert len(response.Output or []) == 1
     else:
-        assert len(response.Output) == 3
-        reasoning = response.Output[0].Data
+        assert len(response.Output or []) == 3
+        reasoning = (response.Output or [])[0].Data
         assert isinstance(reasoning, Reasoning)
         assert b'"vendor_field":"kept"' in bytes(reasoning.Raw)
-        message = response.Output[1].Data
+        message = (response.Output or [])[1].Data
         assert isinstance(message, Message)
         assert (message.Text, message.Phase) == ("fallback", "final_answer")
-        call = response.Output[2].Data
+        call = (response.Output or [])[2].Data
         assert isinstance(call, ToolCall)
         assert (call.CallID, call.Arguments) == ("call-1", '{"command":"pwd"}')
     assert response.ID == "r"
@@ -230,7 +230,7 @@ def test_collected_items_preserve_terminal_status(
     response = decode_response(state.unwrap())
     assert response.Stop == stop
     assert (response.Failure is not None) == failure
-    assert len(response.Output) == 1
+    assert len(response.Output or []) == 1
 
 
 def test_collected_items_splice_matches_go() -> None:

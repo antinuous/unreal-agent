@@ -111,7 +111,7 @@ class Reasoning(Struct):
     so adapters replay Raw unchanged instead of re-encoding Summary.
     """
 
-    Summary: Annotated[list[str], OmitZero] = []
+    Summary: Annotated[list[str] | None, OmitZero] = None
     Raw: Annotated[_RawJSON, OmitZero] = _RawJSON(b"")
 
 
@@ -225,7 +225,7 @@ _Failure = Failure
 class Response(Struct):
     ID: str = ""
     Stop: StopReason = StopReason.NONE
-    Output: Annotated[list[Item], OmitZero] = []
+    Output: Annotated[list[Item] | None, OmitZero] = None
     Usage: _Usage = field(default_factory=Usage)
     Failure: _Failure | None = None
 

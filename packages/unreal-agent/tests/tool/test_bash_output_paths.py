@@ -138,7 +138,7 @@ async def test_truncated_output_can_be_read_from_capture_files(
     manager = new_manager()
     await manager.add(
         Operation(
-            ID=status.WaitingFor[0],
+            ID=(status.WaitingFor or [])[0],
             Type=spec.Type,
             Version=spec.Version,
             Status=Status.READY,

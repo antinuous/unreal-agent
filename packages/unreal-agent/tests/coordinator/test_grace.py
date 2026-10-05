@@ -177,6 +177,7 @@ async def test_coordinator_immediate_tool_status_bypasses_grace(name: str) -> No
     await run.start()
     await run.input(external_event("input", "run both tools"))
     response = tool_grace_response("A")
+    assert response.Output is not None
     response.Output.append(
         LLMItem(
             Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="immediate", Name=name, Arguments="{}")

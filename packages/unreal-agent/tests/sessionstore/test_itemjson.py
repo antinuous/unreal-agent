@@ -134,3 +134,10 @@ def test_item_json_rejects_invalid_tag_on_encode(kind: str, data: Any, want: str
 def test_item_json_rejects_invalid_tag_and_data_on_decode(encoded: bytes) -> None:
     with pytest.raises(JSONError):
         gojson.decode(encoded, Item)
+
+
+def test_tool_call_status_keeps_empty_waiting_for_like_go() -> None:
+    assert gojson.encode(CallStatus(Error="x")) == b'{"Error":"x"}'
+    assert gojson.encode(CallStatus(WaitingFor=[])) == b'{"Error":"","WaitingFor":[]}'
+    assert gojson.decode(b'{"WaitingFor":[]}', CallStatus).WaitingFor == []
+    assert gojson.decode(b"{}", CallStatus).WaitingFor is None

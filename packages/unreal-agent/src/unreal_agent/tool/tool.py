@@ -25,7 +25,7 @@ class CallStatus(Struct):
 
     Error: str = ""
     ErrorTruncated: Annotated[bool, OmitZero] = False
-    WaitingFor: Annotated[list[str], OmitZero] = []
+    WaitingFor: Annotated[list[str] | None, OmitZero] = None
 
 
 class Context(Protocol):

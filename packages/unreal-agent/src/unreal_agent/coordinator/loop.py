@@ -698,7 +698,7 @@ class Coordinator:
         return item
 
     def _add_tool_calls_to_local_state(self, response: ModelResponse) -> None:
-        for output in response.Response.Output:
+        for output in response.Response.Output or ():
             if output.Type != ItemType.TOOL_CALL:
                 continue
             call = cast(ToolCall, output.Data)
@@ -710,8 +710,11 @@ class Coordinator:
         call = self._state.tool_calls.get(ToolCallKey(status.TurnID, status.CallID))
         if call is None:
             return
-        call.status = replace(status.Status, WaitingFor=list(status.Status.WaitingFor))
-        call.operations.update(status.Status.WaitingFor)
+        waiting_for = status.Status.WaitingFor
+        call.status = replace(
+            status.Status, WaitingFor=None if waiting_for is None else list(waiting_for)
+        )
+        call.operations.update(waiting_for or ())
 
     def _finish_tool_call(self, turn_id: TurnID, call_id: str) -> None:
         key = ToolCallKey(turn_id, call_id)
@@ -747,7 +750,7 @@ class Coordinator:
             return
 
         operations: list[Operation] = []
-        for id in status.Status.WaitingFor:
+        for id in status.Status.WaitingFor or ():
             if id not in call.operations:
                 return
             value = self._state.operations.get(id)
@@ -811,7 +814,7 @@ class Coordinator:
                 TurnID=key.turn_id,
                 CallID=key.call_id,
                 Status=call.status,
-                Operations=[self._state.operations[id] for id in call.status.WaitingFor],
+                Operations=[self._state.operations[id] for id in call.status.WaitingFor or ()],
             )
             item = self._add_item_to_local_state(Item(Kind=ItemKind.TOOL_CALL_STATUS, Data=status))
             await self._store_item_in_session_store(item)

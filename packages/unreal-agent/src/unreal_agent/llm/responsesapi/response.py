@@ -216,7 +216,8 @@ def decode_response(body: bytes) -> Response:
 def _response(source: _Response, usage: _ResponseUsage | None) -> Response:
     if source.status is None:
         raise ValueError(f"unsupported response status {go_quote('')}")
-    converted = Response(ID=source.id or "", Output=[], Usage=_usage(usage))
+    items: list[Item] = []
+    converted = Response(ID=source.id or "", Output=items, Usage=_usage(usage))
     match source.status:
         case "completed":
             converted.Stop = StopReason.COMPLETE
@@ -232,7 +233,7 @@ def _response(source: _Response, usage: _ResponseUsage | None) -> Response:
         except (ValueError, JSONError) as error:
             raise ValueError(f"output item {index}: {error}") from error
         if item is not None:
-            converted.Output.append(item)
+            items.append(item)
     return converted
 
 

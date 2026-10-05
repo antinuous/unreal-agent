@@ -110,7 +110,7 @@ async def test_coordinator_resumes_partially_completed_tool_call() -> None:
     status = cast(ToolCallStatus, run.store.history[2].Data)
     status = replace(
         status,
-        Status=replace(status.Status, WaitingFor=[*status.Status.WaitingFor, second.ID]),
+        Status=replace(status.Status, WaitingFor=[*(status.Status.WaitingFor or []), second.ID]),
         Operations=[*status.Operations, second],
     )
     run.store.history[2].Data = status

@@ -88,7 +88,7 @@ class _Builder:
         )
 
     def add_model_response(self, response: Response, /) -> None:
-        self._committed_prefix.extend(response.Output)
+        self._committed_prefix.extend(response.Output or ())
 
     def add_reasoning(self, reasoning: Reasoning, /) -> None:
         self._staged_suffix.append(Item(Type=ItemType.REASONING, Data=reasoning))

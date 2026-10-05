@@ -133,13 +133,13 @@ def clone_fault_item(item: Item) -> Item:
             Response=replace(
                 response,
                 Usage=replace(response.Usage),
-                Output=[replace(output) for output in response.Output],
+                Output=[replace(output) for output in (response.Output or [])],
             ),
         )
     elif isinstance(data, ToolCallStatus):
         data = replace(
             data,
-            Status=replace(data.Status, WaitingFor=list(data.Status.WaitingFor)),
+            Status=replace(data.Status, WaitingFor=list(data.Status.WaitingFor or [])),
             Operations=[clone_fault_operation(value) for value in data.Operations],
         )
     return replace(item, Data=data)
@@ -487,7 +487,7 @@ def assert_coordinator_fault_trace(
                     assert got.InputTokens == tokens & MAX_INT64, message
                     assert got.OutputTokens == tokens % 997, message
                     assert bytes(got.Raw) == usage, message
-                    for output in data.Response.Output:
+                    for output in data.Response.Output or []:
                         if isinstance(output.Data, ToolCall):
                             calls[output.Data.CallID] = data.TurnID
                 elif isinstance(data, ToolCallStatus):
@@ -496,8 +496,8 @@ def assert_coordinator_fault_trace(
                     assert data.TurnID == calls[data.CallID], message
                     assert data.Status.Error == "", message
                     assert len(data.Operations) == 1, message
-                    assert len(data.Status.WaitingFor) == 1, message
-                    assert data.Status.WaitingFor[0] == data.Operations[0].ID, message
+                    assert len(data.Status.WaitingFor or []) == 1, message
+                    assert (data.Status.WaitingFor or [])[0] == data.Operations[0].ID, message
                     op = data.Operations[0]
                     prior = committed.get(op.ID)
                     if prior is not None:

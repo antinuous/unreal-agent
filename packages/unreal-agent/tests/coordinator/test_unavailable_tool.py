@@ -130,12 +130,12 @@ async def test_coordinator_schedules_available_call_alongside_unavailable_call()
                 message = f"unavailable call status = {status!r}"
                 assert status.Status.Error == 'tool "unknown-tool" is not available', message
                 assert len(status.Operations) == 0, message
-                assert len(status.Status.WaitingFor) == 0, message
+                assert status.Status.WaitingFor is None, message
             case "valid":
                 message = f"available call status = {status!r}"
                 assert status.Status.Error == "", message
                 assert len(status.Operations) == 1, message
-                assert len(status.Status.WaitingFor) == 1, message
+                assert len(status.Status.WaitingFor or []) == 1, message
             case _:
                 raise AssertionError(f"unexpected call status = {status!r}")
 

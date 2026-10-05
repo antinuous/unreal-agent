@@ -108,6 +108,7 @@ async def test_coordinator_compaction_preserves_pending_inputs_on_replay(tmp_pat
         await current._store_item_in_session_store(item)
     before = current._dependencies.context_builder.build()
     response = ModelResponse(TurnID="compact", Response=text_response("Summary"))
+    assert response.Response.Output is not None
     response.Response.Output.append(
         LLMItem(Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="summary-call", Name="unknown"))
     )

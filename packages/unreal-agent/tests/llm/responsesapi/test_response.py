@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from unreal_agent.gojson import Raw
+from unreal_agent.gojson import Raw, encode
 from unreal_agent.llm import (
     Failure,
     Item,
@@ -47,13 +47,13 @@ def test_response_converts_web_search_response() -> None:
             }
         ]
     }""")
-    assert len(response.Output) == 2
-    reasoning = response.Output[0].Data
+    assert len(response.Output or []) == 2
+    reasoning = (response.Output or [])[0].Data
     assert isinstance(reasoning, Reasoning)
     raw = json.loads(bytes(reasoning.Raw))
     assert raw["encrypted_content"] == "opaque"
     assert raw["id"] == "reasoning-1"
-    message = response.Output[1].Data
+    message = (response.Output or [])[1].Data
     assert isinstance(message, Message)
     assert message.Text == "Current answer."
 
@@ -70,7 +70,7 @@ def test_response_allows_tool_call_without_status() -> None:
             "arguments":"{}"
         }]
     }""")
-    assert len(response.Output) == 1
+    assert len(response.Output or []) == 1
 
 
 def test_response_ignores_unfinished_tool_call() -> None:
@@ -201,8 +201,10 @@ def test_response_reads_refusal_as_message_text() -> None:
         "output":[{"id":"message-1","type":"message","role":"assistant","status":"completed",
             "content":[{"type":"refusal","refusal":"I cannot help with that."}]}]
     }""")
-    assert len(got.Output) == 1
-    assert got.Output[0].Data == Message(Role=Role.ASSISTANT, Text="I cannot help with that.")
+    assert len(got.Output or []) == 1
+    assert (got.Output or [])[0].Data == Message(
+        Role=Role.ASSISTANT, Text="I cannot help with that."
+    )
 
 
 def test_response_carries_unknown_message_phase() -> None:
@@ -213,7 +215,7 @@ def test_response_carries_unknown_message_phase() -> None:
             "phase":"analysis",
             "content":[{"type":"output_text","text":"hello","annotations":[],"logprobs":[]}]}]
     }""")
-    message = got.Output[0].Data
+    message = (got.Output or [])[0].Data
     assert isinstance(message, Message)
     assert message.Phase == "analysis"
 
@@ -247,7 +249,7 @@ def test_response_keeps_raw_reasoning_and_usage_byte_for_byte() -> None:
         b'{"status":"completed","output":[ { "id" : "x", "type":"reasoning", "summary":[] } ],'
         b' "usage" : { "input_tokens" : 1 } }'
     )
-    reasoning = response.Output[0].Data
+    reasoning = (response.Output or [])[0].Data
     assert isinstance(reasoning, Reasoning)
     assert bytes(reasoning.Raw) == b'{ "id" : "x", "type":"reasoning", "summary":[] }'
     assert bytes(response.Usage.Raw) == b'{ "input_tokens" : 1 }'
@@ -280,9 +282,19 @@ def test_response_accepts_null_members_like_go() -> None:
     response = decode_response(
         b'{"status":"completed","output":[{"type":"reasoning","summary":[null]}],"usage":null}'
     )
-    assert response.Output[0].Data == Reasoning(
+    assert (response.Output or [])[0].Data == Reasoning(
         Summary=[""], Raw=Raw(b'{"type":"reasoning","summary":[null]}')
     )
     assert response.Usage == Usage(Raw=Raw(b"null"))
     failed = decode_response(b'{"status":"failed","output":[]}')
     assert failed.Failure == Failure(Message="response failed")
+
+
+def test_response_encodes_empty_output_and_summary_like_go() -> None:
+    failed = decode_response(b'{"status":"failed"}')
+    assert failed.Output == []
+    assert b'"Output":[]' in encode(failed)
+    response = decode_response(b'{"status":"completed","output":[{"type":"reasoning"}]}')
+    assert encode((response.Output or [])[0]) == (
+        b'{"ProviderID":"","Type":"reasoning","Data":{"Summary":[],"Raw":{"type":"reasoning"}}}'
+    )

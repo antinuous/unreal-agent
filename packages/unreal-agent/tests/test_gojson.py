@@ -29,7 +29,7 @@ class Sample(Struct):
 
 
 class Omits(Struct):
-    Zero: Annotated[list[str], OmitZero] = []
+    Zero: Annotated[list[str] | None, OmitZero] = None
     Empty: Annotated[list[str], OmitEmpty] = []
     Nested: Annotated[Sample | None, OmitZero] = None
     Kept: str = ""
@@ -203,3 +203,72 @@ def test_encode_rejects_years_outside_go_range() -> None:
     first = Timestamp.parse("0000-01-01T00:00:00Z")
     with pytest.raises(JSONError, match=r"year outside of range \[0,9999\]"):
         encode(Timestamp(first.unix_ns - 1))
+
+
+class NilSlices(Struct):
+    L: Annotated[list[str] | None, OmitZero] = None
+    M: Annotated[dict[str, int] | None, OmitZero] = None
+
+
+class Wrapper(Struct):
+    Inner: Annotated[NilSlices, OmitZero] = msgspec.field(default_factory=NilSlices)
+
+
+def test_omitzero_omits_only_nil_slices_and_maps_like_go() -> None:
+    assert encode(NilSlices()) == b"{}"
+    assert encode(NilSlices(L=[], M={})) == b'{"L":[],"M":{}}'
+    assert encode(Wrapper()) == b"{}"
+    assert encode(Wrapper(Inner=NilSlices(L=[]))) == b'{"Inner":{"L":[]}}'
+    assert encode(Omits(Nested=Sample())).startswith(b'{"Nested":{"A":0,')
+    assert decode(b'{"L":[],"M":{}}', NilSlices) == NilSlices(L=[], M={})
+    assert decode(b"{}", NilSlices) == NilSlices()
+    assert decode(b'{"L":null,"M":null}', NilSlices) == NilSlices()
+
+
+class Enumish(Struct):
+    S: Sample = msgspec.field(default_factory=Sample)
+    K: Omits = msgspec.field(default_factory=Omits)
+
+
+def test_decode_null_into_non_pointer_is_zero_like_go() -> None:
+    got = decode(
+        b'{"A":null,"B":null,"C":null,"D":null,"E":null,"F":null,"G":null,"T":null}', Sample
+    )
+    assert got == Sample(B=Raw(b"null"))
+    assert bytes(got.B) == b"null"
+    assert decode(b'{"S":null,"K":{"Nested":null,"Kept":null}}', Enumish) == Enumish()
+    assert decode(b'{"C":["a",null],"F":{"x":null}}', Sample) == Sample(C=["a", ""], F={"x": None})
+    assert decode(b"[1,null,3]", list[int]) == [1, 0, 3]
+    assert decode(b'{"a":null}', dict[str, int]) == {"a": 0}
+    assert decode(b'{"a":null}', dict[str, bool]) == {"a": False}
+    assert decode(b"null", Sample) == Sample()
+    assert decode(b"null", str) == ""
+    assert decode(b'{"E":null}', Sample).E is None
+    assert decode(b'{"A":"null"}', Omits) == Omits()
+
+
+def test_decode_null_keeps_go_errors() -> None:
+    with pytest.raises(JSONError):
+        decode(b'{"A":null,"C":1}', Sample)
+    with pytest.raises(JSONError):
+        decode(b'{"A":null,"A":null}', Sample)
+
+
+def _nested(depth: int) -> bytes:
+    return b"[" * depth + b"]" * depth
+
+
+def test_nesting_limit_matches_go() -> None:
+    assert decode(_nested(10000), Any) is not None
+    assert decode(b'{"F":{"a":' + _nested(9998) + b"}}", Sample).F["a"] is not None
+    for data in (_nested(10001), b'{"F":{"a":' + _nested(9999) + b"}}", _nested(200000)):
+        with pytest.raises(JSONError, match="exceeded max depth"):
+            decode(data, Any)
+    assert decode(b'["' + b"[" * 20000 + b'"]', list[str]) == ["[" * 20000]
+    value: Any = []
+    for _ in range(9999):
+        value = [value]
+    assert encode(value) == _nested(10000)
+    with pytest.raises(JSONError, match="exceeded max depth"):
+        encode([value])
+    assert encode({"x": Sample(F={"y": value[0][0][0]})}).startswith(b'{"x":{"A":0')
