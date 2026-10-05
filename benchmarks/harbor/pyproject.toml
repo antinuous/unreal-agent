@@ -2,21 +2,26 @@
 name = "harness-harbor"
 version = "0.1.0"
 description = "Harbor installed-agent integration for Unreal Agent"
-requires-python = ">=3.12"
-dependencies = ["harbor==0.22.0", "certifi"]
+requires-python = ">=3.14"
+dependencies = ["harbor==0.22.0"]
 
 [project.optional-dependencies]
 modal = ["harbor[modal]==0.22.0"]
 
-[dependency-groups]
-dev = ["ruff==0.15.6"]
-
 [build-system]
-requires = ["uv_build>=0.8.4,<0.9.0"]
+requires = ["uv_build>=0.12,<0.13"]
 build-backend = "uv_build"
 
-[tool.ruff]
-target-version = "py312"
+[tool.pyrefly]
+project-includes = ["src", "tests", "build.py"]
+search-path = ["src", "."]
+use-ignore-files = true
+python-version = "3.14"
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "SIM"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+timeout = 120
+addopts = ["--import-mode=importlib", "--strict-markers"]
+pythonpath = ["."]

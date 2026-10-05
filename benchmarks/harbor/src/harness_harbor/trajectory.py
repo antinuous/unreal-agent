@@ -80,9 +80,7 @@ def view_image_result(
     waiting = status.get("WaitingFor") or []
     if status.get("Error"):
         if waiting or operations:
-            raise ValueError(
-                "ViewImage call has both a validation error and operations"
-            )
+            raise ValueError("ViewImage call has both a validation error and operations")
         return "Error: " + status["Error"], False
     if len(waiting) != 1:
         raise ValueError(f"ViewImage call has {len(waiting)} operations, want 1")
@@ -118,9 +116,7 @@ def view_image_result(
     if failed:
         return "; ".join(details), False
     if ratio < 1:
-        details.append(
-            f"multiply coordinates by {1 / ratio:.2f} to approximate original"
-        )
+        details.append(f"multiply coordinates by {1 / ratio:.2f} to approximate original")
 
     if output_dir is None:
         raise ValueError("ViewImage observations require an output directory")
@@ -133,9 +129,7 @@ def view_image_result(
     content = [
         ContentPart(
             type="image",
-            source=ImageSource(
-                media_type=value["EncodedMIMEType"], path=relative.as_posix()
-            ),
+            source=ImageSource(media_type=value["EncodedMIMEType"], path=relative.as_posix()),
         )
     ]
     if details:
@@ -154,7 +148,7 @@ def convert(
     calls: dict[str, tuple[Step, str]] = {}
     pending_observations: list[ObservationResult] = []
     errors: list[str] = []
-    totals = dict(prompt=0, completion=0, cached=0, reasoning=0, cache_write=0)
+    totals = {"prompt": 0, "completion": 0, "cached": 0, "reasoning": 0, "cache_write": 0}
     previous_sequence = 0
     for line_number, line in enumerate(lines, 1):
         if not line.strip():
@@ -175,7 +169,7 @@ def convert(
         extra = {"sequence": sequence}
         if kind == "turn":
             for result in pending_observations:
-                result.extra["available_before_turn"] = data["ID"]
+                result.extra = {**(result.extra or {}), "available_before_turn": data["ID"]}
             pending_observations.clear()
         elif kind == "input":
             if data["Kind"] != "external":
@@ -277,8 +271,7 @@ def convert(
                 result
                 for result in pending_observations
                 if not (
-                    result.source_call_id == data["CallID"]
-                    and (result.extra or {}).get("running")
+                    result.source_call_id == data["CallID"] and (result.extra or {}).get("running")
                 )
             ]
             result = ObservationResult(

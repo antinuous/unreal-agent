@@ -1,8 +1,7 @@
 import json
-import unittest
 
+import pytest
 from harbor.models.trajectories import Agent, Trajectory
-
 from harness_harbor.trajectory import RUNNING, bash_result, convert
 
 
@@ -53,304 +52,306 @@ def status(state="completed", stdout="test", **fields):
     }
 
 
-class TrajectoryTests(unittest.TestCase):
-    def test_provider_and_legacy_reasoning_preserve_trajectory_and_usage(self):
-        for kind, value, expected in (
-            ("reasoning", {"Summary": ["first", "second"]}, "first\n\nsecond"),
-            (
-                "provider",
-                {"Display": {"Kind": "reasoning", "Text": "first\n\nsecond"}},
-                "first\n\nsecond",
-            ),
-            (
-                "provider",
-                {"Raw": {"type": "reasoning", "summary": [{"text": "raw only"}]}},
-                None,
-            ),
-            ("provider", {"Display": None}, None),
-            ("provider", {"Display": {"Kind": "reasoning", "Text": ""}}, None),
-            ("provider", {"Display": {"Kind": "tool", "Text": "Searching"}}, None),
-        ):
-            with self.subTest(kind=kind, value=value):
-                output = [
-                    {"Type": kind, "Data": value},
-                    {"Type": "message", "Data": {"Text": "done"}},
-                ]
-                trajectory = convert(
-                    [record(1, "model_response", response("turn-1", output))],
-                    Agent(name="unreal-agent", version="test"),
-                    "session",
-                )
-                step = trajectory.steps[0]
-                self.assertEqual(step.message, "done")
-                self.assertEqual(step.reasoning_content, expected)
-                self.assertEqual(step.metrics.extra["reasoning_tokens"], 1)
-                self.assertEqual(trajectory.final_metrics.total_prompt_tokens, 10)
-                self.assertEqual(trajectory.final_metrics.total_completion_tokens, 3)
-                self.assertEqual(trajectory.final_metrics.total_cached_tokens, 4)
-                self.assertEqual(trajectory.final_metrics.extra["reasoning_tokens"], 1)
-                self.assertEqual(
-                    Trajectory.model_validate(trajectory.to_json_dict()), trajectory
-                )
+@pytest.mark.parametrize(
+    ("kind", "value", "expected"),
+    [
+        ("reasoning", {"Summary": ["first", "second"]}, "first\n\nsecond"),
+        (
+            "provider",
+            {"Display": {"Kind": "reasoning", "Text": "first\n\nsecond"}},
+            "first\n\nsecond",
+        ),
+        (
+            "provider",
+            {"Raw": {"type": "reasoning", "summary": [{"text": "raw only"}]}},
+            None,
+        ),
+        ("provider", {"Display": None}, None),
+        ("provider", {"Display": {"Kind": "reasoning", "Text": ""}}, None),
+        ("provider", {"Display": {"Kind": "tool", "Text": "Searching"}}, None),
+    ],
+)
+def test_provider_and_legacy_reasoning_preserve_trajectory_and_usage(kind, value, expected):
+    output = [
+        {"Type": kind, "Data": value},
+        {"Type": "message", "Data": {"Text": "done"}},
+    ]
+    trajectory = convert(
+        [record(1, "model_response", response("turn-1", output))],
+        Agent(name="unreal-agent", version="test"),
+        "session",
+    )
+    step = trajectory.steps[0]
+    assert step.message == "done"
+    assert step.reasoning_content == expected
+    assert step.metrics is not None
+    assert step.metrics.extra is not None
+    assert step.metrics.extra["reasoning_tokens"] == 1
+    metrics = trajectory.final_metrics
+    assert metrics is not None
+    assert metrics.total_prompt_tokens == 10
+    assert metrics.total_completion_tokens == 3
+    assert metrics.total_cached_tokens == 4
+    assert metrics.extra is not None
+    assert metrics.extra["reasoning_tokens"] == 1
+    assert Trajectory.model_validate(trajectory.to_json_dict()) == trajectory
 
-    def test_plain_text_is_not_base64_decoded(self):
-        for text in ("test", "1234", "aGVsbG8=", "😃\n", "", "{not JSON", '  "hi"\n\n'):
-            with self.subTest(text=text):
-                self.assertEqual(
-                    bash_result(status(stdout=text)), (text or "(no output)", False)
-                )
 
-    def test_preserves_inline_truncation_without_duplicate_metadata(self):
-        stdout = "head...92 bytes truncated; complete output in /out...tail"
-        stderr = "head...92 bytes truncated; complete output in /err...tail"
-        data = status(
-            Result={"Out": stdout, "Err": stderr, "ExitCode": 7},
-            OutTruncated=True,
-            ErrTruncated=True,
-            OutPath="/out",
-            ErrPath="/err",
-        )
-        self.assertEqual(
-            bash_result(data), (f"{stdout}\nStderr:\n{stderr}\nExit code: 7", False)
-        )
+@pytest.mark.parametrize(
+    "text", ["test", "1234", "aGVsbG8=", "😃\n", "", "{not JSON", '  "hi"\n\n']
+)
+def test_plain_text_is_not_base64_decoded(text):
+    assert bash_result(status(stdout=text)) == (text or "(no output)", False)
 
-    def test_labels_stderr_and_nonzero_exit_codes(self):
-        for stdout, stderr, exit_code, expected in (
-            ("", "warning\n", 0, "Stderr:\nwarning\n"),
-            ("out\n", "err\n", 0, "out\n\nStderr:\nerr\n"),
-            ("out", "err", 7, "out\nStderr:\nerr\nExit code: 7"),
-            ("", "failed\n", 7, "Stderr:\nfailed\n\nExit code: 7"),
-            ("", "", 1, "Exit code: 1"),
-        ):
-            with self.subTest(stdout=stdout, stderr=stderr, exit_code=exit_code):
-                data = status(
-                    Result={"Out": stdout, "Err": stderr, "ExitCode": exit_code}
-                )
-                self.assertEqual(bash_result(data), (expected, False))
 
-    def test_running_and_failed_operations(self):
-        for state in ("ready", "awaiting", "canceling"):
-            with self.subTest(state=state):
-                self.assertEqual(
-                    bash_result(status(state=state, Result=None)), (RUNNING, True)
-                )
-        for state in ("failed", "canceled"):
-            for error in ("", "shell stopped", "err...100 bytes truncated...end"):
-                with self.subTest(state=state, error=error):
-                    data = status(state=state, Result=None, TerminalError=error)
-                    self.assertEqual(
-                        bash_result(data),
-                        (f"Error: {error or 'shell operation ' + state}", False),
-                    )
+def test_preserves_inline_truncation_without_duplicate_metadata():
+    stdout = "head...92 bytes truncated; complete output in /out...tail"
+    stderr = "head...92 bytes truncated; complete output in /err...tail"
+    data = status(
+        Result={"Out": stdout, "Err": stderr, "ExitCode": 7},
+        OutTruncated=True,
+        ErrTruncated=True,
+        OutPath="/out",
+        ErrPath="/err",
+    )
+    assert bash_result(data) == (f"{stdout}\nStderr:\n{stderr}\nExit code: 7", False)
 
-    def test_failure_and_cancellation_preserve_available_captures(self):
-        for state in ("failed", "canceled"):
-            for fields, prefix in (
-                ({}, ""),
-                ({"OutPath": "/out"}, "Stdout capture: /out\n"),
-                ({"ErrPath": "/err"}, "Stderr capture: /err\n"),
-                (
-                    {"OutPath": "/out", "ErrPath": "/err"},
-                    "Stdout capture: /out\nStderr capture: /err\n",
-                ),
-            ):
-                with self.subTest(state=state, fields=fields):
-                    data = status(state=state, Result=None, **fields)
-                    self.assertEqual(
-                        bash_result(data),
-                        (prefix + f"Error: shell operation {state}", False),
-                    )
 
-    def test_rejects_invalid_shell_results(self):
-        for data, message in (
-            ({"Status": {}}, "has 0 operations, want 1"),
-            (
-                {"Status": {"WaitingFor": ["op-1", "op-2"]}},
-                "has 2 operations, want 1",
-            ),
-            (
-                {**status(), "Status": {"Error": "bad arguments"}},
-                "both a validation error and operations",
-            ),
-            (status(Result=None), "Completed shell operation has no result"),
-            (status(state="unknown"), "Unsupported operation status"),
-            (
-                status(Result={"Out": None, "Err": "", "ExitCode": 0}),
-                "Expected current runner text output",
-            ),
-        ):
-            with self.assertRaisesRegex(ValueError, message):
-                bash_result(data)
+@pytest.mark.parametrize(
+    ("stdout", "stderr", "exit_code", "expected"),
+    [
+        ("", "warning\n", 0, "Stderr:\nwarning\n"),
+        ("out\n", "err\n", 0, "out\n\nStderr:\nerr\n"),
+        ("out", "err", 7, "out\nStderr:\nerr\nExit code: 7"),
+        ("", "failed\n", 7, "Stderr:\nfailed\n\nExit code: 7"),
+        ("", "", 1, "Exit code: 1"),
+    ],
+)
+def test_labels_stderr_and_nonzero_exit_codes(stdout, stderr, exit_code, expected):
+    data = status(Result={"Out": stdout, "Err": stderr, "ExitCode": exit_code})
+    assert bash_result(data) == (expected, False)
 
-    def test_truncated_validation_error_is_plain_text(self):
-        data = {
-            "Status": {
-                "Error": "bad...100 bytes truncated...JSON",
-                "ErrorTruncated": True,
-            }
+
+@pytest.mark.parametrize("state", ["ready", "awaiting", "canceling"])
+def test_running_operations(state):
+    assert bash_result(status(state=state, Result=None)) == (RUNNING, True)
+
+
+@pytest.mark.parametrize("state", ["failed", "canceled"])
+@pytest.mark.parametrize("error", ["", "shell stopped", "err...100 bytes truncated...end"])
+def test_failed_operations(state, error):
+    data = status(state=state, Result=None, TerminalError=error)
+    assert bash_result(data) == (f"Error: {error or 'shell operation ' + state}", False)
+
+
+@pytest.mark.parametrize("state", ["failed", "canceled"])
+@pytest.mark.parametrize(
+    ("fields", "prefix"),
+    [
+        ({}, ""),
+        ({"OutPath": "/out"}, "Stdout capture: /out\n"),
+        ({"ErrPath": "/err"}, "Stderr capture: /err\n"),
+        (
+            {"OutPath": "/out", "ErrPath": "/err"},
+            "Stdout capture: /out\nStderr capture: /err\n",
+        ),
+    ],
+)
+def test_failure_and_cancellation_preserve_available_captures(state, fields, prefix):
+    data = status(state=state, Result=None, **fields)
+    assert bash_result(data) == (prefix + f"Error: shell operation {state}", False)
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        ({"Status": {}}, "has 0 operations, want 1"),
+        ({"Status": {"WaitingFor": ["op-1", "op-2"]}}, "has 2 operations, want 1"),
+        (
+            {**status(), "Status": {"Error": "bad arguments"}},
+            "both a validation error and operations",
+        ),
+        (status(Result=None), "Completed shell operation has no result"),
+        (status(state="unknown"), "Unsupported operation status"),
+        (
+            status(Result={"Out": None, "Err": "", "ExitCode": 0}),
+            "Expected current runner text output",
+        ),
+    ],
+)
+def test_rejects_invalid_shell_results(data, message):
+    with pytest.raises(ValueError, match=message):
+        bash_result(data)
+
+
+def test_truncated_validation_error_is_plain_text():
+    data = {
+        "Status": {
+            "Error": "bad...100 bytes truncated...JSON",
+            "ErrorTruncated": True,
         }
-        self.assertEqual(
-            bash_result(data), ("Error: bad...100 bytes truncated...JSON", False)
-        )
+    }
+    assert bash_result(data) == ("Error: bad...100 bytes truncated...JSON", False)
 
-    def test_internal_control_and_delayed_observations(self):
-        tool_call = {
+
+def test_internal_control_and_delayed_observations():
+    tool_call = {
+        "Type": "tool_call",
+        "Data": {
+            "CallID": "call-1",
+            "Name": "Bash",
+            "Arguments": '{"command":"printf test"}',
+        },
+    }
+    lines = [
+        record(1, "input", {"Kind": "external", "Payload": '"literal quotes"'}),
+        record(2, "input", {"Kind": "control", "Payload": {"Mode": "when_idle"}}),
+        record(3, "turn", {"ID": "turn-1"}),
+        record(4, "model_response", response("turn-1", [tool_call])),
+        record(5, "tool_call_status", status(state="ready")),
+        record(6, "turn", {"ID": "turn-2"}),
+        record(7, "model_response", response("turn-2", [])),
+        record(8, "tool_call_status", status()),
+        record(9, "turn", {"ID": "turn-3"}),
+        record(10, "model_response", response("turn-3", [])),
+    ]
+    trajectory = convert(lines, Agent(name="unreal-agent", version="test"), "session")
+    assert len(trajectory.steps) == 4
+    assert trajectory.steps[0].message == '"literal quotes"'
+    observation = trajectory.steps[1].observation
+    assert observation is not None
+    observations = observation.results
+    first_extra, second_extra = observations[0].extra, observations[1].extra
+    assert first_extra is not None
+    assert second_extra is not None
+    assert observations[0].content == RUNNING
+    assert first_extra["running"] is True
+    assert first_extra["available_before_turn"] == "turn-2"
+    assert second_extra["available_before_turn"] == "turn-3"
+    assert observations[1].content == "test"
+    assert second_extra["running"] is False
+    metrics = trajectory.final_metrics
+    assert metrics is not None
+    assert metrics.total_prompt_tokens == 30
+    assert metrics.total_cached_tokens == 12
+    assert metrics.total_completion_tokens == 9
+    assert metrics.total_cost_usd is None
+    Trajectory.model_validate(trajectory.to_json_dict())
+
+
+@pytest.mark.parametrize("state", ["ready", "completed"])
+def test_only_latest_pending_running_result_is_marked_available(state):
+    calls = [
+        {
             "Type": "tool_call",
             "Data": {
-                "CallID": "call-1",
+                "CallID": call_id,
                 "Name": "Bash",
                 "Arguments": '{"command":"printf test"}',
             },
         }
-        lines = [
-            record(1, "input", {"Kind": "external", "Payload": '"literal quotes"'}),
-            record(2, "input", {"Kind": "control", "Payload": {"Mode": "when_idle"}}),
-            record(3, "turn", {"ID": "turn-1"}),
-            record(4, "model_response", response("turn-1", [tool_call])),
-            record(5, "tool_call_status", status(state="ready")),
-            record(6, "turn", {"ID": "turn-2"}),
-            record(7, "model_response", response("turn-2", [])),
-            record(8, "tool_call_status", status()),
-            record(9, "turn", {"ID": "turn-3"}),
-            record(10, "model_response", response("turn-3", [])),
-        ]
-        trajectory = convert(
-            lines, Agent(name="unreal-agent", version="test"), "session"
-        )
-        self.assertEqual(len(trajectory.steps), 4)
-        self.assertEqual(trajectory.steps[0].message, '"literal quotes"')
-        observations = trajectory.steps[1].observation.results
-        self.assertEqual(observations[0].content, RUNNING)
-        self.assertIs(observations[0].extra["running"], True)
-        self.assertEqual(observations[0].extra["available_before_turn"], "turn-2")
-        self.assertEqual(observations[1].extra["available_before_turn"], "turn-3")
-        self.assertEqual(observations[1].content, "test")
-        self.assertIs(observations[1].extra["running"], False)
-        self.assertEqual(trajectory.final_metrics.total_prompt_tokens, 30)
-        self.assertEqual(trajectory.final_metrics.total_cached_tokens, 12)
-        self.assertEqual(trajectory.final_metrics.total_completion_tokens, 9)
-        self.assertIsNone(trajectory.final_metrics.total_cost_usd)
-        Trajectory.model_validate(trajectory.to_json_dict())
+        for call_id in ("call-1", "call-2")
+    ]
+    other_status = {**status(state="ready"), "CallID": "call-2"}
+    lines = [
+        record(1, "model_response", response("turn-1", calls)),
+        record(2, "tool_call_status", status(state="ready")),
+        record(3, "tool_call_status", other_status),
+        record(4, "input", {"Kind": "external", "Payload": "continue"}),
+        record(5, "tool_call_status", status(state=state)),
+        record(6, "turn", {"ID": "turn-2"}),
+    ]
+    trajectory = convert(lines, Agent(name="unreal-agent", version="test"), "session")
+    observation = trajectory.steps[0].observation
+    assert observation is not None
+    observations = observation.results
+    assert len(observations) == 3
+    first_extra, second_extra, third_extra = (result.extra for result in observations)
+    assert first_extra is not None
+    assert second_extra is not None
+    assert third_extra is not None
+    assert observations[0].content == RUNNING
+    assert "available_before_turn" not in first_extra
+    assert observations[1].source_call_id == "call-2"
+    assert observations[1].content == RUNNING
+    assert first_extra["running"] is True
+    assert second_extra["running"] is True
+    assert second_extra["available_before_turn"] == "turn-2"
+    content, running = bash_result(status(state=state))
+    assert observations[2].content == content
+    assert third_extra["running"] is running
+    assert third_extra["available_before_turn"] == "turn-2"
+    assert third_extra["sequence"] == 5
 
-    def test_only_latest_pending_running_result_is_marked_available(self):
-        for state in ("ready", "completed"):
-            with self.subTest(state=state):
-                calls = [
+
+def test_completed_output_matching_running_payload_remains_available():
+    call = {
+        "Type": "tool_call",
+        "Data": {"CallID": "call-1", "Name": "Bash", "Arguments": "{}"},
+    }
+    lines = [
+        record(1, "model_response", response("turn-1", [call])),
+        record(2, "tool_call_status", status(stdout=RUNNING)),
+        record(3, "tool_call_status", status(state="ready")),
+        record(4, "tool_call_status", status()),
+        record(5, "turn", {"ID": "turn-2"}),
+    ]
+    trajectory = convert(lines, Agent(name="unreal-agent", version="test"), "session")
+    observation = trajectory.steps[0].observation
+    assert observation is not None
+    observations = observation.results
+    assert len(observations) == 3
+    first_extra, second_extra, third_extra = (result.extra for result in observations)
+    assert first_extra is not None
+    assert second_extra is not None
+    assert third_extra is not None
+    assert observations[0].content == RUNNING
+    assert first_extra["running"] is False
+    assert first_extra["available_before_turn"] == "turn-2"
+    assert second_extra["running"] is True
+    assert "available_before_turn" not in second_extra
+    assert observations[2].content == "test"
+    assert third_extra["running"] is False
+    assert third_extra["available_before_turn"] == "turn-2"
+    assert Trajectory.model_validate(trajectory.to_json_dict()) == trajectory
+
+
+@pytest.mark.parametrize("lines", [["{"], ['{"Kind":']])
+def test_malformed_record_is_an_error_including_partial_final_line(lines):
+    with pytest.raises(ValueError, match="line 1"):
+        convert(lines, Agent(name="unreal-agent", version="test"), "session")
+
+
+def test_validation_error_and_incomplete_run_keep_usage():
+    lines = [
+        record(
+            1,
+            "model_response",
+            response(
+                "turn-1",
+                [
                     {
                         "Type": "tool_call",
                         "Data": {
-                            "CallID": call_id,
+                            "CallID": "call-1",
                             "Name": "Bash",
-                            "Arguments": '{"command":"printf test"}',
+                            "Arguments": "{",
                         },
                     }
-                    for call_id in ("call-1", "call-2")
-                ]
-                other_status = {**status(state="ready"), "CallID": "call-2"}
-                lines = [
-                    record(1, "model_response", response("turn-1", calls)),
-                    record(2, "tool_call_status", status(state="ready")),
-                    record(3, "tool_call_status", other_status),
-                    record(4, "input", {"Kind": "external", "Payload": "continue"}),
-                    record(5, "tool_call_status", status(state=state)),
-                    record(6, "turn", {"ID": "turn-2"}),
-                ]
-                trajectory = convert(
-                    lines, Agent(name="unreal-agent", version="test"), "session"
-                )
-                observations = trajectory.steps[0].observation.results
-                self.assertEqual(len(observations), 3)
-                self.assertEqual(observations[0].content, RUNNING)
-                self.assertNotIn("available_before_turn", observations[0].extra)
-                self.assertEqual(observations[1].source_call_id, "call-2")
-                self.assertEqual(observations[1].content, RUNNING)
-                self.assertIs(observations[0].extra["running"], True)
-                self.assertIs(observations[1].extra["running"], True)
-                self.assertEqual(
-                    observations[1].extra["available_before_turn"], "turn-2"
-                )
-                content, running = bash_result(status(state=state))
-                self.assertEqual(observations[2].content, content)
-                self.assertIs(observations[2].extra["running"], running)
-                self.assertEqual(
-                    observations[2].extra["available_before_turn"], "turn-2"
-                )
-                self.assertEqual(observations[2].extra["sequence"], 5)
-
-    def test_completed_output_matching_running_payload_remains_available(self):
-        call = {
-            "Type": "tool_call",
-            "Data": {
-                "CallID": "call-1",
-                "Name": "Bash",
-                "Arguments": "{}",
-            },
-        }
-        lines = [
-            record(1, "model_response", response("turn-1", [call])),
-            record(2, "tool_call_status", status(stdout=RUNNING)),
-            record(3, "tool_call_status", status(state="ready")),
-            record(4, "tool_call_status", status()),
-            record(5, "turn", {"ID": "turn-2"}),
-        ]
-        trajectory = convert(
-            lines, Agent(name="unreal-agent", version="test"), "session"
-        )
-        observations = trajectory.steps[0].observation.results
-        self.assertEqual(len(observations), 3)
-        self.assertEqual(observations[0].content, RUNNING)
-        self.assertIs(observations[0].extra["running"], False)
-        self.assertEqual(observations[0].extra["available_before_turn"], "turn-2")
-        self.assertIs(observations[1].extra["running"], True)
-        self.assertNotIn("available_before_turn", observations[1].extra)
-        self.assertEqual(observations[2].content, "test")
-        self.assertIs(observations[2].extra["running"], False)
-        self.assertEqual(observations[2].extra["available_before_turn"], "turn-2")
-        self.assertEqual(
-            Trajectory.model_validate(trajectory.to_json_dict()), trajectory
-        )
-
-    def test_malformed_record_is_an_error_including_partial_final_line(self):
-        for lines in (["{"], ['{"Kind":']):
-            with self.assertRaisesRegex(ValueError, "line 1"):
-                convert(lines, Agent(name="unreal-agent", version="test"), "session")
-
-    def test_validation_error_and_incomplete_run_keep_usage(self):
-        lines = [
-            record(
-                1,
-                "model_response",
-                response(
-                    "turn-1",
-                    [
-                        {
-                            "Type": "tool_call",
-                            "Data": {
-                                "CallID": "call-1",
-                                "Name": "Bash",
-                                "Arguments": "{",
-                            },
-                        }
-                    ],
-                ),
+                ],
             ),
-            record(
-                2,
-                "tool_call_status",
-                {"CallID": "call-1", "Status": {"Error": "bad JSON"}},
-            ),
-            json.dumps({"type": "error", "message": "provider disconnected"}),
-        ]
-        trajectory = convert(
-            lines, Agent(name="unreal-agent", version="test"), "session"
-        )
-        self.assertEqual(trajectory.final_metrics.total_prompt_tokens, 10)
-        self.assertEqual(trajectory.extra["runner_errors"], ["provider disconnected"])
-        self.assertEqual(
-            trajectory.steps[0].observation.results[0].content,
-            "Error: bad JSON",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        ),
+        record(
+            2,
+            "tool_call_status",
+            {"CallID": "call-1", "Status": {"Error": "bad JSON"}},
+        ),
+        json.dumps({"type": "error", "message": "provider disconnected"}),
+    ]
+    trajectory = convert(lines, Agent(name="unreal-agent", version="test"), "session")
+    assert trajectory.final_metrics is not None
+    assert trajectory.final_metrics.total_prompt_tokens == 10
+    assert trajectory.extra is not None
+    assert trajectory.extra["runner_errors"] == ["provider disconnected"]
+    assert trajectory.steps[0].observation is not None
+    assert trajectory.steps[0].observation.results[0].content == "Error: bad JSON"
