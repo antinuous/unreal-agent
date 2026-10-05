@@ -139,3 +139,10 @@ def test_compact_preserves_tokens() -> None:
 
 def test_struct_requires_defaults_for_lenient_decoding() -> None:
     assert isinstance(decode(b"{}", Sample), msgspec.Struct)
+
+
+def test_compact_rewrites_string_escapes_like_go() -> None:
+    source = b'{"a\\u0062" : ["\\u003c\\u00e9\\/\\ud83d\\ude00\\u2028\\n\\u0007x", 1.50e+3, -0]}'
+    expected = ('{"ab":["<é/😀' + chr(0x2028) + '\\n\\u0007x",1.50e+3,-0]}').encode()
+    assert compact(source) == expected
+    assert encode(Sample(B=Raw(source))).startswith(b'{"A":0,"B":' + expected + b",")

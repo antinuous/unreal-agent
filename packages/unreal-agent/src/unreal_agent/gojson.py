@@ -304,27 +304,35 @@ _WS: Final = frozenset(b" \t\r\n")
 
 
 def compact(data: bytes | bytearray | memoryview) -> bytes:
-    """Remove insignificant whitespace without altering any token."""
+    """Format a valid raw JSON value the way Go's encoder writes a `jsontext.Value`.
+
+    Insignificant whitespace is removed and strings containing escapes are
+    rewritten with minimal escaping. Numbers and member order are unchanged.
+    """
     source = bytes(data)
-    if not any(byte in _WS for byte in source):
+    if b"\\" not in source and not any(byte in _WS for byte in source):
         return source
     out = bytearray()
-    in_string = False
-    escaped = False
-    for byte in source:
-        if in_string:
+    index = 0
+    end = len(source)
+    while index < end:
+        byte = source[index]
+        if byte == 0x22:
+            close = index + 1
+            escaped = False
+            while source[close] != 0x22:
+                if source[close] == 0x5C:
+                    escaped = True
+                    close += 2
+                else:
+                    close += 1
+            token = source[index : close + 1]
+            out += _encode_str(json.loads(token)) if escaped else token
+            index = close + 1
+            continue
+        if byte not in _WS:
             out.append(byte)
-            if escaped:
-                escaped = False
-            elif byte == 0x5C:
-                escaped = True
-            elif byte == 0x22:
-                in_string = False
-        elif byte == 0x22:
-            in_string = True
-            out.append(byte)
-        elif byte not in _WS:
-            out.append(byte)
+        index += 1
     return bytes(out)
 
 

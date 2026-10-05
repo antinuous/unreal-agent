@@ -1,9 +1,8 @@
 """Go `encoding/json/v2` and `net/http` behaviors that the wire code depends on."""
 
-import json
-from typing import Any, Final
+from typing import Final
 
-from unreal_agent.gojson import JSONError, decode, validate
+from unreal_agent.gojson import JSONError, compact, decode, validate
 
 _ASCII_SPACE: Final = b" \t\n\v\f\r"
 _UNICODE_SPACE: Final = " \t\n\v\f\r" + "".join(
@@ -112,42 +111,9 @@ def decode_object[T](data: bytes, kind: type[T]) -> T:
 
 
 def reformat(value: bytes) -> bytes:
-    """Format a valid raw JSON value the way Go's encoder writes a `jsontext.Value`.
-
-    Whitespace is removed and every string is rewritten with minimal escaping.
-    Numbers and member order are kept.
-    """
     if not value:
         raise JSONError("empty raw JSON value")
-    out = bytearray()
-    index = 0
-    end = len(value)
-    while index < end:
-        byte = value[index]
-        if byte == 0x22:
-            close = index + 1
-            escaped = False
-            while True:
-                current = value[close]
-                if current == 0x5C:
-                    escaped = True
-                    close += 2
-                    continue
-                if current == 0x22:
-                    break
-                close += 1
-            token = value[index : close + 1]
-            if escaped:
-                text: Any = json.loads(token)
-                out += json.dumps(text, ensure_ascii=False).encode()
-            else:
-                out += token
-            index = close + 1
-            continue
-        if byte not in _ASCII_SPACE:
-            out.append(byte)
-        index += 1
-    return bytes(out)
+    return compact(value)
 
 
 def reformat_checked(value: bytes) -> bytes:
