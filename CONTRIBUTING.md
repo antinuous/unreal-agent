@@ -27,17 +27,5 @@ Failing examples are stored in `.hypothesis/` and replay on the next run. Set
 `HYPOTHESIS_PROFILE=fuzz-ci` for the shorter CI profile, and pass test paths with
 `FUZZ_ARGS`.
 
-The Harbor benchmark adapter has its own targets:
-
-```sh
-make -C benchmarks/harbor test check build smoke BUNDLE=../../bin/harbor/dev
-```
-
-Build and check the image with Docker:
-
-```sh
-docker build -t unreal-agent .
-docker run --rm unreal-agent -h
-```
-
-See [AGENTS.md](AGENTS.md) for the package layout and coding conventions.
+See [AGENTS.md](AGENTS.md) for the Harbor and Docker commands, the package
+layout, and coding conventions.

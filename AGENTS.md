@@ -14,7 +14,7 @@ uv run pytest                        # tests
 uv run ruff format .                 # format
 uv run ruff check .                  # lint
 uv run pyrefly check                 # type-check
-make check test build                # what CI runs
+make check test build                # CI also runs fuzz, Harbor, and Docker jobs
 make fuzz                            # property tests with the heavier Hypothesis profile
 make -C benchmarks/harbor test check build smoke BUNDLE=...   # Harbor adapter
 docker build -t unreal-agent . && docker run --rm unreal-agent -h
@@ -44,7 +44,7 @@ Modules live under `packages/unreal-agent/src/unreal_agent`:
 | `gojson` | Go-compatible JSON encoding for persisted and wire formats |
 
 Tests live in `packages/unreal-agent/tests/<package>/test_*.py`. Test fixtures
-are copied next to the tests that use them. Shared test helpers go in
+live in `testdata/` next to the tests that use them. Shared test helpers go in
 `tests/<package>/_helpers.py` and are imported as `tests.<package>._helpers`.
 `tests/conftest.py` registers the `fuzz` and `fuzz-ci` Hypothesis profiles,
 selected with `HYPOTHESIS_PROFILE`.

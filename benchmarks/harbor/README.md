@@ -44,7 +44,7 @@ export OPENAI_API_KEY=...
 uv run --project benchmarks/harbor --locked harbor run \
   -p /absolute/path/to/task \
   -a harness_harbor.agent:UnrealAgent \
-  -m openai/gpt-5.4 \
+  -m openai/gpt-6-astra \
   --ak bundle="$PWD/bin/harbor/<short-commit>" \
   --ak thinking_level=high
 ```
@@ -54,11 +54,6 @@ Also supports `anthropic/<model>` with `ANTHROPIC_API_KEY`,
 `openrouter/<model>` with `OPENROUTER_API_KEY`, and
 `fireworks_ai/<model>` with `FIREWORKS_AI_API_KEY`. Use Harbor's `--ae` option for
 environment overrides.
-
-OpenRouter requests opt into OpenRouter's automatic prompt caching with a one-hour
-TTL and carry the session id, so Anthropic and other explicit-breakpoint upstreams
-cache the growing conversation, keep it on one upstream, and keep it across long
-tool calls and reasoning turns.
 
 For Terminal-Bench 4.0 on Modal, configure Modal credentials and run:
 
