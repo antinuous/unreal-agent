@@ -162,18 +162,17 @@ async def run(
 async def _clean_up(cleanups: list[_Cleanup]) -> BaseException | None:
     """Run every cleanup to completion, like Go's defers.
 
-    A cancellation that lands during cleanup is deferred until all cleanups
-    have finished, then re-raised.
+    A cancellation that lands during cleanup does not interrupt it and does not
+    change the outcome: Go decides the exit code from the run's result. The
+    task stays marked as cancelling, so a failed run still exits 130.
     """
     error: BaseException | None = None
     cancelled = False
     for cleanup in reversed(cleanups):
         task = asyncio.ensure_future(cleanup())
         while not task.done():
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await asyncio.wait((task,))
-            except asyncio.CancelledError:
-                cancelled = True
         if task.cancelled():
             cancelled = True
         elif (failure := task.exception()) is not None:

@@ -8,6 +8,7 @@ import subprocess
 import sys
 
 import pytest
+from unreal_agent.llm import Response
 from unreal_agent.runner import Reader, Request, ToolConfig, ToolFactory, Tools, decode_request
 from unreal_agent.runner.run import run_main
 from unreal_agent.tool import new_registry
@@ -23,14 +24,27 @@ from tests.runner._helpers import (
 _PROBE = "UNREAL_RUNNER_CLEANUP_PROBE"
 
 
+@pytest.mark.parametrize(("fail", "want"), [(False, 0), (True, 130)], ids=["success", "failure"])
 async def test_run_finishes_cleanup_when_cancelled_during_cleanup(
-    monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path_factory: pytest.TempPathFactory,
+    fail: bool,
+    want: int,
 ) -> None:
-    """Go runs every deferred cleanup even when the context is cancelled during one."""
+    """Go runs every deferred cleanup even when the context is cancelled during one.
+
+    The exit code comes from the run's result, so a successful run still exits 0.
+    """
+
+    def respond(_: object) -> Response:
+        if fail:
+            raise RuntimeError("model failed")
+        return message_response("done")
+
     monkeypatch.delenv(_PROBE, raising=False)
     workspace = tmp_path_factory.mktemp("workspace")
     (workspace / ".env").write_text(f"{_PROBE}=inner\n")
-    client = FakeClient(lambda _: message_response("done"))
+    client = FakeClient(respond)
     closing, release = asyncio.Event(), asyncio.Event()
     tools_closed = False
 
@@ -74,7 +88,7 @@ async def test_run_finishes_cleanup_when_cancelled_during_cleanup(
         task.cancel()
         await asyncio.sleep(0)
         release.set()
-        assert await task == 130
+        assert await task == want
     assert tools_closed, "tool cleanup was interrupted"
     assert client.closed, "client was not closed"
     assert _PROBE not in os.environ, ".env changes were not restored"
