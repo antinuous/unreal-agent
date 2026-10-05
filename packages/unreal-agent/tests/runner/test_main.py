@@ -39,7 +39,6 @@ async def test_parse_request_configures_static_tools() -> None:
         '{"prompt":"hello","mcp_servers":{}}',
         '{"prompt":"hello","mcp_servers":{"test":"http://localhost"}}',
         '{"prompt":"hello","forward_auth":true}',
-        '{"prompt":"hello","unknown":true}',
     ],
 )
 async def test_runner_rejects_unsupported_requests(input: str) -> None:

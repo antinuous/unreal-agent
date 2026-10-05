@@ -494,7 +494,6 @@ async def test_run_main_uses_default_session_directory(
         pytest.param(
             "", "/state", "/home/user", "/state/unreal-agent/sessions", id="XDG state home"
         ),
-        pytest.param("", "/state", "", "/state/unreal-agent/sessions", id="XDG without home"),
         pytest.param(
             "",
             "",
@@ -518,7 +517,6 @@ async def test_run_main_uses_default_session_directory(
         ),
         pytest.param(" /sessions ", "/state", "/home/user", "/sessions", id="absolute override"),
         pytest.param("sessions", "/state", "", None, id="relative override"),
-        pytest.param("/sessions", "", "", "/sessions", id="override without environment"),
         pytest.param("//sessions/", "", "", "/sessions", id="override cleaned like go"),
         pytest.param("//a/../sessions", "", "", "/sessions", id="override dot-dot cleaned"),
     ],

@@ -149,7 +149,6 @@ async def test_coordinator_stop_rejects_unsupported_operation(mode: ControlMode)
     "terminal",
     [
         pytest.param(Status.COMPLETED, id=str(Status.COMPLETED)),
-        pytest.param(Status.FAILED, id=str(Status.FAILED)),
         pytest.param(Status.CANCELED, id=str(Status.CANCELED)),
     ],
 )

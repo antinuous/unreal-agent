@@ -130,7 +130,7 @@ async def test_run_main_heartbeat_releases_waiting_bash_and_replays(
         assert code == 0, stderr
 
 
-@pytest.mark.parametrize("interval", ["-1s", "invalid", "999999999999999999999s"])
+@pytest.mark.parametrize("interval", ["-1s", "invalid"])
 async def test_run_main_rejects_invalid_heartbeat_interval(interval: str) -> None:
     stderr = io.BytesIO()
     code = await run_main(

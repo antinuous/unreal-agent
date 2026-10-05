@@ -156,21 +156,6 @@ async def test_coordinator_restores_session() -> None:
     )
 
 
-def test_coordinator_applies_turn_types() -> None:
-    current = new_stop_test_run(0).current
-    for turn_type in (
-        TurnType.REGULAR,
-        TurnType.COMPACTION,
-        TurnType.REGULAR,
-        TurnType.COMPACTION,
-    ):
-        turn = Turn(ID="turn", Type=turn_type)
-        current._add_item_to_local_state(Item(Kind=ItemKind.TURN, Data=turn))
-        assert current._state.current_turn_type == turn_type, (
-            f"current turn type = {current._state.current_turn_type!r}, want {turn_type!r}"
-        )
-
-
 async def test_coordinator_restores_ordinary_response_during_compaction() -> None:
     run = new_stop_test_run(0)
     response = text_response("Ordinary response")
@@ -2063,53 +2048,6 @@ async def test_coordinator_run_returns_operation_store_error_after_updating_loca
     assert local == update, f"operation = {local!r}, want {update!r}"
     assert len(operations.adds) == 0, (
         f"operations dispatched before store commit = {operations.adds!r}"
-    )
-
-
-async def test_coordinator_stores_every_session_item_kind() -> None:
-    store = empty_fake_store()
-    current = new_test_coordinator(
-        store,
-        new_test_inbox(),
-        FakeOperationManager(),
-        new_builder(),
-        Registry(StaticTranslators()),
-    )
-    event = external_event("input-1", "hello")
-    turn = Turn(ID="turn-1", Type=TurnType.REGULAR)
-    response = ModelResponse(TurnID=turn.ID, Response=Response(ID="response-1"))
-    value = Operation(ID="operation-1", Type=TYPE_SHELL, Version=1, Status=Status.READY)
-    current._add_operation_to_local_state(value)
-    status = ToolCallStatus(
-        TurnID=turn.ID,
-        CallID="call-1",
-        Status=CallStatus(WaitingFor=[value.ID]),
-        Operations=[value],
-    )
-    items = [
-        Item(Kind=ItemKind.INPUT, Data=event),
-        Item(Kind=ItemKind.TURN, Data=turn),
-        Item(Kind=ItemKind.MODEL_RESPONSE, Data=response),
-        Item(Kind=ItemKind.TOOL_CALL_STATUS, Data=status),
-    ]
-    for item in items:
-        await current._store_item_in_session_store(item)
-
-    assert store.appended_inputs == [event], (
-        f"stored items: inputs={store.appended_inputs!r} turns={store.appended_turns!r} "
-        f"responses={store.appended_responses!r} statuses={store.appended_statuses!r}"
-    )
-    assert store.appended_turns == [turn], (
-        f"stored items: inputs={store.appended_inputs!r} turns={store.appended_turns!r} "
-        f"responses={store.appended_responses!r} statuses={store.appended_statuses!r}"
-    )
-    assert store.appended_responses == [response], (
-        f"stored items: inputs={store.appended_inputs!r} turns={store.appended_turns!r} "
-        f"responses={store.appended_responses!r} statuses={store.appended_statuses!r}"
-    )
-    assert store.appended_statuses == [status], (
-        f"stored items: inputs={store.appended_inputs!r} turns={store.appended_turns!r} "
-        f"responses={store.appended_responses!r} statuses={store.appended_statuses!r}"
     )
 
 

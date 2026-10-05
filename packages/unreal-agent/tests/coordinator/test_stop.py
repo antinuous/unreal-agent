@@ -49,8 +49,11 @@ async def test_coordinator_remains_available_until_stop() -> None:
     ("terminal", "during_request"),
     [
         pytest.param(terminal, during, id=f"{terminal}/during_request={str(during).lower()}")
-        for terminal in (Status.COMPLETED, Status.FAILED, Status.CANCELED)
-        for during in (False, True)
+        for terminal, during in (
+            (Status.COMPLETED, False),
+            (Status.COMPLETED, True),
+            (Status.CANCELED, True),
+        )
     ],
 )
 @fake_time

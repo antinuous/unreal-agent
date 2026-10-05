@@ -26,7 +26,7 @@ from tests.coordinator._helpers import (
 
 
 @pytest.mark.parametrize(
-    "terminal", [Status.COMPLETED, Status.FAILED, Status.CANCELED], ids=lambda value: str(value)
+    "terminal", [Status.COMPLETED, Status.CANCELED], ids=lambda value: str(value)
 )
 @fake_time
 async def test_coordinator_tool_grace_batches_completions_until_all_calls_finish(

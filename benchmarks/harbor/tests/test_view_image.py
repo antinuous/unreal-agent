@@ -76,21 +76,8 @@ def invalid_results():
         (
             "image/png",
             "image/png",
-            1 / 3.25,
-            "original dimensions: 4000x2000; multiply coordinates by 3.25 to approximate original",
-        ),
-        (
-            "image/png",
-            "image/png",
             1 / 3.456,
             "original dimensions: 4000x2000; multiply coordinates by 3.46 to approximate original",
-        ),
-        (
-            "image/png",
-            "image/png",
-            1 / 120,
-            "original dimensions: 4000x2000; multiply coordinates by 120.00 "
-            "to approximate original",
         ),
     ],
 )

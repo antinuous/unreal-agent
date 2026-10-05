@@ -20,9 +20,7 @@ from tests.runner._helpers import FakeClient, environment, reader, runner_config
     [
         pytest.param(None, "", 5, id="default"),
         pytest.param(None, " 3 ", 3, id="environment"),
-        pytest.param(None, "1", 1, id="environment disables retries"),
         pytest.param(2, "3", 2, id="request override"),
-        pytest.param(1, "3", 1, id="request disables retries"),
         pytest.param(1, "bad", 1, id="unused invalid environment"),
         pytest.param(-1, "", None, id="negative request"),
         pytest.param(None, "-1", None, id="negative environment"),

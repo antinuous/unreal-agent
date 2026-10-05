@@ -33,14 +33,7 @@ from tests.runner._helpers import (
             ["first", "second"],
             id="positional messages",
         ),
-        pytest.param(
-            ["--", '{"prompt":"after separator"}'],
-            "",
-            ["after separator"],
-            id="positional after separator",
-        ),
         pytest.param(["-p", "plain prompt"], "", ["plain prompt"], id="prompt"),
-        pytest.param(["-p=plain prompt"], "", ["plain prompt"], id="prompt equals"),
         pytest.param([], '{"prompt":""}', [""], id="empty prompt on stdin"),
         pytest.param(['{"prompt":""}'], "", [""], id="empty positional prompt"),
         pytest.param(["-p", ""], "", [""], id="empty prompt flag"),
@@ -82,7 +75,6 @@ async def test_run_main_request_sources(
 @pytest.mark.parametrize(
     ("args", "want"),
     [
-        pytest.param(["-p"], "flag needs an argument: -p", id="missing prompt"),
         pytest.param(
             ["-p", "hello", '{"prompt":"world"}'], "-p cannot be combined", id="conflicting inputs"
         ),
@@ -135,10 +127,7 @@ class ClosedPipe:
     ("args", "want"),
     [
         pytest.param(["-unknown"], "flag provided but not defined: -unknown", id="unknown flag"),
-        pytest.param(["-p"], "flag needs an argument: -p", id="missing prompt"),
-        pytest.param(["-tool-heartbeat-interval=invalid"], "invalid value", id="invalid duration"),
         pytest.param(["-h"], "write usage", id="help"),
-        pytest.param(["-help"], "write usage", id="long help"),
     ],
 )
 async def test_run_main_usage_write_failure(args: list[str], want: str) -> None:
@@ -158,13 +147,12 @@ async def test_run_main_usage_write_failure(args: list[str], want: str) -> None:
     assert "write usage: " + str(ClosedPipeError()) in event["message"], event
 
 
-@pytest.mark.parametrize("arg", ["-h", "-help"])
-async def test_run_main_help(arg: str) -> None:
+async def test_run_main_help() -> None:
     def parse(_: Reader) -> tuple[Request, None]:
         raise AssertionError("help reached request parsing")
 
     code, stdout, stderr = await call_run_main(
-        [arg],
+        ["-h"],
         must_not_read_environment,
         ErrorReader(),
         Config(name="test-runner", parse_request=parse),

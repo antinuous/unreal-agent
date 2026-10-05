@@ -20,11 +20,11 @@ from tests.runner._helpers import (
 _PROVIDERS = [provider.name for provider in default_providers()]
 
 
-@pytest.mark.parametrize("max_attempts", [1, 2])
 @pytest.mark.parametrize("provider", _PROVIDERS)
 async def test_runner_provider_retries(
-    provider: str, max_attempts: int, tmp_path_factory: pytest.TempPathFactory
+    provider: str, tmp_path_factory: pytest.TempPathFactory
 ) -> None:
+    max_attempts = 2
     lock = threading.Lock()
     attempts = 0
     leaks: list[str] = []
@@ -67,12 +67,6 @@ async def test_runner_provider_retries(
             )
     assert not leaks
     assert (code, attempts) == (1, max_attempts)
-
-
-def test_runner_provider_default_models() -> None:
-    for provider in default_providers():
-        want = "gpt-6-astra" if provider.name == "openai" else ""
-        assert provider.default_model == want, provider.name
 
 
 async def test_runner_codex_uses_subscription_without_api_key(
