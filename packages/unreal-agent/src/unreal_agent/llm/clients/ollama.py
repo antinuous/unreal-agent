@@ -21,7 +21,7 @@ class Client(ResponsesClient):
     def __init__(self, config: Config) -> None:
         url = base_url(config.base_url) or BASE_URL
         super().__init__(
-            RemoteClient(),
+            RemoteClient,
             url + "/responses",
             {"Content-Type": ["application/json"]},
             max_attempts=config.max_attempts,

@@ -6,6 +6,7 @@ from unreal_agent.llm.adapter import RequestOptions
 from unreal_agent.llm.model import Request, Response
 from unreal_agent.llm.responsesapi import CacheKeyPlacement, Config, Exchange, ResponsesAdapter
 from unreal_agent.llm.responsesapi._wire import trim_space_text
+from unreal_agent.llm.responsesapi.adapter import check_config
 from unreal_agent.primitives import RemoteClient
 
 type Trace = Callable[[Exchange], None]
@@ -16,7 +17,7 @@ class ResponsesClient:
 
     def __init__(
         self,
-        remote: RemoteClient,
+        new_remote: Callable[[], RemoteClient],
         endpoint: str,
         headers: Mapping[str, Sequence[str]],
         *,
@@ -25,18 +26,19 @@ class ResponsesClient:
         trace: Trace | None = None,
         extensions: Mapping[str, bytes] | None = None,
     ) -> None:
-        self.remote = remote
-        self.adapter = ResponsesAdapter(
-            remote,
-            Config(
-                endpoint=endpoint,
-                headers=headers,
-                cache_key_placement=cache_key_placement or CacheKeyPlacement(),
-                max_attempts=max_attempts,
-                trace=trace,
-                extensions=extensions or {},
-            ),
+        config = Config(
+            endpoint=endpoint,
+            headers=headers,
+            cache_key_placement=cache_key_placement or CacheKeyPlacement(),
+            max_attempts=max_attempts,
+            trace=trace,
+            extensions=extensions or {},
         )
+        # Validate before creating the remote client: closing it is async, so a
+        # failed constructor could not release it.
+        check_config(config)
+        self.remote = new_remote()
+        self.adapter = ResponsesAdapter(self.remote, config)
 
     async def respond(self, request: Request, options: RequestOptions) -> Response:
         return await self.adapter.respond(request, options)

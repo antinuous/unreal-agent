@@ -45,8 +45,12 @@ class _Registry:
         self._skill_ids_by_path: dict[str, RegistrationID] = {}
         self._skill_order: list[RegistrationID] = []
         self._static_translators: dict[str, Translator] = {
-            BASH_NAME: configured.bash or UnavailableTranslator(BASH_NAME),
-            VIEW_IMAGE_NAME: configured.view_image or UnavailableTranslator(VIEW_IMAGE_NAME),
+            BASH_NAME: UnavailableTranslator(BASH_NAME)
+            if configured.bash is None
+            else configured.bash,
+            VIEW_IMAGE_NAME: UnavailableTranslator(VIEW_IMAGE_NAME)
+            if configured.view_image is None
+            else configured.view_image,
             SKILL_USE_NAME: SkillUseTranslator(self.resolve_skill),
         }
 

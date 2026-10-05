@@ -83,6 +83,47 @@ def test_request_body_reports_tool_argument_encoding_error() -> None:
         request_body(request, "")
 
 
+def test_request_body_replaces_invalid_utf8_in_model_and_plain_input_text() -> None:
+    def escaped(data: bytes) -> str:
+        return data.decode("utf-8", "surrogateescape")
+
+    request = Request(
+        Model=Model(ID=escaped(b"a\xffb\xe2\x82")),
+        Input=[
+            Item(
+                Type=ItemType.MESSAGE,
+                Data=Message(
+                    Role=Role.USER, Text=escaped(b"x\xe2\x82\xacy\xf0\x9f\x98<\xef\xbf\xbd")
+                ),
+            )
+        ],
+    )
+    replacement = "\ufffd".encode()
+    assert request_body(request, "") == (
+        b'{"include":["reasoning.encrypted_content"],"input":[{"content":"x\xe2\x82\xacy'
+        + replacement * 3
+        + b"<"
+        + replacement
+        + b'","role":"user"}],"model":"a'
+        + replacement
+        + b"b"
+        + replacement * 2
+        + b'","store":false,"stream":true}'
+    )
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        pytest.param(Message(Role=Role.USER, Text="ok", Phase=INVALID_BYTE), id="phase"),
+        pytest.param(Message(Role=cast(Role, INVALID_BYTE), Text="ok"), id="role"),
+    ],
+)
+def test_request_body_rejects_invalid_utf8_plain_input_fields(message: Message) -> None:
+    with pytest.raises(ValueError, match=r"^input item 0: .*invalid UTF-8"):
+        request_body(Request(Input=[Item(Type=ItemType.MESSAGE, Data=message)]), "")
+
+
 def test_request_body_rejects_invalid_utf8_tool_result() -> None:
     output = ToolResultOutput(Kind=ToolResultKind.TEXT, Value=f"bad{INVALID_BYTE}byte")
     request = Request(
@@ -152,17 +193,17 @@ def test_request_body_encodes_tool_result_outputs(
     ("item", "want"),
     [
         pytest.param(
-            Item(Type=ItemType.MESSAGE),
+            Item(Type=ItemType.MESSAGE, Data=None),
             "input item 0: message item data must be llm.Message, got <nil>",
             id="message",
         ),
         pytest.param(
-            Item(Type=ItemType.TOOL_CALL),
+            Item(Type=ItemType.TOOL_CALL, Data=None),
             "input item 0: tool_call item data must be llm.ToolCall, got <nil>",
             id="tool call",
         ),
         pytest.param(
-            Item(Type=ItemType.TOOL_RESULT),
+            Item(Type=ItemType.TOOL_RESULT, Data=None),
             "input item 0: tool_result item data must be llm.ToolResult, got <nil>",
             id="tool result",
         ),
@@ -183,7 +224,7 @@ def test_request_body_encodes_tool_result_outputs(
             id="unsupported tool result kind",
         ),
         pytest.param(
-            Item(Type=ItemType.REASONING),
+            Item(Type=ItemType.REASONING, Data=None),
             "input item 0: reasoning item data must be llm.Reasoning, got <nil>",
             id="reasoning",
         ),
@@ -234,7 +275,7 @@ def test_request_input_item_replays_raw_reasoning_verbatim() -> None:
 
 def test_request_input_rejects_unsupported_type() -> None:
     with pytest.raises(ValueError, match="unsupported input item type") as caught:
-        request_input_item(Item(Type=cast(ItemType, "image")))
+        request_input_item(Item(Type=cast(ItemType, "image"), Data=None))
     assert str(caught.value) == 'unsupported input item type "image"'
 
 

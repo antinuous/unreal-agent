@@ -117,6 +117,12 @@ def test_item_json_rejects_invalid_tag_and_data_on_encode(item: Item, want: str)
         '{"Type":"tool_call","Data":null}',
         '{"Type":"tool_result","Data":null}',
         '{"Type":"reasoning","Data":null}',
+        "{}",
+        '{"Type":"message"}',
+        '{"Type":"tool_call"}',
+        '{"Type":"tool_result"}',
+        '{"Type":"reasoning"}',
+        '{"ProviderID":"p","Type":"message"}',
     ],
 )
 def test_item_json_rejects_invalid_encoding(encoded: str) -> None:

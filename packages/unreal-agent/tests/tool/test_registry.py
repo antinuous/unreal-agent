@@ -31,6 +31,18 @@ class FixedTranslator:
         return self.result
 
 
+class FalsyTranslator(FixedTranslator):
+    def __len__(self) -> int:
+        return 0
+
+
+def test_registry_keeps_injected_translators_that_are_falsy() -> None:
+    translators = StaticTranslators(bash=FalsyTranslator(), view_image=FalsyTranslator())
+    registry = new_registry(translators, BASH_NAME, VIEW_IMAGE_NAME)
+    assert registry.resolve(BASH_NAME) is translators.bash
+    assert registry.resolve(VIEW_IMAGE_NAME) is translators.view_image
+
+
 def test_registry_has_fixed_definitions_and_injected_translators() -> None:
     translators = StaticTranslators(bash=FixedTranslator(), view_image=FixedTranslator())
     registry = new_registry(translators, BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME)

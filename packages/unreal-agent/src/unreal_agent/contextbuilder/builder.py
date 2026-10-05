@@ -47,7 +47,7 @@ class _Builder:
         self._preamble = preamble
         self._model = Model()
         self._tools: list[Tool] = []
-        self._committed_prefix: list[Item] = [Item()]
+        self._committed_prefix: list[Item] = [Item(Data=None)]
         self._staged_suffix: list[Item] = []
         self.set_system_prompt("")
 

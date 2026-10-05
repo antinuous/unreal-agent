@@ -24,7 +24,7 @@ from unreal_agent.llm.model import (
     ToolResultKind,
     ToolType,
 )
-from unreal_agent.llm.responsesapi._wire import reformat_checked
+from unreal_agent.llm.responsesapi._wire import coerce_utf8, reformat_checked
 from unreal_agent.primitives._errors import go_quote
 
 __all__ = ["request_body"]
@@ -40,7 +40,9 @@ def request_body(
     tools = _request_tools(request.Tools)
 
     try:
-        model = Raw(encode(request.Model.ID))
+        # Go encodes the model and plain message content with encoding/json v1, which
+        # replaces invalid UTF-8 instead of rejecting it.
+        model = Raw(encode(coerce_utf8(request.Model.ID)))
     except JSONError as error:
         raise ValueError(f"encode model: {error}") from error
     params: dict[str, Any] = {
@@ -93,7 +95,10 @@ def request_input_item(source: Item) -> Raw:
     """Encode one input item as Go's `openaiapi.InputItem` union value."""
     if source.Type == ItemType.MESSAGE and not source.ProviderID:
         message = _data(source, Message, "message")
-        converted: dict[str, Any] = {"content": message.Text, "role": str(message.Role)}
+        converted: dict[str, Any] = {
+            "content": coerce_utf8(message.Text),
+            "role": str(message.Role),
+        }
         if message.Phase:
             converted["phase"] = message.Phase
         return _union(converted)

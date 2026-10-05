@@ -22,7 +22,7 @@ class Client(ResponsesClient):
         if not url:
             raise ValueError("OpenRouter base URL must be set")
         super().__init__(
-            RemoteClient(),
+            RemoteClient,
             url + "/responses",
             {"Authorization": ["Bearer " + config.api_key], "Content-Type": ["application/json"]},
             cache_key_placement=CacheKeyPlacement(header="x-session-id"),

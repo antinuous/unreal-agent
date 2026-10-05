@@ -28,11 +28,8 @@ class Client(ResponsesClient):
         if config.max_attempts is not None and config.max_attempts <= 0:
             raise ValueError("max attempts must be positive")
         found = credentials(config)
-        # Never forward subscription credentials through redirects.
-        http_client = new_remote_http_client()
-        http_client.follow_redirects = False
         super().__init__(
-            RemoteClient(http_client),
+            _remote_without_redirects,
             url + "/responses",
             {
                 "Authorization": ["Bearer " + found.access_token],
@@ -61,6 +58,13 @@ class Client(ResponsesClient):
                     "codex credentials rejected; renew them externally and recreate the client"
                 ) from error
             raise
+
+
+def _remote_without_redirects() -> RemoteClient:
+    # Never forward subscription credentials through redirects.
+    http_client = new_remote_http_client()
+    http_client.follow_redirects = False
+    return RemoteClient(http_client)
 
 
 def validate_base_url(value: str) -> str:

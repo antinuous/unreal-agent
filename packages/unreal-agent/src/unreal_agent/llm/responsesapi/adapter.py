@@ -105,17 +105,23 @@ class _Attempt:
     retry: bool = False
 
 
+def check_config(config: Config) -> int:
+    """Validate the configuration and return the attempt limit. Raises ValueError."""
+    if not trim_space_text(config.endpoint):
+        raise ValueError("responses API endpoint must be set")
+    max_attempts = DEFAULT_MAX_ATTEMPTS if config.max_attempts is None else config.max_attempts
+    if max_attempts <= 0:
+        raise ValueError("max attempts must be positive")
+    return max_attempts
+
+
 class ResponsesAdapter:
     """An `llm.Adapter` for the streaming OpenAI Responses API."""
 
     def __init__(self, remote: RemoteClient | None, config: Config) -> None:
         if remote is None:
             raise ValueError("remote client must be set")
-        if not trim_space_text(config.endpoint):
-            raise ValueError("responses API endpoint must be set")
-        max_attempts = DEFAULT_MAX_ATTEMPTS if config.max_attempts is None else config.max_attempts
-        if max_attempts <= 0:
-            raise ValueError("max attempts must be positive")
+        max_attempts = check_config(config)
         self.remote = remote
         self.endpoint = config.endpoint
         self.headers = {name: list(values) for name, values in config.headers.items()}

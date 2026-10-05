@@ -90,7 +90,7 @@ def test_builder_places_response_before_unsubmitted_inputs(empty_response: bool)
     following = current.build()
     want = [*want, next_output, tool_result("C", "done C")]
     assert following.request.Input == want
-    following.request.Input[1] = Item()
+    following.request.Input[1] = Item(Data=None)
     assert current.build().request.Input == want
 
 

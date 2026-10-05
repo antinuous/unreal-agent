@@ -131,16 +131,17 @@ else:
     _ItemDataField = Raw
 
 
-class Item(Struct):
+class Item(Struct, kw_only=True):
     """A model input or output item whose Data type is selected by Type.
 
-    Decoding rejects unknown types and null data. Encoding with
+    Decoding rejects unknown types and null or absent data. Encoding with
     `gojson.encode` calls `validate` first, like Go's MarshalJSON.
     """
 
     ProviderID: str = ""
     Type: ItemType = ItemType.NONE
-    Data: _ItemDataField = None
+    # Required, unlike other fields, because Go's UnmarshalJSON rejects an item without Data.
+    Data: _ItemDataField
 
     def __post_init__(self) -> None:
         if isinstance(self.Data, Raw):

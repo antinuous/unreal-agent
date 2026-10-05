@@ -1,5 +1,6 @@
 """Go `encoding/json/v2` and `net/http` behaviors that the wire code depends on."""
 
+import codecs
 from typing import Final
 
 from unreal_agent.gojson import JSONError, compact, decode, validate
@@ -119,3 +120,31 @@ def reformat(value: bytes) -> bytes:
 def reformat_checked(value: bytes) -> bytes:
     validate(value)
     return reformat(value)
+
+
+def _replace_one_byte(error: UnicodeError) -> tuple[str, int]:
+    if not isinstance(error, UnicodeDecodeError):
+        raise error
+    return "\ufffd", error.start + 1
+
+
+codecs.register_error("unreal_agent.replace_byte", _replace_one_byte)
+
+
+def coerce_utf8(text: str) -> str:
+    """Go's `encoding/json` v1 string coercion: each invalid UTF-8 byte becomes U+FFFD.
+
+    Invalid bytes are the surrogate escapes (or lone surrogates) a Python string uses
+    to stand for a Go string that is not valid UTF-8.
+    """
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError:
+        pass
+    else:
+        return text
+    try:
+        data = text.encode("utf-8", "surrogateescape")
+    except UnicodeEncodeError:
+        data = text.encode("utf-8", "surrogatepass")
+    return data.decode("utf-8", "unreal_agent.replace_byte")

@@ -39,6 +39,7 @@ from unreal_agent.llm.clients import (
     openrouter,
 )
 from unreal_agent.llm.responsesapi import APIError, Exchange
+from unreal_agent.primitives import remote as remote_module
 
 from tests.llm.clients._helpers import write_test_auth
 
@@ -173,6 +174,37 @@ def hello(model: str) -> Request:
 
 
 # --- openai, openrouter, fireworks ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "new_client",
+    [
+        lambda: openai.Client(openai.Config(api_key="k", base_url="http://x", max_attempts=0)),
+        lambda: openrouter.Client(
+            openrouter.Config(api_key="k", base_url="http://x", max_attempts=0)
+        ),
+        lambda: fireworks.Client(
+            fireworks.Config(api_key="k", base_url="http://x", max_attempts=0)
+        ),
+        lambda: ollama.Client(ollama.Config(max_attempts=0)),
+    ],
+    ids=["openai", "openrouter", "fireworks", "ollama"],
+)
+def test_new_client_creates_no_http_client_when_configuration_fails(
+    new_client: Callable[[], ResponsesClient], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created = 0
+    original = remote_module.new_remote_http_client
+
+    def counting() -> Any:
+        nonlocal created
+        created += 1
+        return original()
+
+    monkeypatch.setattr(remote_module, "new_remote_http_client", counting)
+    with pytest.raises(ValueError, match=r"^max attempts must be positive$"):
+        new_client()
+    assert created == 0
 
 
 @pytest.mark.parametrize(
