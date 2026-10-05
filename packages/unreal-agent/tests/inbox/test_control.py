@@ -21,7 +21,7 @@ async def test_inbox_control_messages(mode: ControlMode) -> None:
     assert got == want
 
 
-@pytest.mark.parametrize("effort", list(ReasoningEffort))
+@pytest.mark.parametrize("effort", [effort for effort in ReasoningEffort if effort])
 async def test_inbox_settings_controls(effort: ReasoningEffort) -> None:
     want = ControlMessage(
         Mode=ControlMode.UPDATE_SETTINGS, Parameters=Settings(ReasoningEffort=effort)

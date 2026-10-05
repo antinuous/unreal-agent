@@ -19,12 +19,14 @@ type ID = str
 
 
 class InputKind(StrEnum):
+    NONE = ""
     EXTERNAL = "external"
     CONTROL = "control"
     CRASH = "crash"
 
 
 class ControlMode(StrEnum):
+    NONE = ""
     STOP_HARD = "hard"
     STOP_WHEN_IDLE = "when_idle"
     HEARTBEAT = "heartbeat"
@@ -35,11 +37,11 @@ _ReasoningEffort = ReasoningEffort
 
 
 class Settings(Struct):
-    ReasoningEffort: Annotated[_ReasoningEffort, OmitZero] = ""
+    ReasoningEffort: Annotated[_ReasoningEffort, OmitZero] = _ReasoningEffort.NONE
 
 
 class ControlMessage(Struct):
-    Mode: ControlMode = ""
+    Mode: ControlMode = ControlMode.NONE
     Reason: str = ""
     Parameters: Annotated[Settings | None, OmitZero] = None
 
@@ -56,7 +58,7 @@ class _SettingsParameters(Struct, forbid_unknown_fields=True):
 
 class Input(Struct):
     ID: str = ""
-    Kind: InputKind = ""
+    Kind: InputKind = InputKind.NONE
     Payload: Annotated[Raw, OmitZero] = Raw(b"")
 
     def validate(self) -> None:

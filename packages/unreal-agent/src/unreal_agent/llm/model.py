@@ -1,6 +1,6 @@
 import json
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from msgspec import field
 
@@ -30,12 +30,14 @@ __all__ = [
 
 
 class Role(StrEnum):
+    NONE = ""
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
 
 
 class ItemType(StrEnum):
+    NONE = ""
     MESSAGE = "message"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
@@ -43,16 +45,19 @@ class ItemType(StrEnum):
 
 
 class ToolResultKind(StrEnum):
+    NONE = ""
     TEXT = "text"
     IMAGE = "image"
 
 
 class ToolType(StrEnum):
+    NONE = ""
     FUNCTION = "function"
     HOSTED = "hosted"
 
 
 class ReasoningEffort(StrEnum):
+    NONE = ""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -61,7 +66,7 @@ class ReasoningEffort(StrEnum):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
-        return value in cls._value2member_map_
+        return value != "" and value in cls._value2member_map_
 
 
 class StopReason(StrEnum):
@@ -77,7 +82,7 @@ _ReasoningEffort = ReasoningEffort
 
 
 class Message(Struct):
-    Role: _Role = ""
+    Role: _Role = _Role.NONE
     Text: str = ""
     Phase: str = ""
 
@@ -89,7 +94,7 @@ class ToolCall(Struct):
 
 
 class ToolResultOutput(Struct):
-    Kind: ToolResultKind = ""
+    Kind: ToolResultKind = ToolResultKind.NONE
     Value: str = ""
 
 
@@ -134,7 +139,7 @@ class Item(Struct):
     """
 
     ProviderID: str = ""
-    Type: ItemType = ""
+    Type: ItemType = ItemType.NONE
     Data: _ItemDataField = None
 
     def __post_init__(self) -> None:
@@ -165,13 +170,13 @@ def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
         raise ValueError(f"unsupported item type {_quote(kind)}")
     data_type, label, _ = entry
     try:
-        return decode(encoded, data_type)
+        return cast(ItemData, decode(encoded, data_type))
     except JSONError as error:
         raise ValueError(f"decode {label} data: {error}") from error
 
 
 class Tool(Struct):
-    Type: ToolType = ""
+    Type: ToolType = ToolType.NONE
     Name: str = ""
     Description: str = ""
     Parameters: dict[str, Any] = {}
@@ -180,7 +185,7 @@ class Tool(Struct):
 class Model(Struct):
     ID: str = ""
     MaxOutputTokens: Int64 | None = None
-    ReasoningEffort: _ReasoningEffort = ""
+    ReasoningEffort: _ReasoningEffort = _ReasoningEffort.NONE
 
 
 _Model = Model

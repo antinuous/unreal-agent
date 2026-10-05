@@ -11,6 +11,7 @@ type TurnID = str
 
 
 class TurnType(StrEnum):
+    NONE = ""
     REGULAR = "regular"
     COMPACTION = "compaction"
 
@@ -23,4 +24,4 @@ class Session(Struct):
 class Turn(Struct):
     ID: TurnID = ""
     PreviousTurnID: TurnID = ""
-    Type: TurnType = ""
+    Type: TurnType = TurnType.NONE
