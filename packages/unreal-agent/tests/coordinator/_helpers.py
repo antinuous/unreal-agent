@@ -7,6 +7,7 @@ is ready, and `sleep_ns` advances fake time and then waits.
 
 import asyncio
 import bisect
+import copy
 import dataclasses
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -349,35 +350,35 @@ class FakeStore:
         return Page(items=items, next_after=next_after, more=end < len(self.history))
 
     async def append_input(self, id: SessionID, input: Input, /) -> None:
-        self.appended_inputs.append(input)
+        self.appended_inputs.append(copy.deepcopy(input))
         if self.on_append_input is not None:
             self.on_append_input(input)
         if self.append_input_error is not None:
             raise self.append_input_error
 
     async def append_turn(self, id: SessionID, turn: Turn, /) -> None:
-        self.appended_turns.append(turn)
+        self.appended_turns.append(copy.deepcopy(turn))
         if self.on_append_turn is not None:
             self.on_append_turn(turn)
         if self.append_turn_error is not None:
             raise self.append_turn_error
 
     async def append_model_response(self, id: SessionID, response: ModelResponse, /) -> None:
-        self.appended_responses.append(response)
+        self.appended_responses.append(copy.deepcopy(response))
         if self.on_append_model_response is not None:
             self.on_append_model_response(response)
         if self.append_model_response_error is not None:
             raise self.append_model_response_error
 
     async def append_tool_call_status(self, id: SessionID, status: ToolCallStatus, /) -> None:
-        self.appended_statuses.append(status)
+        self.appended_statuses.append(copy.deepcopy(status))
         if self.on_append_tool_call_status is not None:
             self.on_append_tool_call_status(status)
         if self.append_status_error is not None:
             raise self.append_status_error
 
     async def save_operation(self, id: SessionID, operation: Operation, /) -> None:
-        self.saved_operations.append(operation)
+        self.saved_operations.append(copy.deepcopy(operation))
         if self.on_save_operation is not None:
             self.on_save_operation(operation)
         if self.save_operation_error is not None:

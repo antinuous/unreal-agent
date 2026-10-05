@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -7,11 +8,13 @@ from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, Response, ToolCall
 from unreal_agent.operation import Status
 from unreal_agent.session import Turn, TurnID, TurnType
-from unreal_agent.sessionstore import ModelResponse, Store, ToolCallStatus
+from unreal_agent.sessionstore import BEFORE_FIRST, ModelResponse, Store, StoreError, ToolCallStatus
+from unreal_agent.sessionstore.localfile import Store as LocalFileStore
 from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, StaticTranslators, new_registry
 
 from tests.coordinator._helpers import (
     SLURP_IDLE_TIMEOUT_NS,
+    MemoryStore,
     SubmittingTranslator,
     TestTranslator,
     external_event,
@@ -131,3 +134,65 @@ async def test_coordinator_fork_stops_when_child_is_idle(
     else:
         await child.respond(0, text_response("Child done."))
     child.assert_stopped()
+
+
+async def _fork_store_outcome(
+    store: MemoryStore | LocalFileStore, parent_stage: str
+) -> list[object]:
+    """The history and resume state a fork test sees, without timestamps."""
+    parent = new_stop_test_run(1)
+    if parent_stage == "unscheduled":
+        parent.store.history = parent.store.history[:2]
+    await store.create("session-1")
+    await store.append_turn("session-1", cast(Turn, parent.store.history[0].Data))
+    await store.append_model_response(
+        "session-1", cast(ModelResponse, parent.store.history[1].Data)
+    )
+    for item in parent.store.history[2:]:
+        await store.append_tool_call_status("session-1", cast(ToolCallStatus, item.Data))
+    await store.append_input("session-1", external_event("parent-user", "hello"))
+    previous_turn: TurnID = "turn-1"
+    if parent_stage == "completed":
+        status = cast(ToolCallStatus, parent.store.history[2].Data)
+        status.Operations[0].Status = Status.COMPLETED
+        await store.save_operation("session-1", status.Operations[0])
+        await store.append_tool_call_status("session-1", status)
+        previous_turn = "parent-final"
+        await store.append_turn(
+            "session-1", Turn(ID=previous_turn, PreviousTurnID="turn-1", Type=TurnType.REGULAR)
+        )
+        await store.append_model_response(
+            "session-1", ModelResponse(TurnID=previous_turn, Response=text_response("Parent done."))
+        )
+    if parent_stage in ("compaction", "compaction response"):
+        previous_turn = "compact"
+        await store.append_turn(
+            "session-1",
+            Turn(ID=previous_turn, PreviousTurnID="turn-1", Type=TurnType.COMPACTION),
+        )
+        if parent_stage == "compaction response":
+            await store.append_model_response(
+                "session-1", ModelResponse(TurnID=previous_turn, Response=text_response("Summary"))
+            )
+    outcome: list[object] = []
+    for target in ("missing-turn", previous_turn):
+        try:
+            await store.fork(f"child-{target}", "session-1", target)
+        except StoreError as error:
+            outcome.append(("fork error", type(error), str(error)))
+    for id in ("session-1", f"child-{previous_turn}"):
+        page = await store.items(id, BEFORE_FIRST, 100)
+        outcome.append([(item.Sequence, item.Kind, item.Data) for item in page.items])
+        outcome.append((page.next_after, page.more))
+        resumed = await store.resume(id)
+        outcome.append((resumed.snapshot.session.ID, resumed.operations))
+        outcome.append(resumed.external_input_ids)
+    return outcome
+
+
+@pytest.mark.parametrize("parent_stage", FORK_PARENT_STAGES)
+async def test_memory_store_matches_localfile_fork(parent_stage: str, tmp_path: Path) -> None:
+    """Go's fork test runs on localfile; the looptime port swaps in MemoryStore."""
+    want = await _fork_store_outcome(LocalFileStore(tmp_path), parent_stage)
+    got = await _fork_store_outcome(MemoryStore(), parent_stage)
+    assert got == want, f"memory store = {got!r}, localfile store = {want!r}"
