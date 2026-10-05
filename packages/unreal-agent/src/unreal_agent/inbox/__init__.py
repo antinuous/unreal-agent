@@ -14,7 +14,7 @@ consumer. All methods run on the event loop thread.
   `ClosedError` once the inbox is closed. Cancelling a pending `get()` does not
   consume an input. `get_nowait()` raises `asyncio.QueueEmpty` when nothing is
   queued. `async for input in inbox` ends when the inbox is closed.
-- `inbox.close()` replaces Go's context cancellation. It discards queued
+- `inbox.close()` discards queued
   inputs, wakes a pending `get()` with `ClosedError`, and makes later submits
   raise `ClosedError`. It is idempotent.
 

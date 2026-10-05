@@ -1,5 +1,3 @@
-"""One runner invocation: parse arguments, open the session, and drive the coordinator."""
-
 import asyncio
 import contextlib
 import io
@@ -161,10 +159,10 @@ async def run(
 
 
 async def _clean_up(cleanups: list[_Cleanup]) -> BaseException | None:
-    """Run every cleanup to completion, like Go's defers.
+    """Run every cleanup to completion.
 
     A cancellation that lands during cleanup does not interrupt it and does not
-    change the outcome: Go decides the exit code from the run's result. The
+    change the outcome, which comes from the run's result. The
     task stays marked as cancelling, so a failed run still exits 130.
     """
     error: BaseException | None = None

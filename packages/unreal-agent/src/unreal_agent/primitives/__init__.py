@@ -6,13 +6,12 @@ Starting a primitive
     controls) must be called inside a running event loop. It starts the work
     as an eager `asyncio.Task` and returns it (`start_process` returns the
     `ProcessInvocation`, whose `task` runs the process). The module keeps the
-    task alive, so callers may drop it the way Go callers drop a goroutine.
-    Awaiting the task is optional.
+    task alive, so callers may drop it. Awaiting the task is optional.
 
 Event delivery
     The caller owns the event sink: any object with `async put(event)`, such
-    as `asyncio.Queue` or `Channel` (Go channel semantics, including
-    unbuffered rendezvous). Primitives never close or drain it. `put` provides
+    as `asyncio.Queue` or `Channel` (which supports unbuffered
+    rendezvous). Primitives never close or drain it. `put` provides
     backpressure; a bounded queue blocks the primitive until the consumer
     catches up. Several primitives may share one sink and are told apart by
     `source` and `correlation_id`.

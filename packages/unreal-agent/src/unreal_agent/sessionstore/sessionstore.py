@@ -49,11 +49,11 @@ class StoreError(Exception):
 
 
 class NotExistError(StoreError, FileNotFoundError):
-    """The session, turn, or operation does not exist (Go `fs.ErrNotExist`)."""
+    """The session, turn, or operation does not exist."""
 
 
 class ExistError(StoreError, FileExistsError):
-    """The turn, response, or operation already exists (Go `fs.ErrExist`)."""
+    """The turn, response, or operation already exists."""
 
 
 class ItemKind(StrEnum):
@@ -196,12 +196,7 @@ class ResumeState:
 
 
 class Store(Protocol):
-    """Append-only session history and operation state.
-
-    Failures raise `StoreError`; a missing session, turn, or operation raises
-    `NotExistError` and a duplicate raises `ExistError`. Writes for one session
-    run in call order.
-    """
+    """Append-only session history and operation state. Writes for one session run in call order."""
 
     def add_observer(self, observer: Observer, /) -> ObserverID:
         """Not safe to call while an item write is notifying observers."""

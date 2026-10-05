@@ -61,8 +61,6 @@ _GO_TYPE_NAMES: Final[dict[type, str]] = {
 
 
 class Closed:
-    """The source ended, like a receive from a closed Go channel."""
-
     __slots__ = ()
 
 
@@ -248,14 +246,7 @@ class ToolCallContext:
 class Coordinator:
     """Owns one session's decision loop.
 
-    `await run()` restores the session and runs until a stop control
-    completes, then returns None. It is single-use. Cancelling the task that
-    runs it is the equivalent of Go's context cancellation: `run` raises
-    `CancelledError`, which takes precedence over a model error or a closed
-    source. A failed dependency raises `CoordinatorError` (or the
-    dependency's own error where Go returns it unwrapped) and nothing more is
-    written. The caller closes the inbox after `run` returns.
-
+    Some failed dependencies raise their own error instead of `CoordinatorError`.
     All state is owned by the task running `run`. Each model request runs in
     its own task and is cancelled when interrupted.
     """
@@ -316,7 +307,7 @@ class Coordinator:
                 return
 
     async def _handle_next_event(self) -> bool:
-        """Wait for one event like Go's select and handle it.
+        """Wait for one event and handle it.
 
         Returns False for a dropped model result, which skips event processing.
         """
@@ -679,7 +670,6 @@ class Coordinator:
                     and data.TurnID == self._state.current_turn_id
                 ):
                     return item
-                # The complete output includes messages, reasoning, and tool calls.
                 self._dependencies.context_builder.add_model_response(data.Response)
                 if data.TurnID == self._state.current_turn_id:
                     self._state.delivered_inputs = self._state.current_turn_inputs

@@ -1,5 +1,3 @@
-"""The ViewImage tool: loads a local image as a data URL through a view-image operation."""
-
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Final

@@ -1,8 +1,7 @@
 """Responses API request encoding.
 
 Bodies match the Go encoder byte for byte: object members are sorted at every
-level (the generated wire types declare properties alphabetically), Go's
-`omitempty` drops empty strings, arrays, and objects, and raw provider JSON is
+level, Go's `omitempty` drops empty strings, arrays, and objects, and raw provider JSON is
 replayed in its own member order.
 """
 
@@ -92,7 +91,6 @@ def _request_input(items: Sequence[Item]) -> list[Raw]:
 
 
 def request_input_item(source: Item) -> Raw:
-    """Encode one input item as Go's `openaiapi.InputItem` union value."""
     if source.Type == ItemType.MESSAGE and not source.ProviderID:
         message = _data(source, Message, "message")
         converted: dict[str, Any] = {

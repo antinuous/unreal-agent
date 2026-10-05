@@ -61,7 +61,6 @@ class Input(Struct):
     Payload: Annotated[Raw, OmitZero] = Raw(b"")
 
     def validate(self) -> None:
-        """Raise ValueError when the input cannot be accepted."""
         if self.ID == "":
             raise ValueError("input ID is empty")
         match self.Kind:

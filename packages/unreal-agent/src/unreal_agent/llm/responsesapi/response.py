@@ -1,7 +1,7 @@
 """Responses API response normalization.
 
-The wire structs mirror the members of the generated `openaiapi.Response` so
-type mismatches fail decoding as they do in Go. Output items are decoded by
+The wire structs mirror the Responses API response members so type mismatches
+fail decoding as they did in the Go implementation. Output items are decoded by
 their `type` tag. Field names match case-sensitively; Go's legacy decoder used
 for output items also accepts other cases.
 """

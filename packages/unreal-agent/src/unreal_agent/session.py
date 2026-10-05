@@ -1,5 +1,3 @@
-"""Durable session and turn identity."""
-
 from enum import StrEnum
 
 from unreal_agent.gojson import Struct, Timestamp

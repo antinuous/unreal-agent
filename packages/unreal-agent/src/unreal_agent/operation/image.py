@@ -356,7 +356,6 @@ def prepare_view_image(
     cause: BaseException | None,
 ) -> tuple[ViewImageResult, BaseException | None]:
     result = ViewImageResult(ScaleRatio=1.0)
-    # Inspect the buffered header even when reading failed.
     try:
         image_format = _inspect_view_image(_ChunkReader(chunks), result)
     except _ImageError as error:

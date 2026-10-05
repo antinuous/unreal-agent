@@ -64,8 +64,6 @@ _FINISHED: Final = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
 
 
 class ClosedError(Exception):
-    """The operation manager was closed (Go returns the context error)."""
-
     def __init__(self) -> None:
         super().__init__("operation manager is closed")
 
@@ -97,7 +95,7 @@ type _Message = _AddRequest | _CancelRequest | _Delivery | _Close
 
 
 class _Mailbox:
-    """The actor's only input. Deliveries rendezvous like sends on an unbuffered Go channel."""
+    """The actor's only input. Each delivery waits until the actor takes it."""
 
     __slots__ = ("_queue",)
 
@@ -162,7 +160,6 @@ class _RunningOperation:
             self.handle = lambda event: advance_local_operation(self.operation, event)
 
     def cancel(self) -> None:
-        """The equivalent of cancelling the operation's Go context."""
         self.canceled = True
         for task in list(self.tasks):
             task.cancel()
@@ -490,7 +487,6 @@ class LocalOperationManager:
         self._task = asyncio.create_task(self._actor.run(), name="local-operation-manager")
 
     async def add(self, operation: Operation) -> None:
-        """Start an operation at most once for each ID during the manager's lifetime."""
         await self._request(lambda result: _AddRequest(operation, result))
 
     async def cancel(self, id: ID, reason: str) -> None:

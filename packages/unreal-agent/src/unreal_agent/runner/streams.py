@@ -1,5 +1,3 @@
-"""Byte streams consumed by the runner."""
-
 from typing import Protocol
 
 __all__ = ["Reader", "TeeWriter", "Writer", "write_flushed"]

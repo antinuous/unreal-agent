@@ -30,7 +30,7 @@ class OperationError(Exception):
 
 
 class UnsupportedError(OperationError):
-    """The operation type, version, or status cannot be handled (Go `ErrUnsupported`)."""
+    """The operation type, version, or status cannot be handled."""
 
     def __init__(self, message: str = "unsupported operation") -> None:
         super().__init__(message)

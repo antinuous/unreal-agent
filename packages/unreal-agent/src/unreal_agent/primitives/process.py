@@ -671,7 +671,6 @@ async def await_process_completion(
 
 
 def process_wait_completed(process: subprocess.Popen[bytes] | None) -> bool:
-    """Whether the process has been reaped."""
     return process is not None and process.returncode is not None
 
 

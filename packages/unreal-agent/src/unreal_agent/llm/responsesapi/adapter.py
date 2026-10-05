@@ -116,8 +116,6 @@ def check_config(config: Config) -> int:
 
 
 class ResponsesAdapter:
-    """An `llm.Adapter` for the streaming OpenAI Responses API."""
-
     def __init__(self, remote: RemoteClient | None, config: Config) -> None:
         if remote is None:
             raise ValueError("remote client must be set")

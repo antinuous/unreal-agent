@@ -1,5 +1,3 @@
-"""The Bash tool: runs a shell command as a durable shell operation."""
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 

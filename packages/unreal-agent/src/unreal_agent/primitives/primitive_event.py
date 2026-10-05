@@ -106,8 +106,7 @@ def start_primitive[T](
 
     The body starts on the next loop iteration, so a cancellation requested
     before then yields `primitive.canceled` without doing any work. The module
-    keeps a strong reference until the task finishes, so callers may drop the
-    task the way Go callers drop a goroutine.
+    keeps a strong reference until the task finishes.
     """
     task = asyncio.create_task(_finish_cancellation(coroutine), name=name, eager_start=True)
     if not task.done():
@@ -125,7 +124,7 @@ async def _finish_cancellation[T](coroutine: Coroutine[Any, Any, T]) -> T:
 
 
 def cancel_requested() -> bool:
-    """Report an outstanding cancellation request on the current task (Go `ctx.Err() != nil`)."""
+    """Report an outstanding cancellation request on the current task."""
     task = asyncio.current_task()
     return task is not None and task.cancelling() > 0
 

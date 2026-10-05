@@ -1,8 +1,8 @@
 """unreal-agent-runner: execute one JSON request and write persisted session items as JSONL.
 
-SIGINT cancels the run (exit 130). SIGTERM keeps the default action and
-terminates the process immediately, as in the Go command. A write to a closed
-pipe on stdout or stderr kills the process with SIGPIPE, like the Go runtime.
+SIGINT cancels the run. SIGTERM keeps the default action and terminates the
+process immediately. A write to a closed pipe on stdout or stderr kills the
+process with SIGPIPE.
 """
 
 import asyncio

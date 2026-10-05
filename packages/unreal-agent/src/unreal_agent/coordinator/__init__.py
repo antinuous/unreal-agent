@@ -8,10 +8,9 @@ operation updates (stopping after a 1ms idle gap or 100 values), reconciles
 finished tool calls, and starts a model request when one is due. `run` is
 single-use and returns None once a stop control completes.
 
-Cancellation: cancelling the task that awaits `run` is Go's context
-cancellation. `run` cancels its model request and pending reads and raises
-`CancelledError`, which takes precedence over a model error or a closed
-source. The caller closes the inbox after `run` returns.
+Cancellation: cancelling the task that awaits `run` cancels its model request
+and pending reads and raises `CancelledError`, which takes precedence over a
+model error or a closed source. The caller closes the inbox after `run` returns.
 
 Ordering: every effect follows the persistence it depends on. An input is
 stored before it can wake the model, a turn before its model request, a

@@ -88,7 +88,7 @@ class RemoteJobHandlers:
                 async for operation in updates:
                     await deliver(RemoteJobHandlerUpdate(index, operation))
         except Exception:
-            # A failed update stream stops the handler like a closed Go channel.
+            # A failed update stream stops the handler as if the stream had ended.
             pass
         await deliver(RemoteJobHandlerUpdate(index, closed=True))
 

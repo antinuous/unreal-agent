@@ -1,5 +1,3 @@
-"""The LLM providers built into the runner."""
-
 import dataclasses
 
 from unreal_agent.llm.clients import fireworks, ollama, openai, openaicodex, openrouter

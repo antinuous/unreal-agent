@@ -11,7 +11,6 @@ __all__ = ["go_abs", "go_base", "go_clean", "go_getwd", "go_join"]
 
 
 def go_clean(path: str) -> str:
-    """filepath.Clean."""
     if not path:
         return "."
     rooted = path.startswith("/")
@@ -33,7 +32,6 @@ def go_clean(path: str) -> str:
 
 
 def go_join(*elements: str) -> str:
-    """filepath.Join."""
     present = [element for element in elements if element]
     if not present:
         return ""

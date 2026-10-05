@@ -1,5 +1,3 @@
-"""The Responses event-stream state machine and the HTTP error envelope."""
-
 from dataclasses import dataclass, field
 from typing import Final
 
@@ -134,17 +132,15 @@ class ResponseState:
             ) from UnexpectedEOFError()
         if not self.items:
             return body
-        # GPT subscription endpoint *does not* return outputs on the final response
-        # But it does return everything besides the outputs
+        # The ChatGPT subscription endpoint omits `output` from the terminal response,
+        # so the items collected from the stream are spliced in.
         fields = decode_object(body, dict[str, Raw])
         output: list[Raw] = []
         raw = fields.get("output")
         if raw is not None and len(raw):
             output = decode_object(bytes(raw), list[Raw])
         if output:
-            # captured response already has outputs, they are authoritative
             return body
-        # defensively allow gaps in output items
         spliced = [Raw(reformat(self.items[index])) for index in sorted(self.items)]
         fields["output"] = Raw(encode(spliced))
         return encode(

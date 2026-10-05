@@ -1,5 +1,3 @@
-"""Runner configuration: the request parser, tool factory, and LLM providers."""
-
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Protocol

@@ -21,8 +21,6 @@ _PORT: Final = re.compile(r"(:[0-9]*)?")
 
 
 class Client(ResponsesClient):
-    """The ChatGPT subscription (Codex) Responses endpoint."""
-
     def __init__(self, config: Config) -> None:
         url = validate_base_url(config.base_url)
         if config.max_attempts is not None and config.max_attempts <= 0:

@@ -10,8 +10,6 @@ __all__ = ["ClosedError", "Inbox"]
 
 
 class ClosedError(Exception):
-    """The inbox was closed."""
-
     def __init__(self) -> None:
         super().__init__("inbox is closed")
 
