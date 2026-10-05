@@ -1,6 +1,8 @@
 # Unreal Agent
 
-An async-first agent harness from Unreal Labs.
+An async-first agent harness. This is the Antinuous fork of
+[Unreal Agent](https://github.com/unreallabsai/unreal-agent) by Unreal Labs,
+ported to Python.
 
 - [packages/unreal-agent/](packages/unreal-agent/): the `unreal-agent` Python
   package. It contains the library and the `unreal-agent-runner` command.
@@ -57,13 +59,13 @@ Install the command from a checkout or from Git:
 
 ```sh
 uv tool install ./packages/unreal-agent
-uv tool install 'git+https://github.com/unreallabsai/unreal-agent#subdirectory=packages/unreal-agent'
+uv tool install 'git+https://github.com/antinuous/unreal-agent#subdirectory=packages/unreal-agent'
 ```
 
 Run it once without installing:
 
 ```sh
-uvx --from 'git+https://github.com/unreallabsai/unreal-agent#subdirectory=packages/unreal-agent' \
+uvx --from 'git+https://github.com/antinuous/unreal-agent#subdirectory=packages/unreal-agent' \
   unreal-agent-runner -p 'Summarize this project.'
 ```
 
@@ -76,7 +78,7 @@ uv run unreal-agent-runner -p 'Inspect this project and explain how to run its t
 
 `uv tool install` and `uvx` resolve dependencies from the package metadata and do
 not read `uv.lock`. Release wheels are attached to each
-[GitHub release](https://github.com/unreallabsai/unreal-agent/releases) and can be
+[GitHub release](https://github.com/antinuous/unreal-agent/releases) and can be
 installed with `uv tool install ./unreal_agent-<version>-py3-none-any.whl`.
 
 ### Usage
@@ -177,18 +179,16 @@ and `unreal-agent-runner: <error>` to stderr.
 
 ### Docker
 
-The `unrea1labs/unreal-agent` image supports Linux on AMD64 and ARM64. Run it
-with a project mounted as the workspace:
+Releases do not publish an image. Build it locally (Linux on AMD64 and ARM64)
+and run it with a project mounted as the workspace:
 
 ```sh
+docker build -t unreal-agent .
 docker run --rm -i --user "$(id -u):$(id -g)" \
   -e OPENAI_API_KEY -v "$PWD:/workspace" \
   -v unreal-agent-state:/state \
-  unrea1labs/unreal-agent:latest -p 'Summarize this project.'
+  unreal-agent -p 'Summarize this project.'
 ```
-
-Each release also publishes its Git tag (for example, `v0.1.0`) for version
-pinning. Build the image locally with `docker build -t unreal-agent .`.
 
 ## Extending the harness
 
