@@ -108,17 +108,18 @@ else:
     _ItemDataField = Raw
 
 
-class Item(Struct):
+class Item(Struct, kw_only=True):
     """A history item whose Data type is selected by Kind.
 
-    Decoding rejects unknown kinds, null data, and invalid inputs. Encoding
+    Decoding rejects unknown kinds, null or absent data, and invalid inputs. Encoding
     with `gojson.encode` calls `validate_data` first, like Go's MarshalJSON.
     """
 
     Sequence: Annotated[int, Meta(ge=0)] = 0
     RecordedAt: Timestamp = Timestamp()
     Kind: ItemKind = ItemKind.NONE
-    Data: _ItemDataField = None
+    # Required, unlike other fields, because Go's UnmarshalJSON rejects an item without Data.
+    Data: _ItemDataField
 
     def __post_init__(self) -> None:
         if isinstance(self.Data, Raw):

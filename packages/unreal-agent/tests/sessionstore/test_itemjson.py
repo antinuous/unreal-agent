@@ -129,6 +129,13 @@ def test_item_json_rejects_invalid_tag_on_encode(kind: str, data: Any, want: str
         b'{"Kind":"turn","Data":null}',
         b'{"Kind":"model_response","Data":null}',
         b'{"Kind":"tool_call_status","Data":null}',
+        b"{}",
+        b'{"Kind":"fork"}',
+        b'{"Kind":"input"}',
+        b'{"Kind":"turn"}',
+        b'{"Kind":"model_response"}',
+        b'{"Kind":"tool_call_status"}',
+        b'{"Sequence":1,"Kind":"turn"}',
     ],
 )
 def test_item_json_rejects_invalid_tag_and_data_on_decode(encoded: bytes) -> None:

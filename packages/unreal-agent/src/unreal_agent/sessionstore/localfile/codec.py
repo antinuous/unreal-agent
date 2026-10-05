@@ -38,8 +38,12 @@ class SessionRecord(Struct):
     Session: _Session = struct_field(default_factory=Session)
 
 
+def _zero_item() -> Item:
+    return Item(Data=None)
+
+
 class ItemRecord(Struct):
-    Item: _Item = struct_field(default_factory=Item)
+    Item: _Item = struct_field(default_factory=_zero_item)
     Operations: Annotated[list[Operation], OmitEmpty] = []
 
 
