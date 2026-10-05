@@ -8,7 +8,8 @@ import zlib
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from http import HTTPStatus
-from typing import Final
+from http.cookiejar import CookieJar
+from typing import Any, Final
 
 import httpx
 
@@ -58,8 +59,21 @@ DEFAULT_RETRYABLE_STATUS_CODES: Final = (
     524,
     529,
 )
-# Go's http.Client stops before sending an 11th request; httpx counts responses instead.
-_MAX_REDIRECTS: Final = 9
+_MAX_REDIRECTS: Final = 10
+_REDIRECT_DRAIN_LIMIT: Final = 2 << 10
+_SENSITIVE_REDIRECT_HEADERS: Final = frozenset(
+    {
+        "Authorization",
+        "Www-Authenticate",
+        "Cookie",
+        "Cookie2",
+        "Proxy-Authorization",
+        "Proxy-Authenticate",
+    }
+)
+_BODY_HEADERS: Final = frozenset(
+    {"Content-Encoding", "Content-Language", "Content-Location", "Content-Type"}
+)
 _RETRYABLE_ERRNOS: Final = (
     errno.ECONNABORTED,
     errno.ECONNREFUSED,
@@ -165,8 +179,19 @@ class RemoteCompletedResult:
     attempt: int
 
 
+class _NoCookieJar(CookieJar):
+    def set_cookie(self, cookie: Any) -> None:
+        pass
+
+    def extract_cookies(self, response: Any, request: Any) -> None:
+        pass
+
+
 def new_remote_http_client() -> httpx.AsyncClient:
-    """Mirror the Go transport: env proxies, 30s dial, HTTP/2 via ALPN, 100 idle connections."""
+    """Mirror the Go transport: env proxies, 30s dial, HTTP/2 via ALPN, 100 idle connections.
+
+    Like Go's client without a cookie jar, responses never set cookies for later requests.
+    """
     keepalive: list[tuple[int, int, int]] = [(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)]
     idle_option = getattr(socket, "TCP_KEEPIDLE", None) or getattr(socket, "TCP_KEEPALIVE", None)
     if idle_option is not None:
@@ -183,7 +208,7 @@ def new_remote_http_client() -> httpx.AsyncClient:
         limits=limits,
         timeout=httpx.Timeout(None, connect=30.0),
         follow_redirects=True,
-        max_redirects=_MAX_REDIRECTS,
+        cookies=_NoCookieJar(),
         trust_env=True,
     )
 
@@ -273,8 +298,10 @@ def prepare_remote_request(request: RemoteRequest) -> PreparedRemoteRequest:
         headers.extend((canonical, value) for value in values)
     if len(host_values) > 1:
         raise PrimitiveError("send remote request: Host header must have at most one value")
-    decompress = request.method != "HEAD" and not any(
-        name == "Accept-Encoding" for name, _ in headers
+    decompress = (
+        request.method != "HEAD"
+        and not _first_header(headers, "Accept-Encoding")
+        and not _first_header(headers, "Range")
     )
     if decompress:
         headers.append(("Accept-Encoding", "gzip"))
@@ -285,6 +312,10 @@ def prepare_remote_request(request: RemoteRequest) -> PreparedRemoteRequest:
         host=host_values[0] if host_values else None,
         decompress=decompress,
     )
+
+
+def _first_header(headers: list[tuple[str, str]], name: str) -> str:
+    return next((value for key, value in headers if key == name), "")
 
 
 def canonical_header_key(name: str) -> str:
@@ -385,14 +416,8 @@ async def run_remote_request(
             return
         except TimeoutError:
             attempt_error = _idle_timeout_error()
-        except httpx.TooManyRedirects as error:
-            attempt_error = _url_error(
-                request.method,
-                str(error.request.url),
-                PrimitiveError(f"stopped after {_MAX_REDIRECTS + 1} redirects"),
-            )
-        except (httpx.HTTPError, OSError, ValueError) as error:
-            attempt_error = _url_error(request.method, request.url, error)
+        except PrimitiveError as error:
+            attempt_error = error
         else:
             attempt_error = await stream_remote_response(
                 request, response, events, attempt, prepared.decompress
@@ -453,17 +478,122 @@ async def run_remote_request(
 async def _send_attempt(
     client: httpx.AsyncClient, request: RemoteRequest, prepared: PreparedRemoteRequest
 ) -> httpx.Response:
-    headers = list(prepared.headers)
-    if prepared.host is not None:
-        headers.append(("Host", prepared.host))
-    http_request = client.build_request(
-        prepared.method,
-        prepared.url,
-        headers=headers,
-        content=request.body if request.body else None,
-    )
     async with asyncio.timeout(request.response_idle_timeout):
-        return await client.send(http_request, stream=True)
+        return await _send_following_redirects(client, request, prepared)
+
+
+async def _send_following_redirects(
+    client: httpx.AsyncClient, request: RemoteRequest, prepared: PreparedRemoteRequest
+) -> httpx.Response:
+    """Follow redirects with Go's `http.Client` policy. Failures raise `PrimitiveError`."""
+    method, url, url_text, host = prepared.method, prepared.url, request.url, prepared.host
+    headers = prepared.headers
+    include_body = True
+    strip_sensitive = False
+    sent = 0
+    while True:
+        try:
+            response = await _send_hop(
+                client, method, url, headers, host, request.body if include_body else b""
+            )
+        except PrimitiveError, asyncio.CancelledError:
+            raise
+        except Exception as error:
+            raise _url_error(prepared.method, url_text, error) from error
+        sent += 1
+        if not client.follow_redirects:
+            return response
+        next_method, keep_body = _redirect_behavior(method, response.status_code)
+        location = response.headers.get("Location", "")
+        if next_method is None or not location:
+            return response
+        try:
+            target = url.join(location)
+        except Exception as error:
+            await _discard_redirect_response(response)
+            message = f"failed to parse Location header {go_quote(location)}: {describe(error)}"
+            failure = PrimitiveError(message)
+            raise _url_error(prepared.method, url_text, failure) from failure
+        include_body = include_body and keep_body
+        if not strip_sensitive and target.netloc != prepared.url.netloc:
+            strip_sensitive = not _is_domain_or_subdomain(target, prepared.url)
+        headers = [
+            (name, value)
+            for name, value in prepared.headers
+            if not (strip_sensitive and name in _SENSITIVE_REDIRECT_HEADERS)
+            and not (not include_body and name in _BODY_HEADERS)
+        ]
+        if not (url.scheme == "https" and target.scheme == "http") and not _first_header(
+            headers, "Referer"
+        ):
+            headers.append(("Referer", str(url.copy_with(userinfo=b""))))
+        relative = not _location_scheme(location)
+        host = host if host is not None and host != url.netloc.decode() and relative else None
+        await _discard_redirect_response(response)
+        if sent >= _MAX_REDIRECTS:
+            message = f"stopped after {_MAX_REDIRECTS} redirects"
+            raise _url_error(prepared.method, location, PrimitiveError(message))
+        method, url, url_text = next_method, target, str(target)
+
+
+async def _send_hop(
+    client: httpx.AsyncClient,
+    method: str,
+    url: httpx.URL,
+    headers: list[tuple[str, str]],
+    host: str | None,
+    body: bytes,
+) -> httpx.Response:
+    encoded = [(name.encode(), value.encode()) for name, value in headers]
+    if host is not None:
+        encoded.append((b"Host", host.encode()))
+    http_request = client.build_request(method, url, headers=encoded, content=body or None)
+    if not any(name == "Accept-Encoding" for name, _ in headers):
+        http_request.headers.pop("Accept-Encoding", None)
+    return await client.send(http_request, stream=True, follow_redirects=False)
+
+
+def _redirect_behavior(method: str, status_code: int) -> tuple[str | None, bool]:
+    """Go's `redirectBehavior`: the next method (None to stop) and whether the body is resent."""
+    if status_code in (301, 302, 303):
+        return (method if method in ("GET", "HEAD") else "GET"), False
+    if status_code in (307, 308):
+        return method, True
+    return None, False
+
+
+def _location_scheme(location: str) -> str:
+    try:
+        return httpx.URL(location).scheme
+    except Exception:
+        return ""
+
+
+def _is_domain_or_subdomain(destination: httpx.URL, initial: httpx.URL) -> bool:
+    sub = destination.raw_host.decode("ascii", "replace").lower()
+    parent = initial.raw_host.decode("ascii", "replace").lower()
+    if sub == parent:
+        return True
+    if ":" in sub or "%" in sub:
+        return False
+    return sub.endswith(parent) and sub[len(sub) - len(parent) - 1 : len(sub) - len(parent)] == "."
+
+
+async def _discard_redirect_response(response: httpx.Response) -> None:
+    """Read a little of the body so the connection can be reused, as Go does, then close it."""
+    length = response.headers.get("Content-Length")
+    try:
+        if length is None or (length.isdigit() and int(length) <= _REDIRECT_DRAIN_LIMIT):
+            with contextlib.suppress(Exception):
+                read = 0
+                async for chunk in response.aiter_raw():
+                    read += len(chunk)
+                    if read >= _REDIRECT_DRAIN_LIMIT:
+                        break
+    finally:
+        await _close_response(response)
+    if cancel_requested():
+        raise asyncio.CancelledError
 
 
 async def wait_for_remote_retry(delay: float) -> bool:
@@ -486,18 +616,31 @@ async def _close_response(response: httpx.Response) -> BaseException | None:
     return None
 
 
+def _gzip_decoder():
+    return zlib.decompressobj(16 + zlib.MAX_WBITS)
+
+
 async def _response_chunks(response: httpx.Response, decode: bool) -> AsyncGenerator[bytes]:
     # Iterate the stream directly: `aiter_raw` closes the response at EOF and
     # would surface a close error as a read error, which Go ignores after EOF.
     stream = response.stream
     if not isinstance(stream, httpx.AsyncByteStream):
         raise TypeError("remote response requires an asynchronous body stream")
-    decoder = zlib.decompressobj(16 + zlib.MAX_WBITS) if decode else None
+    decoder = _gzip_decoder() if decode else None
+    received = False
     async for raw in stream:
-        chunk = decoder.decompress(raw) if decoder is not None else raw
+        chunk = raw
+        if decoder is not None:
+            received = received or bool(raw)
+            chunk = b""
+            while raw:
+                if decoder.eof:
+                    decoder = _gzip_decoder()
+                chunk += decoder.decompress(raw)
+                raw = decoder.unused_data if decoder.eof else b""
         for start in range(0, max(len(chunk), 1), IO_READ_CHUNK_SIZE):
             yield chunk[start : start + IO_READ_CHUNK_SIZE]
-    if decoder is not None:
+    if decoder is not None and received:
         tail = decoder.flush()
         if not decoder.eof:
             raise UnexpectedEOFError()

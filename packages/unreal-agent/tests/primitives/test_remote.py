@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import errno
+import gzip
 import http
 import socket
 import ssl
@@ -1103,11 +1104,7 @@ async def test_stream_remote_response_cancellation_interrupts_output() -> None:
     task = asyncio.create_task(stream_remote_response(request, _response(body), events, 1))
     await settle()
     task.cancel()
-    try:
-        error = await task
-    except asyncio.CancelledError:
-        error = ContextCanceledError()
-    assert isinstance(error, ContextCanceledError)
+    assert isinstance(await task, ContextCanceledError)
     assert body.closed
     assert (await events.get()).type == PrimitiveEventType.REMOTE_RESPONSE_STARTED
 
@@ -1289,3 +1286,207 @@ async def test_remote_sse_content_type_selection(case: _ContentTypeCase) -> None
     else:
         assert attempt_output(events, 1) == body
     assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED
+
+
+async def test_send_remote_request_completes_empty_gzip_response() -> None:
+    client = RemoteClient(
+        mock_http_client(lambda _: httpx.Response(200, headers={"Content-Encoding": "gzip"}))
+    )
+    request = default_remote_request("operation-1", "remote-1", "https://example.com")
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert [event.type for event in events] == [
+        PrimitiveEventType.REMOTE_RESPONSE_STARTED,
+        PrimitiveEventType.REMOTE_COMPLETED,
+    ]
+
+
+async def test_send_remote_request_decodes_concatenated_gzip_members() -> None:
+    body = gzip.compress(b"one") + gzip.compress(b"two")
+    client = RemoteClient(
+        mock_http_client(
+            lambda _: httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=body)
+        )
+    )
+    request = default_remote_request("operation-1", "remote-1", "https://example.com")
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert attempt_output(events, 1) == b"onetwo"
+    assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED
+
+
+@pytest.mark.parametrize(
+    ("method", "headers"),
+    [
+        pytest.param("GET", {"Range": ["bytes=0-"]}, id="range"),
+        pytest.param("HEAD", {}, id="head"),
+    ],
+)
+async def test_send_remote_request_skips_transparent_gzip(
+    method: str, headers: dict[str, list[str]]
+) -> None:
+    body = gzip.compress(b"raw")
+    seen: list[httpx.Request] = []
+
+    def handler(http_request: httpx.Request) -> httpx.Response:
+        seen.append(http_request)
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=body)
+
+    client = RemoteClient(mock_http_client(handler))
+    request = default_remote_request("operation-1", "remote-1", "https://example.com")
+    request.method = method
+    request.headers = headers
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert "Accept-Encoding" not in seen[0].headers
+    started: RemoteResponseStartedResult = events[0].result
+    assert started.headers.get("Content-Encoding") == "gzip"
+    assert attempt_output(events, 1) == body
+
+
+async def test_send_remote_request_sends_utf8_header_values() -> None:
+    seen: list[httpx.Request] = []
+
+    def handler(http_request: httpx.Request) -> httpx.Response:
+        seen.append(http_request)
+        return httpx.Response(204)
+
+    client = RemoteClient(mock_http_client(handler))
+    request = default_remote_request("operation-1", "remote-1", "https://example.com")
+    request.headers = {"X-Name": ["café"]}
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED, events
+    assert (b"X-Name", "café".encode()) in seen[0].headers.raw
+
+
+async def test_send_remote_request_reports_unexpected_transport_error() -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        raise RuntimeError("transport failed")
+
+    client = RemoteClient(mock_http_client(handler))
+    request = default_remote_request("operation-1", "remote-1", "https://example.com")
+    event = single(await send(client, request), PrimitiveEventType.FAILED)
+    assert event.result.error == (
+        'send remote request GET "https://example.com": attempt 1: '
+        'Get "https://example.com": transport failed'
+    )
+
+
+def redirecting_client(
+    handler: Callable[[httpx.Request], httpx.Response],
+) -> tuple[RemoteClient, list[httpx.Request]]:
+    seen: list[httpx.Request] = []
+
+    def record(http_request: httpx.Request) -> httpx.Response:
+        http_request.read()
+        seen.append(http_request)
+        return handler(http_request)
+
+    transport = httpx.MockTransport(record)
+    return RemoteClient(httpx.AsyncClient(transport=transport, follow_redirects=True)), seen
+
+
+@pytest.mark.parametrize(
+    ("status", "method", "want_method", "want_body"),
+    [
+        pytest.param(301, "PUT", "GET", b"", id="301 PUT"),
+        pytest.param(302, "DELETE", "GET", b"", id="302 DELETE"),
+        pytest.param(303, "HEAD", "HEAD", b"", id="303 HEAD"),
+        pytest.param(308, "PATCH", "PATCH", b"payload", id="308 PATCH"),
+    ],
+)
+async def test_send_remote_request_follows_go_redirect_methods(
+    status: int, method: str, want_method: str, want_body: bytes
+) -> None:
+    def handler(http_request: httpx.Request) -> httpx.Response:
+        if http_request.url.path == "/start":
+            return httpx.Response(status, headers={"Location": "/target"})
+        return httpx.Response(204)
+
+    client, seen = redirecting_client(handler)
+    request = default_remote_request("operation-1", "remote-1", "https://example.com/start")
+    request.method = method
+    request.body = b"payload"
+    request.headers = {"Content-Type": ["text/plain"]}
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED, events
+    target = seen[1]
+    assert (target.method, target.content) == (want_method, want_body)
+    assert ("Content-Type" in target.headers) == bool(want_body)
+    assert target.headers.get("Referer") == "https://example.com/start"
+
+
+@pytest.mark.parametrize(
+    ("location", "kept"),
+    [
+        pytest.param("https://example.com:8443/target", True, id="same host"),
+        pytest.param("https://api.example.com/target", True, id="subdomain"),
+        pytest.param("https://other.test/target", False, id="other domain"),
+    ],
+)
+async def test_send_remote_request_strips_sensitive_headers_like_go(
+    location: str, kept: bool
+) -> None:
+    def handler(http_request: httpx.Request) -> httpx.Response:
+        if http_request.url.path == "/start":
+            return httpx.Response(302, headers={"Location": location})
+        return httpx.Response(204)
+
+    client, seen = redirecting_client(handler)
+    request = default_remote_request("operation-1", "remote-1", "https://example.com/start")
+    request.headers = {"Authorization": ["Bearer token"], "Cookie": ["a=b"], "X-Other": ["1"]}
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED, events
+    target = seen[1]
+    assert ("Authorization" in target.headers) is kept
+    assert ("Cookie" in target.headers) is kept
+    assert target.headers.get("X-Other") == "1"
+
+
+@pytest.mark.parametrize(
+    ("location", "want_host"),
+    [
+        pytest.param("/target", "tenant.example.com", id="relative"),
+        pytest.param("https://example.com/target", "example.com", id="absolute"),
+    ],
+)
+async def test_send_remote_request_preserves_host_only_on_relative_redirect(
+    location: str, want_host: str
+) -> None:
+    def handler(http_request: httpx.Request) -> httpx.Response:
+        if http_request.url.path == "/start":
+            return httpx.Response(302, headers={"Location": location})
+        return httpx.Response(204)
+
+    client, seen = redirecting_client(handler)
+    request = default_remote_request("operation-1", "remote-1", "https://example.com/start")
+    request.headers = {"Host": ["tenant.example.com"]}
+    request.retry_policy.max_attempts = 1
+    events = await send(client, request)
+    assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED, events
+    assert seen[0].headers["Host"] == "tenant.example.com"
+    assert seen[1].headers["Host"] == want_host
+
+
+async def test_remote_client_does_not_persist_response_cookies() -> None:
+    cookies: list[str | None] = []
+
+    def handler(request: ServerRequest, writer: ResponseWriter) -> None:
+        cookies.append(request.headers.get("Cookie"))
+        writer.set_header("Set-Cookie", "session=1; Path=/")
+        writer.write_header(204)
+
+    with serve(handler) as server:
+        client = RemoteClient()
+        try:
+            request = default_remote_request("operation-1", "remote-1", server.url)
+            request.retry_policy.max_attempts = 1
+            for _ in range(2):
+                events = await send(client, request)
+                assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED, events
+        finally:
+            await client.aclose()
+    assert cookies == [None, None]
