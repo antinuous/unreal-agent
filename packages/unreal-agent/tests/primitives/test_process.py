@@ -643,6 +643,37 @@ async def test_cancel_process_allows_graceful_shutdown(tmp_path: Path) -> None:
     assert terminated.read_text() == "terminated\n"
 
 
+async def test_cancel_during_blocked_start_event_drains_shutdown_output(tmp_path: Path) -> None:
+    ready, terminated = tmp_path / "ready", tmp_path / "terminated"
+    events: Events = Channel(1)
+    await events.put(PrimitiveEvent(PrimitiveEventType.PROCESS_OUTPUT))
+    invocation = start_process(
+        request(
+            path="/bin/sh",
+            arguments=[
+                "-c",
+                "trap '/bin/dd if=/dev/zero bs=1024 count=96 2>/dev/null; "
+                'printf "terminated\\n" > "$2"; exit 0\' TERM; '
+                "printf '%d\\n' $$ > \"$1\"; while :; do :; done",
+                "sh",
+                str(ready),
+                str(terminated),
+            ],
+            pipes=ProcessPipeSet.ALL,
+        ),
+        events,
+    )
+    await wait_for_process_pid(ready)
+    assert invocation.task is not None
+    invocation.task.cancel()
+    started = time.monotonic()
+    assert (await events.get()).type == PrimitiveEventType.PROCESS_OUTPUT
+    canceled = single_event(await collect_events(events), PrimitiveEventType.CANCELED)
+    assert canceled.result is None
+    assert time.monotonic() - started < 4
+    assert terminated.read_text() == "terminated\n"
+
+
 async def test_blocked_input_write_defers_cancellation_until_process_stops(
     tmp_path: Path,
 ) -> None:

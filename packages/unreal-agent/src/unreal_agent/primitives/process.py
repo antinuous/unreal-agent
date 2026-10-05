@@ -570,8 +570,9 @@ class ProcessInvocation:
         ):
             if reader is not None:
                 workers.append(
-                    asyncio.create_task(
-                        run_process_output(request, ProcessOutputState(stream, reader), events)
+                    start_primitive(
+                        run_process_output(request, ProcessOutputState(stream, reader), events),
+                        name="process.output",
                     )
                 )
 
