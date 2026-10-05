@@ -1,0 +1,16 @@
+spec_zero	{"Type":"","Version":0}
+op_zero	{"ID":"","Type":"","Version":0,"Status":""}
+shell_spec	{"MaxOutputLength":100,"Type":"shell","Version":3,"State":{"Input":{"Command":"echo \"hi\" <&>","Shell":"/bin/sh","Directory":"/tmp"},"BaseDirectory":"/base","Phase":"","ProcessGroupID":0,"PendingExitCode":null,"OutSize":0,"ErrSize":0,"InlineOut":"","InlineErr":"","InlineOutTail":"","InlineErrTail":"","Result":null,"TerminalError":"","ErrorTruncated":false,"OutTruncated":true,"ErrTruncated":true,"OutPath":"","ErrPath":""}}
+value_spec	{"Type":"value","Version":1,"State":{"Value":{"a":[1,2]}}}
+skill_spec	{"Type":"skill_use","Version":1,"State":{"Path":"/skills/SKILL.md","Content":"","TerminalError":""}}
+image_spec	{"Type":"view_image","Version":1,"State":{"Path":"/img.png","Config":{"MaxSize":10,"MaxHeight":20,"MaxWidth":30},"Result":null}}
+remote_spec	{"MaxOutputLength":40000,"Type":"remote_job","Version":2,"State":{"Plan":{"Type":"test","Version":2,"Data":{"value":"preserved"}}}}
+op_full	{"MaxOutputLength":7,"ID":"op-1","Type":"shell","Version":3,"Status":"awaiting","State":{"x":1},"Idempotency":"key"}
+shell_state_zero	{"Input":{"Command":"","Shell":"","Directory":""},"BaseDirectory":"","Phase":"","ProcessGroupID":0,"PendingExitCode":null,"OutSize":0,"ErrSize":0,"InlineOut":"","InlineErr":"","InlineOutTail":"","InlineErrTail":"","Result":null,"TerminalError":"","ErrorTruncated":false,"OutTruncated":false,"ErrTruncated":false,"OutPath":"","ErrPath":""}
+shell_state_full	{"Input":{"Command":"c","Shell":"/bin/sh","Directory":"/d"},"BaseDirectory":"/b","Phase":"read_out_tail","ProcessGroupID":42,"PendingExitCode":5,"OutSize":10,"ErrSize":11,"InlineOut":"b3V0/w==","InlineErr":"ZQ==","InlineOutTail":"dGFpbA==","InlineErrTail":"","Result":{"Out":"o ","Err":"e<>","OutSize":1,"ErrSize":2,"ExitCode":-1},"TerminalError":"boom","ErrorTruncated":true,"OutTruncated":true,"ErrTruncated":false,"OutPath":"/o","ErrPath":"/e"}
+image_state	{"Path":"/p","Config":{"MaxSize":1,"MaxHeight":2,"MaxWidth":3,"MaxSourcePixels":4},"Result":{"Content":"abc","OriginalWidth":5,"OriginalHeight":6,"OriginalMIMEType":"image/png","EncodedMIMEType":"image/jpeg","ScaleRatio":0.3333333333333333,"Error":"x"}}
+image_state_one	{"Path":"/p","Config":{"MaxSize":0,"MaxHeight":0,"MaxWidth":0},"Result":{"Content":"","OriginalWidth":0,"OriginalHeight":0,"OriginalMIMEType":"","EncodedMIMEType":"","ScaleRatio":1,"Error":""}}
+remote_state_full	{"Plan":{"Type":"t","Version":1,"Data":{"k":"v"}},"Handle":{"h":1},"NextInspectionAt":"2026-01-02T03:04:05.123456789Z","OutstandingInput":[1],"Subscription":null,"TerminalResult":"r","TerminalError":"e","ResultBytes":1,"ResultTruncated":true,"ErrorBytes":2,"ErrorTruncated":true}
+remote_state_zero	{"Plan":{"Type":"","Version":0,"Data":{}}}
+skill_state	{"Path":"/s","Content":"aGVsbG8=","TerminalError":"t"}
+value_state	{"Value":true}
