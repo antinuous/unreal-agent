@@ -1,5 +1,3 @@
-"""Cleanup and process-exit behavior that Go gets from defers and its runtime."""
-
 import asyncio
 import io
 import os
@@ -31,10 +29,7 @@ async def test_run_finishes_cleanup_when_cancelled_during_cleanup(
     fail: bool,
     want: int,
 ) -> None:
-    """Go runs every deferred cleanup even when the context is cancelled during one.
-
-    The exit code comes from the run's result, so a successful run still exits 0.
-    """
+    """The exit code comes from the run's result, so a successful run still exits 0."""
 
     def respond(_: object) -> Response:
         if fail:
@@ -95,7 +90,6 @@ async def test_run_finishes_cleanup_when_cancelled_during_cleanup(
 
 
 def test_main_dies_of_sigpipe_when_stdout_is_closed() -> None:
-    """Go's runtime raises SIGPIPE for a write to a closed pipe on fd 1 or 2."""
     read, write = os.pipe()
     os.close(read)
     try:

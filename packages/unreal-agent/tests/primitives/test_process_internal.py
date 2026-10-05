@@ -61,7 +61,7 @@ REQUEST = ProcessStartRequest(SourceID("operation-1"), CorrelationID("process-1"
 
 
 async def with_cancel_requested[T](function: Callable[[], Awaitable[T]]) -> T:
-    """Run `function` in a task whose cancellation is already requested (Go ctx canceled)."""
+    """Run `function` in a task whose cancellation is already requested."""
     box: list[T] = []
 
     async def body() -> None:

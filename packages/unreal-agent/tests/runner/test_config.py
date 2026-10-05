@@ -1,5 +1,3 @@
-"""Runner configuration tests."""
-
 import io
 
 import pytest

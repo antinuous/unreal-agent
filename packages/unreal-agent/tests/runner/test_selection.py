@@ -1,6 +1,4 @@
 # ruff: noqa: ASYNC240
-"""Model and tool selection tests."""
-
 import os
 from pathlib import Path
 

@@ -1,8 +1,8 @@
-"""Shared fakes and harnesses for the coordinator tests ported from harness/coordinator.
+"""Shared fakes and harnesses for the coordinator tests.
 
-Fake time follows Go's testing/fake_time: `@fake_time` runs a test under
-looptime with nanosecond resolution, `wait()` runs the loop until nothing
-is ready, and `sleep_ns` advances fake time and then waits.
+`@fake_time` runs a test under looptime with nanosecond resolution, `wait()`
+runs the loop until nothing is ready, and `sleep_ns` advances fake time and
+then waits.
 """
 
 import asyncio
@@ -68,7 +68,7 @@ from unreal_agent.tool import (
     StaticTranslators,
 )
 
-# Go's testing/fake_time: fake time with nanosecond resolution so deadlines land exactly.
+# Nanosecond resolution so fake-time deadlines land exactly.
 fake_time = pytest.mark.looptime(resolution=1e-9)
 
 NANOSECOND = 1
@@ -81,7 +81,7 @@ TOOL_CALL_RUN_GRACE_PERIOD_NS = SECOND
 
 
 async def wait() -> None:
-    """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
+    """Run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
     internals = cast(Any, loop)
     while True:
@@ -99,7 +99,6 @@ def now_ns() -> int:
 
 
 async def sleep_ns(duration: int) -> None:
-    """Go's `fake_time.Sleep`: advance fake time by `duration`, then `wait()`."""
     if duration > 0:
         await asyncio.sleep(duration / SECOND)
     await wait()
@@ -112,7 +111,7 @@ async def advance(duration: int) -> None:
 
 
 def chain(error: BaseException | None) -> list[BaseException]:
-    """The error with every cause, context, and group member, like Go's errors.Is walk."""
+    """The error with every cause, context, and group member."""
     seen: list[BaseException] = []
     pending = [error]
     while pending:
@@ -483,7 +482,7 @@ class MemoryStore:
 
 
 class FailingStore:
-    """Wraps a store and fails selected writes, like the Go embedding fakes."""
+    """Wraps a store and fails selected writes."""
 
     def __init__(self, store: Store) -> None:
         self.store = store
@@ -600,7 +599,6 @@ def as_builder(builder: object) -> Builder:
 
 
 async def ignoring_cancellation[T](future: asyncio.Future[T]) -> T:
-    """Wait for `future` even if the waiting task is cancelled, like a Go call that ignores ctx."""
     while True:
         try:
             return await asyncio.shield(future)
@@ -707,7 +705,6 @@ class StopTestCall:
 
     @property
     def canceled(self) -> bool:
-        """Go's `ctx.Err() != nil` for the request context."""
         return self.task.cancelled() or self.task.cancelling() > 0
 
 
@@ -731,7 +728,7 @@ class StopTestRun:
         return self.current._dependencies
 
     def go(self) -> asyncio.Task[None]:
-        """Start `run` without waiting, like `go func() { run.done <- Run(ctx) }()`."""
+        """Start `run` without waiting for it."""
         self.task = asyncio.create_task(self.current.run())
         return self.task
 
@@ -767,7 +764,7 @@ class StopTestRun:
         assert error is None, f"Run error = {error!r}"
 
     def finished_error(self) -> BaseException | None:
-        """The error `run` returned; fails when `run` has not returned (Go's select default)."""
+        """The error `run` returned; fails when `run` has not returned."""
         assert self.task is not None
         assert self.task.done(), "Run did not return"
         try:
@@ -777,7 +774,6 @@ class StopTestRun:
         return None
 
     async def error(self) -> BaseException | None:
-        """Wait for `run` to return its error (Go's `<-run.done`)."""
         assert self.task is not None
         await asyncio.wait((self.task,))
         return self.finished_error()

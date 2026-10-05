@@ -1,5 +1,3 @@
-"""Shared fakes and log helpers for the runner tests."""
-
 import asyncio
 import contextlib
 import copy
@@ -53,7 +51,7 @@ type Respond = Callable[[LLMRequest], Response]
 
 
 class FakeClient:
-    """Go's fakeClient. `respond` runs in the model request task and may raise."""
+    """`respond` runs in the model request task and may raise."""
 
     def __init__(self, respond: Respond | None = None) -> None:
         self.respond_function = respond
@@ -110,8 +108,6 @@ def must_not_read_environment(name: str) -> str:
 
 
 class ErrorReader:
-    """Go's iotest.ErrReader."""
-
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error or OSError("stdin must not be read")
 
@@ -149,7 +145,6 @@ async def call_run(
 
 
 def causes(error: BaseException | None) -> Iterator[BaseException]:
-    """Walk an error tree like Go's errors.Is."""
     pending = [error]
     while pending:
         current = pending.pop()
@@ -251,7 +246,7 @@ class FailingItemWriter:
 
 
 async def wait() -> None:
-    """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
+    """Run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
     internals = cast(Any, loop)
     while True:
@@ -417,7 +412,7 @@ class HTTPResponse:
 
 @contextlib.contextmanager
 def http_server(handle: Callable[[HTTPRequest], HTTPResponse]) -> Iterator[str]:
-    """Go's httptest.NewServer: serve `handle` on a loopback port and yield the base URL."""
+    """Serve `handle` on a loopback port and yield the base URL."""
 
     class Handler(http.server.BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"

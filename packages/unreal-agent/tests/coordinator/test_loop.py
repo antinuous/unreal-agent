@@ -684,7 +684,6 @@ async def test_closed_input_error_prefers_context_cancellation() -> None:
 
 
 async def loop_run_receive[T](values: asyncio.Queue[T]) -> T:
-    """Go's `receiveTestValue`: a value within one second."""
     try:
         return await asyncio.wait_for(values.get(), 1)
     except TimeoutError:
@@ -696,7 +695,6 @@ def loop_run_start(current: Coordinator) -> asyncio.Task[None]:
 
 
 async def loop_run_error(task: asyncio.Task[None]) -> BaseException | None:
-    """Go's `receiveTestValue(t, done)` for the error `Run` returned."""
     done, _ = await asyncio.wait((task,), timeout=1)
     assert done, "timed out waiting for value"
     if task.cancelled():

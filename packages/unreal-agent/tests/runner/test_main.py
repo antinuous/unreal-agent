@@ -1,5 +1,3 @@
-"""Enabled tool set and console entry point tests."""
-
 import io
 import os
 import signal

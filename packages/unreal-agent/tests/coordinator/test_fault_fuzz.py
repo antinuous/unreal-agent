@@ -1,9 +1,8 @@
-"""Property test for coordinator dependency faults, ported from Go's FuzzCoordinatorFaults.
+"""Property test for coordinator dependency faults.
 
-The Go seed corpus is the fuzz target's `f.Add` calls. Each example runs in a
-fresh looptime event loop, the equivalent of one `fake_time.Test` bubble, so
-hour-long operation delays cost no real time. The real Responses adapter runs
-over an `httpx.MockTransport`.
+Each example runs in a fresh looptime event loop, so hour-long operation delays
+cost no real time. The real Responses adapter runs over an
+`httpx.MockTransport`.
 """
 
 import asyncio
@@ -55,7 +54,7 @@ MAX_INT64: Final = 2**63 - 1
 
 
 class CoordinatorFuzzFault(Exception):
-    """Go's errCoordinatorFuzzFault; each trace raises its own instance."""
+    """Each trace raises its own instance."""
 
     def __init__(self) -> None:
         super().__init__("injected coordinator dependency failure")
@@ -90,7 +89,7 @@ class CoordinatorFaultTrace:
 
 
 class FaultContext:
-    """The fuzz run's Go context: cancelling it runs every registered cancel function."""
+    """Cancelling the fuzz run runs every registered cancel function."""
 
     def __init__(self) -> None:
         self.error: BaseException | None = None
@@ -378,7 +377,7 @@ class ControlledFaultOperations:
 
 
 class CoordinatorFaultStream(httpx.AsyncByteStream):
-    """Go's coordinatorFaultReader: every read fails with the injected fault."""
+    """Every read fails with the injected fault."""
 
     def __init__(self, error: BaseException) -> None:
         self.error = error
@@ -570,7 +569,7 @@ async def run_coordinator_fault_case(
     actions: bytes, mode: int, occurrence: int, text: str, tokens: int
 ) -> None:
     loop = asyncio.get_running_loop()
-    # Fire timers only at their deadline, as Go's fake_time does (see conftest.exact_timers).
+    # Fire timers only at their deadline (see conftest.exact_timers).
     cast(Any, loop)._clock_resolution = 1e-12
     if not actions:
         actions = b"\x00"
@@ -711,7 +710,7 @@ async def cancel_fault_run(ctx: FaultContext, transport: CoordinatorFaultTranspo
 
 
 async def wait_fault_event(ctx: FaultContext, event: asyncio.Event) -> bool:
-    """Go's `select` on an event and ctx.Done(); True when the event won."""
+    """True when the event is set before the fuzz run is cancelled."""
     waiter = asyncio.create_task(event.wait())
     done = asyncio.create_task(ctx.done.wait())
     await asyncio.wait((waiter, done), return_when=asyncio.FIRST_COMPLETED)

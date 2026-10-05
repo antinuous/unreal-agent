@@ -1,5 +1,3 @@
-"""Session observer and log output tests."""
-
 import io
 
 from unreal_agent.llm import Item as LLMItem

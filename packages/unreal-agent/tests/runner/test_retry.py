@@ -1,5 +1,3 @@
-"""Max-attempts resolution tests."""
-
 import io
 
 import pytest

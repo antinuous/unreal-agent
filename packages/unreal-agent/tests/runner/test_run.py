@@ -1,6 +1,4 @@
 # ruff: noqa: ASYNC240
-"""End-to-end runner tests."""
-
 import asyncio
 import glob
 import os

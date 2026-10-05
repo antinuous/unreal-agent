@@ -1,5 +1,3 @@
-"""Command-line argument tests."""
-
 import io
 
 import pytest
@@ -109,8 +107,6 @@ async def test_run_main_rejects_invalid_request_arguments(args: list[str], want:
 
 
 class ClosedPipeError(Exception):
-    """Go's io.ErrClosedPipe."""
-
     def __init__(self) -> None:
         super().__init__("io: read/write on closed pipe")
 

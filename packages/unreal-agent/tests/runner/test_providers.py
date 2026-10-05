@@ -1,5 +1,3 @@
-"""Provider selection tests."""
-
 import asyncio
 import io
 import json

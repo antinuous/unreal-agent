@@ -1,5 +1,3 @@
-"""Client tests against a local HTTP/1.1 server, like Go's httptest servers."""
-
 import asyncio
 import json
 import os

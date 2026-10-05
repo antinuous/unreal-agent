@@ -1,10 +1,9 @@
 """Adapter tests over an in-process HTTP transport.
 
-The Go tests run against `httptest` servers. These use `httpx.MockTransport`:
-a disconnect is the `RemoteProtocolError` httpx raises when a peer closes
-early, and a header timeout is `httpx.ReadTimeout`. Every test runs on
-looptime with the wall clock driven by loop time, so backoff waits through the
-real timer primitive without sleeping.
+Transports are `httpx.MockTransport`: a disconnect is the `RemoteProtocolError`
+httpx raises when a peer closes early, and a header timeout is
+`httpx.ReadTimeout`. Every test runs on looptime with the wall clock driven by
+loop time, so backoff waits through the real timer primitive without sleeping.
 """
 
 import asyncio
@@ -54,7 +53,7 @@ from tests.llm.responsesapi._helpers import (
     valid_request,
 )
 
-# Nanosecond loop time lets jittered backoff deadlines land exactly, as under Go's fake_time.
+# Nanosecond loop time lets jittered backoff deadlines land exactly.
 pytestmark = pytest.mark.looptime(resolution=1e-9)
 
 BASE_NS = 1_785_758_400 * 10**9
@@ -128,7 +127,7 @@ def reply(
 
 
 def stream_body(response: bytes) -> bytes:
-    """Go's writeStreamResponse: one compacted response.completed event."""
+    """One compacted response.completed event."""
     return b'data: {"type":"response.completed","response":' + compact(response) + b"}\n\n"
 
 
@@ -860,7 +859,7 @@ class TimedReply:
 
 
 class TimedTransport:
-    """Go's retryTestTransport: replays replies and records the wall clock of each call."""
+    """Replays replies and records the wall clock of each call."""
 
     def __init__(self, replies: list[TimedReply], clock: Callable[[], Timestamp]) -> None:
         self.replies = replies

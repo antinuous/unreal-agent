@@ -1,5 +1,3 @@
-"""Tool heartbeat flag tests."""
-
 import asyncio
 import io
 import os

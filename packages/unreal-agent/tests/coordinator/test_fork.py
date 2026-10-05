@@ -192,7 +192,6 @@ async def _fork_store_outcome(
 
 @pytest.mark.parametrize("parent_stage", FORK_PARENT_STAGES)
 async def test_memory_store_matches_localfile_fork(parent_stage: str, tmp_path: Path) -> None:
-    """Go's fork test runs on localfile; the looptime port swaps in MemoryStore."""
     want = await _fork_store_outcome(LocalFileStore(tmp_path), parent_stage)
     got = await _fork_store_outcome(MemoryStore(), parent_stage)
     assert got == want, f"memory store = {got!r}, localfile store = {want!r}"

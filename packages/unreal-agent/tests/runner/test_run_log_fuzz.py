@@ -1,10 +1,9 @@
 # ruff: noqa: ASYNC230
-"""Property test ported from Go's FuzzRunLogMatchesExecution.
+"""Property test that the runner's output log matches its execution.
 
 Each example drives three runner invocations against one session in a fresh
 looptime event loop, with the store's and the file primitive's blocking work
-inlined so no worker threads let fake time jump. The Go seed corpus is the
-`@example` list.
+inlined so no worker threads let fake time jump.
 """
 
 import asyncio

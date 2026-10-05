@@ -16,7 +16,7 @@ SLURP_IDLE_TIMEOUT_NANOSECONDS = round(SLURP_IDLE_TIMEOUT * 1e9)
 
 
 def queue_source[T](queue: asyncio.Queue[T]) -> Source[T]:
-    """A Go channel read: values in order, then `CLOSED` once shut down and drained."""
+    """Values in order, then `CLOSED` once shut down and drained."""
 
     async def receive() -> T | Closed:
         try:

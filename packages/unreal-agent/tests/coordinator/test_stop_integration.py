@@ -38,7 +38,7 @@ from tests.coordinator._helpers import (
 
 
 def stop_integration_submit_now(inputs: Inbox, input: Input) -> None:
-    """Submit from a synchronous callback; Go's Submit never blocks."""
+    """Submit from a synchronous callback; submission never waits for the consumer."""
     coroutine = inputs.submit(input)
     try:
         coroutine.send(None)
