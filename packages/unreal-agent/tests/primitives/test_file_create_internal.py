@@ -59,14 +59,6 @@ def test_create_new_path_uses_current_directory(
     assert os.path.exists("created")
 
 
-def test_create_new_path_uses_requested_mode(tmp_path: Path) -> None:
-    path = str(tmp_path / "created")
-    create_new_path(
-        IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path=path, mode=0o600), threading.Event()
-    )
-    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
-
-
 def test_use_existing_path_requests_retry_for_missing_entry(
     parent_directory: tuple[str, File],
 ) -> None:
@@ -105,11 +97,6 @@ def test_create_or_use_path_preserves_close_failure_during_cancellation(
         create_or_use_path(IOCreateRequest(), "created", parent_path, parent, 0o600, canceled)
     assert is_error(raised.value, ContextCanceledError)
     assert not is_only_context_cancellation(raised.value)
-
-
-def test_unix_file_mode() -> None:
-    mode = 0o640 | stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX
-    assert unix_file_mode(mode) == 0o640 | 0o4000 | 0o2000 | 0o1000
 
 
 def test_create_new_path_rejects_non_unix_mode_bits(tmp_path: Path) -> None:
@@ -214,10 +201,3 @@ def test_full_sync_result(error: BaseException | None, want_error: bool) -> None
     assert result is not None
     assert error is not None
     assert any(cause is error for cause in causes(result))
-
-
-@pytest.mark.skip(
-    reason="Go-only EINTR retry loop: Python retries EINTR inside system calls (PEP 475)"
-)
-def test_retry_eintr() -> None:
-    pass

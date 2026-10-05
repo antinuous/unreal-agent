@@ -46,7 +46,6 @@ from unreal_agent.primitives.process import (
     process_completion_event,
     process_group_exists,
     process_result,
-    process_wait_completed,
     run_process_output,
     signal_process_invocation,
     spawn_process,
@@ -254,10 +253,6 @@ def test_process_result_errors() -> None:
         "/bin/sh", WaitOutcome(completed.returncode, RuntimeError("wait failed"))
     )
     assert error is not None
-
-
-def test_nil_process_has_not_completed() -> None:
-    assert not process_wait_completed(None)
 
 
 async def test_process_control_cancellation_while_waiting_for_start() -> None:

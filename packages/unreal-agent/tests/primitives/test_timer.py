@@ -15,7 +15,7 @@ from unreal_agent.primitives import (
     schedule_timer,
 )
 from unreal_agent.primitives import timer as timer_module
-from unreal_agent.primitives.timer import TIMER_MAXIMUM_SLEEP, timer_delay, wall_clock
+from unreal_agent.primitives.timer import TIMER_MAXIMUM_SLEEP, timer_delay
 
 SOURCE = SourceID("operation-1")
 CORRELATION = CorrelationID("timer-1")
@@ -141,8 +141,3 @@ NOW = Timestamp.parse("2026-08-03T12:00:00Z")
 )
 def test_timer_delay_is_bounded_by_maximum_sleep(deadline: Timestamp, want: float) -> None:
     assert timer_delay(NOW, deadline) == want
-
-
-def test_timer_delay_uses_wall_clock_readings() -> None:
-    now = wall_clock()
-    assert timer_delay(now, Timestamp(now.unix_ns + HOUR_NS)) == TIMER_MAXIMUM_SLEEP

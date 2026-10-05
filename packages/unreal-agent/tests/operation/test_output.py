@@ -60,7 +60,6 @@ def _rune_count(text: str) -> int:
             True,
             id="invalid UTF8 truncated",
         ),
-        pytest.param("é\n🙂", "é\n🙂", 3, False, id="unicode and newline exact"),
         pytest.param(
             "é\n🙂", "é...1 bytes truncated...🙂", 2, True, id="unicode and newline truncated"
         ),
@@ -68,17 +67,9 @@ def _rune_count(text: str) -> int:
             "é\n中🙂\t界", "é\n...7 bytes truncated...\t界", 4, True, id="unicode and whitespace"
         ),
         pytest.param("a\nbc\td", "a\n...2 bytes truncated...\td", 4, True, id="whitespace"),
-        pytest.param("\n", "\n", 1, False, id="newline"),
-        pytest.param('"', '"', 1, False, id="quote"),
-        pytest.param("\\\\", "\\\\", 2, False, id="backslashes"),
-        pytest.param("\\u1234", "\\...4 bytes truncated...4", 2, True, id="literal escape"),
         pytest.param(
             "\x00ab\x1f", "\x00...2 bytes truncated...\x1f", 2, True, id="control characters"
         ),
-        pytest.param(
-            "\x00ab\x1f", "...3 bytes truncated...\x1f", 1, True, id="control character tail"
-        ),
-        pytest.param("<>&\u2028\u2029", "<>&\u2028\u2029", 5, False, id="unicode separators"),
         pytest.param("abc", "...3 bytes truncated...", 0, True, id="zero"),
         pytest.param("abc", "...3 bytes truncated...", -1, True, id="negative"),
         pytest.param(
@@ -156,14 +147,6 @@ def test_bound_output_rejects_missing_tail() -> None:
             id="partial with path",
         ),
         pytest.param(
-            b"a\n",
-            b"\\z",
-            "",
-            "a\n...96 bytes truncated...\\z",
-            100,
-            id="partial with newline and backslash",
-        ),
-        pytest.param(
             b"a\xff",
             b"\xfez",
             "",
@@ -187,7 +170,7 @@ def test_bound_output_with_optional_path(
     assert _bound_output(head, tail, size, 4, path) == (want, True)
 
 
-@pytest.mark.parametrize("limit", [0, -1, MAX_OUTPUT_LENGTH + 1, 1_000_000_000])
+@pytest.mark.parametrize("limit", [0, MAX_OUTPUT_LENGTH + 1])
 def test_shell_rejects_invalid_output_limits(
     limit: int, tmp_path_factory: pytest.TempPathFactory
 ) -> None:

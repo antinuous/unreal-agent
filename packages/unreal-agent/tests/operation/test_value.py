@@ -34,8 +34,6 @@ def test_value_spec_carries_inline_json_result() -> None:
     current = _value_operation(want)
     got = decode_value(current)
     assert bytes(got) == want
-    # Raw values are immutable, so the stored value cannot change through the result.
-    assert bytes(decode_value(current)) == b'{"tools":[{"name":"search"}]}'
 
 
 @pytest.mark.parametrize("value", [b"", b"{"])

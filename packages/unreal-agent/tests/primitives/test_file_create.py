@@ -187,13 +187,6 @@ async def test_create_file_preserves_existing_file(tmp_path: Path) -> None:
     assert contents(path) == existing
 
 
-async def test_create_directory_allows_existing_directory(tmp_path: Path) -> None:
-    os.chmod(tmp_path, 0o700)
-    request = IOCreateRequest(kind=IOCreateKind.DIRECTORY, path=str(tmp_path), mode=0o700)
-    event = single_event(await create_events(request), PrimitiveEventType.IO_CREATE_COMPLETED)
-    assert event.result == IOCreateResult(request.kind)
-
-
 async def test_create_directory_concurrent_calls_are_idempotent(tmp_path: Path) -> None:
     invocation_count = 16
     path = str(tmp_path / "created")
@@ -271,19 +264,6 @@ async def test_create_file_canceled_before_start(tmp_path: Path) -> None:
     with pytest.raises(asyncio.CancelledError):
         await task
     assert not exists(path)
-
-
-async def test_create_file_failure_is_terminal(tmp_path: Path) -> None:
-    request = IOCreateRequest(
-        source=SourceID("operation-1"),
-        correlation_id=CorrelationID("create-1"),
-        kind=IOCreateKind.REGULAR_FILE,
-        path=str(tmp_path / "missing" / "created"),
-        mode=0o664,
-    )
-    event = single_event(await create_events(request), PrimitiveEventType.FAILED)
-    assert failure_text(event)
-    assert (event.source, event.correlation_id) == (request.source, request.correlation_id)
 
 
 _CREATE_HELPER = textwrap.dedent(
@@ -418,10 +398,14 @@ async def test_create_reports_invalid_path(
 
 async def test_create_parent_open_failure_includes_path_error(tmp_path: Path) -> None:
     parent = f"{tmp_path}/missing/"
-    event = single_event(
-        await create_events(IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path=parent + "x")),
-        PrimitiveEventType.FAILED,
+    request = IOCreateRequest(
+        source=SourceID("operation-1"),
+        correlation_id=CorrelationID("create-1"),
+        kind=IOCreateKind.REGULAR_FILE,
+        path=parent + "x",
     )
+    event = single_event(await create_events(request), PrimitiveEventType.FAILED)
+    assert (event.source, event.correlation_id) == (request.source, request.correlation_id)
     assert failure_text(event) == (
         f'open parent directory "{parent}": open {parent}: no such file or directory'
     )

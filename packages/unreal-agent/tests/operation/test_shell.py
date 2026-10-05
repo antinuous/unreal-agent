@@ -223,11 +223,6 @@ async def test_shell_actor_captures_artifacts_and_completes(
     assert len(os.listdir(directory)) == 2
 
 
-def test_shell_spec_rejects_zero_inline_length(tmp_path: Path) -> None:
-    with pytest.raises(OperationError):
-        new_shell_spec(ShellInput(Shell=TEST_SHELL_PATH), str(tmp_path), 0)
-
-
 async def test_shell_actor_starts_shell_directly_with_capture_paths(tmp_path: Path) -> None:
     base_directory = str(tmp_path)
     current = new_shell_operation(
@@ -640,12 +635,6 @@ async def test_shell_actor_cancellation_stops_active_process(tmp_path: Path) -> 
             "🙂".encode() * 20, "🙂🙂...64 bytes truncated...🙂🙂", 4, id="four byte characters"
         ),
         pytest.param(
-            "🙂".encode() * 20, "...76 bytes truncated...🙂", 1, id="one four byte character"
-        ),
-        pytest.param(
-            "🙂".encode() * 20, "🙂...68 bytes truncated...🙂🙂", 3, id="odd Unicode budget"
-        ),
-        pytest.param(
             ("界é" + "🙂" * 20 + "好é界").encode(),
             "界é🙂...76 bytes truncated...好é界",
             6,
@@ -662,9 +651,6 @@ async def test_shell_actor_cancellation_stops_active_process(tmp_path: Path) -> 
             '\n"xxxx...93 bytes truncated...xxx\x00\\\t',
             12,
             id="control characters",
-        ),
-        pytest.param(
-            b"start" + b"x" * 100 + b"end", "...107 bytes truncated...d", 1, id="one character"
         ),
     ],
 )

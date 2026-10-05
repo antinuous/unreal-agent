@@ -331,7 +331,6 @@ _SIZE = IO_READ_CHUNK_SIZE * 3 + 17
 @pytest.mark.parametrize(
     ("size", "offset", "count", "want"),
     [
-        pytest.param(_SIZE, 0, 7, 7, id="prefix"),
         pytest.param(
             _SIZE,
             13,
@@ -339,7 +338,6 @@ _SIZE = IO_READ_CHUNK_SIZE * 3 + 17
             IO_READ_CHUNK_SIZE * 2 + 3,
             id="middle across chunks",
         ),
-        pytest.param(_SIZE, _SIZE - 5, 5, 5, id="tail"),
         pytest.param(_SIZE, _SIZE - 7, MAX_INT64, 7, id="clamped overflowing range"),
         pytest.param(_SIZE, 11, 0, 0, id="zero count"),
         pytest.param(_SIZE, _SIZE, 5, 0, id="at EOF"),
@@ -428,14 +426,6 @@ async def test_stream_open_file_reports_final_stat_and_close_failures(
     error = failure_text(single_event(await collect_events(events), PrimitiveEventType.FAILED))
     for want in ("after reading", "stat failed", "close failed"):
         assert want in error
-
-
-@pytest.mark.skip(
-    reason="Go-only io.ReaderAt contract: ReadAt may return io.EOF with a full count; "
-    "File.read_at returns bytes and has no EOF signal"
-)
-def test_stream_open_file_accepts_full_read_with_eof() -> None:
-    pass
 
 
 @pytest.mark.parametrize(

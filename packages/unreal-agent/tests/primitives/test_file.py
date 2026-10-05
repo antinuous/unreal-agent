@@ -21,7 +21,7 @@ from unreal_agent.primitives import (
 from unreal_agent.primitives.channel import Channel
 from unreal_agent.primitives.file import file_type
 
-from tests.primitives._helpers import MAX_INT64, collect_events, write_test_file
+from tests.primitives._helpers import collect_events, write_test_file
 
 
 async def read_events(request: IOReadRequest) -> list[PrimitiveEvent]:
@@ -65,15 +65,6 @@ async def test_read_file_streams_range_and_completes_with_full_size(tmp_path: Pa
     assert output_events >= 2
     assert bytes(output) == contents[offset : offset + count]
     assert completed == IOReadCompletedResult(len(contents))
-
-
-async def test_read_file_clamps_range_to_end_of_file(tmp_path: Path) -> None:
-    path = write_test_file(tmp_path, b"0123456789")
-    events = await read_events(IOReadRequest(path=path, offset=7, count=MAX_INT64))
-    output = b"".join(
-        event.result.data for event in events if event.type == PrimitiveEventType.IO_READ_OUTPUT
-    )
-    assert output == b"789"
 
 
 async def test_read_file_with_zero_count_emits_only_completion(tmp_path: Path) -> None:
@@ -126,21 +117,6 @@ async def test_read_file_cancellation_terminates_stream(tmp_path: Path) -> None:
     assert canceled_events == 1
     with pytest.raises(asyncio.CancelledError):
         await task
-
-
-async def test_read_file_failure_is_terminal(tmp_path: Path) -> None:
-    request = IOReadRequest(
-        source=SourceID("operation-1"),
-        correlation_id=CorrelationID("read-1"),
-        path=str(tmp_path / "missing"),
-        count=1,
-    )
-    events = await read_events(request)
-    assert len(events) == 1
-    assert events[0].type == PrimitiveEventType.FAILED
-    result = events[0].result
-    assert isinstance(result, PrimitiveFailureResult)
-    assert "missing" in result.error
 
 
 async def test_read_file_ignores_advisory_file_lock(tmp_path: Path) -> None:
@@ -197,7 +173,13 @@ async def test_read_file_reports_invalid_path(path: str) -> None:
 
 async def test_read_file_open_failure_includes_path_error(tmp_path: Path) -> None:
     path = str(tmp_path / "missing")
-    events = await read_events(IOReadRequest(path=path, count=1))
+    request = IOReadRequest(
+        source=SourceID("operation-1"), correlation_id=CorrelationID("read-1"), path=path, count=1
+    )
+    events = await read_events(request)
+    assert len(events) == 1
+    assert events[0].type == PrimitiveEventType.FAILED
+    assert (events[0].source, events[0].correlation_id) == (request.source, request.correlation_id)
     assert events[0].result.error == f'open "{path}": open {path}: no such file or directory'
 
 

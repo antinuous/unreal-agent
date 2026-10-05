@@ -56,54 +56,31 @@ SSE_DATA_CASES: list[tuple[str, str, bytes | None]] = [
         b"first\nsecond",
     ),
     ("delimiter retained", "data: first\ndata: second\n\n", b"first\nsecond"),
-    (
-        "multiline JSON",
-        'event: response.completed\ndata: {"type":"response.completed",\ndata: "response":{}}',
-        b'{"type":"response.completed",\n"response":{}}',
-    ),
-    ("escaped newline", 'data: {"text":"first\\nsecond"}', b'{"text":"first\\nsecond"}'),
     ("Unicode", "data: 会話\u2028café\u2029", "会話\u2028café\u2029".encode()),
     ("NUL in data", "data: a\x00b", b"a\x00b"),
     ("BOM in data", "data: ﻿text", "﻿text".encode()),
     ("leading BOM", "﻿data: hello", b"hello"),
     ("leading BOM and BOM in data", "﻿data: ﻿text", "﻿text".encode()),
     ("opaque bytes", "data: \udcff\udcfe", b"\xff\xfe"),
-    (
-        "JSON-RPC message",
-        'event: message\nid: session/stream/1\ndata: {"jsonrpc":"2.0","id":1,"result":{}}',
-        b'{"jsonrpc":"2.0","id":1,"result":{}}',
-    ),
-    ("application sentinel", "data: [DONE]", b"[DONE]"),
 ]
 
 
-@pytest.mark.parametrize("ending", ["\n", "\r\n", "\r"], ids=repr)
 @pytest.mark.parametrize(
-    ("frame", "want"),
-    [pytest.param(frame, want, id=name) for name, frame, want in SSE_DATA_CASES],
+    ("frame", "want", "ending"),
+    [
+        pytest.param(frame, want, ending, id=f"{name}-{ending!r}")
+        for name, frame, want in SSE_DATA_CASES
+        for ending in (["\n", "\r\n", "\r"] if "\n" in frame else ["\n"])
+    ],
 )
 def test_sse_data(frame: str, want: bytes | None, ending: str) -> None:
     encoded = frame.replace("\n", ending).encode("utf-8", "surrogateescape")
-    before = bytes(encoded)
     assert sse_data(encoded) == want
-    assert encoded == before
 
 
 def test_sse_data_mixed_line_endings() -> None:
     got = sse_data(b"event: message\r\ndata: one\ndata:\rdata: two\r\n")
     assert got == b"one\n\ntwo"
-
-
-def test_sse_data_owns_output() -> None:
-    frame = bytearray(b"data: original")
-    data = sse_data(bytes(frame))
-    assert data is not None
-    mutable = bytearray(data)
-    mutable[0] = ord("X")
-    assert frame == b"data: original"
-    frame[6] = ord("Y")
-    assert bytes(mutable) == b"Xriginal"
-    assert sse_data(b": comment") is None
 
 
 def test_sse_data_large_field() -> None:

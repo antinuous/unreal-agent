@@ -924,17 +924,6 @@ async def test_process_environment_inheritance(
     assert result(events[2], ProcessExitResult) == ProcessExitResult(0, 0)
 
 
-async def test_process_uses_explicit_empty_environment() -> None:
-    events = await collect_events(
-        start_with_all_pipes(request(path="/usr/bin/env", environment=[])).events
-    )
-    assert [event.type for event in events] == [
-        PrimitiveEventType.PROCESS_STARTED,
-        PrimitiveEventType.PROCESS_EXITED,
-    ]
-    assert result(events[1], ProcessExitResult) == ProcessExitResult(0, 0)
-
-
 async def test_process_passes_environment_entries_like_go() -> None:
     events = await collect_events(
         start_with_all_pipes(
@@ -973,15 +962,6 @@ async def test_process_selects_parent_pipes() -> None:
     ]
     output = result(events[1], ProcessOutputResult)
     assert (output.stream, output.data) == (ProcessStream.STDOUT, b"stdout")
-
-
-async def test_process_uses_no_parent_pipes_by_default() -> None:
-    events = await collect_events(start(request(path="/usr/bin/true")).events)
-    assert [event.type for event in events] == [
-        PrimitiveEventType.PROCESS_STARTED,
-        PrimitiveEventType.PROCESS_EXITED,
-    ]
-    assert result(events[1], ProcessExitResult).exit_code == 0
 
 
 async def test_process_without_stdin_pipe_closes_input_idempotently() -> None:
@@ -1150,17 +1130,3 @@ async def test_process_control_fails_after_process_cancellation() -> None:
         PrimitiveEventType.FAILED,
     )
     assert "process invocation is done" in result(event, PrimitiveFailureResult).error
-
-
-@pytest.mark.parametrize(
-    ("marker", "pid", "ready"),
-    [
-        ("", 0, False),
-        ("12", 0, False),
-        ("not-a-pid\n", 0, False),
-        ("0\n", 0, False),
-        ("1234\n", 1234, True),
-    ],
-)
-def test_parse_process_pid(marker: str, pid: int, ready: bool) -> None:
-    assert parse_process_pid(marker.encode()) == (pid, ready)

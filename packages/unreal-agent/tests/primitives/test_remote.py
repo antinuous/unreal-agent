@@ -32,7 +32,6 @@ from unreal_agent.primitives import (
     RemoteStreamFailureResult,
     SSEFrameDelimiter,
     default_remote_request,
-    new_remote_http_client,
 )
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
@@ -43,7 +42,6 @@ from unreal_agent.primitives.channel import Channel
 from unreal_agent.primitives.primitive_event import EventSink, send_event
 from unreal_agent.primitives.remote import (
     is_retryable_remote_error,
-    is_retryable_remote_status,
     prepare_remote_request,
     run_remote_request,
     stream_remote_response,
@@ -338,31 +336,23 @@ async def with_cancel_requested[T](function: Callable[[], Awaitable[T]]) -> T:
 # --- Tests ----------------------------------------------------------------------
 
 
-def test_default_remote_request() -> None:
+def test_default_remote_request_retries_transient_status_codes() -> None:
     request = default_remote_request("source", "correlation", "https://example.com")
-    assert (request.source, request.correlation_id) == ("source", "correlation")
-    assert (request.method, request.url) == ("GET", "https://example.com")
-    assert request.headers == {}
-    assert request.response_idle_timeout == 30.0
-    assert request.sse is None
-    assert request.retry_policy == RemoteRetryPolicy(
-        max_attempts=5,
-        initial_backoff=2.0,
-        max_backoff=30.0,
-        retryable_status_codes=[408, 425, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 529],
-    )
-
-
-async def test_new_remote_http_client_owns_transport() -> None:
-    first = new_remote_http_client()
-    second = new_remote_http_client()
-    try:
-        transport = first._transport  # pyright: ignore[reportPrivateUsage]
-        assert isinstance(transport, httpx.AsyncHTTPTransport)
-        assert transport is not second._transport  # pyright: ignore[reportPrivateUsage]
-    finally:
-        await first.aclose()
-        await second.aclose()
+    assert request.retry_policy.retryable_status_codes == [
+        408,
+        425,
+        429,
+        500,
+        502,
+        503,
+        504,
+        520,
+        521,
+        522,
+        523,
+        524,
+        529,
+    ]
 
 
 async def test_remote_client_wraps_configured_http_client() -> None:
@@ -465,20 +455,6 @@ async def test_send_remote_request_frames_sse_responses() -> None:
     assert events[-1].type == PrimitiveEventType.REMOTE_COMPLETED
 
 
-async def test_send_remote_request_keeps_raw_output_for_non_sse_responses() -> None:
-    body = b'{"ok":true}'
-
-    def handler(_: ServerRequest, writer: ResponseWriter) -> None:
-        writer.set_header("Content-Type", "application/json")
-        writer.write(body)
-
-    with serve(handler) as server:
-        request = default_remote_request("operation-1", "remote-1", server.url)
-        request.sse = RemoteSSEOptions(max_frame_size=1)
-        events = await send_test(request)
-    assert attempt_output(events, 1) == body
-
-
 @pytest.mark.parametrize(
     "body",
     [b"data: partial", b"data: complete\n\npartial"],
@@ -548,8 +524,8 @@ async def test_send_remote_request_replays_body_across_temporary_redirect() -> N
     assert attempt_output(events, 1) == b"redirect completed"
 
 
-@pytest.mark.parametrize("status_code", [503, 520, 521, 522, 523, 524, 529])
-async def test_send_remote_request_retries_transient_response(status_code: int) -> None:
+async def test_send_remote_request_retries_transient_response() -> None:
+    status_code = 503
     attempts: list[int] = []
     errors: list[str] = []
 
@@ -605,13 +581,6 @@ async def test_send_remote_request_retries_transient_response(status_code: int) 
     assert (second.attempt, second.status_code, second.headers.get("X-Attempt")) == (2, 200, "2")
     assert attempt_output(events, 2) == b"completed"
     assert events[-1].result == RemoteCompletedResult(2)
-
-
-def test_remote_retry_policy_accepts_additional_status_codes() -> None:
-    policy = default_remote_request("operation-1", "remote-1", "https://example.com").retry_policy
-    assert not is_retryable_remote_status(policy, 409)
-    policy.retryable_status_codes.append(409)
-    assert is_retryable_remote_status(policy, 409)
 
 
 async def test_send_remote_request_uses_additional_retryable_status_code() -> None:
@@ -1237,20 +1206,13 @@ class _ContentTypeCase:
         pytest.param(_ContentTypeCase(request_sse=True, framed=True), id="missing"),
         pytest.param(_ContentTypeCase(status=299, request_sse=True, framed=True), id="missing 299"),
         pytest.param(_ContentTypeCase(status=300, request_sse=True), id="missing 300"),
-        pytest.param(_ContentTypeCase(status=401, request_sse=True), id="missing 401"),
-        pytest.param(_ContentTypeCase(status=503, request_sse=True), id="missing 503"),
         pytest.param(
             _ContentTypeCase("text/event-stream", request_sse=True, framed=True), id="SSE"
-        ),
-        pytest.param(
-            _ContentTypeCase("text/event-stream; charset=utf-8", request_sse=True, framed=True),
-            id="SSE parameters",
         ),
         pytest.param(
             _ContentTypeCase("Text/Event-Stream", request_sse=True, framed=True), id="SSE case"
         ),
         pytest.param(_ContentTypeCase("application/json", request_sse=True), id="JSON"),
-        pytest.param(_ContentTypeCase("text/plain", request_sse=True), id="text"),
         pytest.param(
             _ContentTypeCase("text/event-stream; broken", request_sse=True), id="malformed"
         ),

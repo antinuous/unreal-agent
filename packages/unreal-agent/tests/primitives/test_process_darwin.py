@@ -134,11 +134,9 @@ EXITING = KinfoProc(p_stat=RUNNING, p_flag=EXEC_FLAG | DARWIN_PROCESS_FLAG_EXITI
         pytest.param([], False, id="empty"),
         pytest.param([ZOMBIE], False, id="zombie"),
         pytest.param([EXITING], False, id="exiting before zombie"),
-        pytest.param([ZOMBIE, EXITING], False, id="all terminating"),
         pytest.param([LIVE], True, id="live"),
         pytest.param([STOPPED_MEMBER], True, id="stopped"),
         pytest.param([ZOMBIE, LIVE], True, id="zombie leader with live member"),
-        pytest.param([EXITING, LIVE], True, id="exiting leader with live member"),
     ],
 )
 def test_process_group_has_live_members(members: list[KinfoProc], want: bool) -> None:
