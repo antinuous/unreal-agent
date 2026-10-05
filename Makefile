@@ -1,22 +1,24 @@
-.PHONY: build test check py-test py-check
+.PHONY: sync test check format build fuzz
 
-build:
-	go build -trimpath -o bin/unreal-agent-runner ./cmd/unreal-agent-runner
-	go -C cmd/unreal-agent-tui build -trimpath -o ../../bin/unreal-agent-tui .
+HYPOTHESIS_PROFILE ?= fuzz
+
+sync:
+	uv sync --locked
 
 test:
-	go test -race ./...
-	go -C cmd/unreal-agent-tui test -race ./...
-
-check:
-	go vet ./...
-	go -C cmd/unreal-agent-tui vet ./...
-	@test -z "$$(gofmt -l cmd harness internal)" || { gofmt -l cmd harness internal; exit 1; }
-
-py-test:
 	uv run pytest
 
-py-check:
+check:
 	uv run ruff format --check .
 	uv run ruff check .
 	uv run pyrefly check
+
+format:
+	uv run ruff format .
+	uv run ruff check --fix .
+
+build:
+	uv build --package unreal-agent --out-dir dist
+
+fuzz:
+	HYPOTHESIS_PROFILE=$(HYPOTHESIS_PROFILE) uv run pytest -m hypothesis --timeout=0 $(FUZZ_ARGS)

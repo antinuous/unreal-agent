@@ -5,13 +5,8 @@
 /logs/
 /jobs/
 /benchmarks/harbor/jobs/
-/unreal-agent-runner
-/go.work
-/go.work.sum
 .env
 .env.*
-*.test
-coverage.out
 __pycache__/
 *.py[cod]
 .venv/
