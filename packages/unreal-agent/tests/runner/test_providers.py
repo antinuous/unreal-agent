@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/providers_test.go."""
+"""Provider selection tests."""
 
 import asyncio
 import io

@@ -26,12 +26,12 @@ from tests.coordinator._helpers import (
     MemoryStore,
     as_store,
     external_event,
+    fake_time,
     independent_tool_calls,
     new_tool_grace_test_run,
     persist_test_run,
     restore_test_run,
     stop_input,
-    synctest,
     text_response,
     tool_grace_response,
 )
@@ -112,7 +112,7 @@ async def test_coordinator_stop_cancels_shell_process(tmp_path: Path) -> None:
         await manager.aclose()
 
 
-@synctest
+@fake_time
 async def test_coordinator_stop_after_tool_commit_settles_operation() -> None:
     run = new_tool_grace_test_run()
     store: MemoryStore = await persist_test_run(run)

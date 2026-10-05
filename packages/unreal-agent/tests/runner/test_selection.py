@@ -1,5 +1,5 @@
 # ruff: noqa: ASYNC240
-"""Ports of cmd/internal/agentrunner/selection_test.go."""
+"""Model and tool selection tests."""
 
 import os
 from pathlib import Path

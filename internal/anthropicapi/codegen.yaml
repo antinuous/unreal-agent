@@ -1,9 +1,0 @@
-package: anthropicapi
-generate:
-  models: true
-output: types.gen.go
-output-options:
-  include-operation-ids:
-    - messages_post
-  user-templates:
-    imports.tmpl: ../apijson/imports.tmpl

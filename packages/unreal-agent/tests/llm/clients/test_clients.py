@@ -587,7 +587,7 @@ def test_codex_client_configuration_validation() -> None:
             openaicodex.Client(config)
 
 
-# --- providers_stream_test.go ---------------------------------------------------
+# --- providers stream ---------------------------------------------------------
 
 TOOL_CALL = (
     b'{"type":"function_call","id":"fc-1","call_id":"call-1","name":"Bash",'

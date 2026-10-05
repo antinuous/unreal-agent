@@ -10,20 +10,20 @@ from tests.coordinator._helpers import (
     assert_stop_result,
     caused_by,
     external_event,
+    fake_time,
     new_heartbeat_test_run,
     new_stop_test_run,
     new_tool_grace_test_run,
     persist_test_run,
     settings_input,
     stop_input,
-    synctest,
     text_response,
     tool_grace_response,
     update_tool_grace_call,
 )
 
 
-@synctest
+@fake_time
 async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
     run = new_stop_test_run(0)
     await run.start()
@@ -55,7 +55,7 @@ async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_coordinator_settings_preserve_tool_grace_and_apply_to_continuation() -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -85,7 +85,7 @@ async def test_coordinator_settings_preserve_tool_grace_and_apply_to_continuatio
     assert_stop_result(run.calls[1].request, "B", str(Status.COMPLETED))
 
 
-@synctest
+@fake_time
 async def test_coordinator_settings_follow_inbox_order_and_deduplicate() -> None:
     run = new_heartbeat_test_run(0)
     await run.start()
@@ -102,7 +102,7 @@ async def test_coordinator_settings_follow_inbox_order_and_deduplicate() -> None
 @pytest.mark.parametrize(
     "mode", [ControlMode.STOP_HARD, ControlMode.STOP_WHEN_IDLE], ids=lambda value: str(value)
 )
-@synctest
+@fake_time
 async def test_coordinator_settings_preserve_pending_stop(mode: ControlMode) -> None:
     run = new_stop_test_run(1)
     await run.start()
@@ -130,7 +130,7 @@ async def test_coordinator_settings_preserve_pending_stop(mode: ControlMode) -> 
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_coordinator_settings_require_persistence() -> None:
     run = new_stop_test_run(0)
     want = RuntimeError("settings storage failed")
@@ -143,7 +143,7 @@ async def test_coordinator_settings_require_persistence() -> None:
 
 
 @pytest.mark.parametrize("mode", ["resume", "fork"])
-@synctest
+@fake_time
 async def test_coordinator_settings_replay_on_resume_and_fork(mode: str) -> None:
     parent = new_stop_test_run(0)
     store = await persist_test_run(parent)

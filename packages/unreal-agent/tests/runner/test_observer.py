@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/observer_test.go."""
+"""Session observer and log output tests."""
 
 import io
 

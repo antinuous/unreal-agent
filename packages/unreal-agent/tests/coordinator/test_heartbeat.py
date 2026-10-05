@@ -21,18 +21,18 @@ from tests.coordinator._helpers import (
     caused_by,
     count_heartbeat_messages,
     external_event,
+    fake_time,
     heartbeat_input,
     latest_heartbeat_reason,
     new_heartbeat_test_run,
     now_ns,
     stop_input,
     stored_item,
-    synctest,
     text_response,
 )
 
 
-@synctest
+@fake_time
 async def test_coordinator_heartbeats_while_waiting_for_tools() -> None:
     run = new_heartbeat_test_run(2)
     run.dependencies.tool_heartbeat_interval = MINUTE / SECOND
@@ -96,7 +96,7 @@ async def test_coordinator_heartbeats_while_waiting_for_tools() -> None:
         pytest.param(0, SECOND, id="idle"),
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_heartbeat_disabled_or_idle(pending: int, interval: int) -> None:
     run = new_heartbeat_test_run(pending)
     run.dependencies.tool_heartbeat_interval = interval / SECOND
@@ -106,7 +106,7 @@ async def test_coordinator_heartbeat_disabled_or_idle(pending: int, interval: in
     assert run.request_count() == 0, "unexpected model request"
 
 
-@synctest
+@fake_time
 async def test_coordinator_heartbeat_yields_to_steering_and_results() -> None:
     run = new_heartbeat_test_run(2)
     run.dependencies.tool_heartbeat_interval = MINUTE / SECOND
@@ -134,7 +134,7 @@ async def test_coordinator_heartbeat_yields_to_steering_and_results() -> None:
     )
 
 
-@synctest
+@fake_time
 async def test_heartbeat_discards_previous_deadline() -> None:
     run = new_heartbeat_test_run(1)
     run.dependencies.tool_heartbeat_interval = MINUTE / SECOND
@@ -151,7 +151,7 @@ async def test_heartbeat_discards_previous_deadline() -> None:
     assert_heartbeat_count(run, 1)
 
 
-@synctest
+@fake_time
 async def test_heartbeat_interval_shorter_than_inbox_batch() -> None:
     run = new_heartbeat_test_run(1)
     run.dependencies.tool_heartbeat_interval = NANOSECOND / SECOND
@@ -168,7 +168,7 @@ async def test_heartbeat_interval_shorter_than_inbox_batch() -> None:
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_queued_heartbeat_preserves_active_model_response() -> None:
     run = new_heartbeat_test_run(1)
     await run.start()
@@ -186,7 +186,7 @@ async def test_queued_heartbeat_preserves_active_model_response() -> None:
     assert run.request_count() == 2, "queued heartbeat was delivered twice"
 
 
-@synctest
+@fake_time
 async def test_heartbeat_waits_for_all_operations_of_call() -> None:
     run = new_heartbeat_test_run(2)
     response = cast(ModelResponse, run.store.history[1].Data)
@@ -218,7 +218,7 @@ async def test_heartbeat_waits_for_all_operations_of_call() -> None:
     assert_heartbeat_count(run, 1)
 
 
-@synctest
+@fake_time
 async def test_coordinator_heartbeat_stops_during_cancellation() -> None:
     run = new_heartbeat_test_run(1)
     run.dependencies.tool_heartbeat_interval = MINUTE / SECOND
@@ -232,7 +232,7 @@ async def test_coordinator_heartbeat_stops_during_cancellation() -> None:
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_heartbeat_control_preserves_when_idle_stop() -> None:
     run = new_heartbeat_test_run(1)
     await run.start()
@@ -247,7 +247,7 @@ async def test_heartbeat_control_preserves_when_idle_stop() -> None:
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_coordinator_heartbeat_propagates_submission_failure() -> None:
     run = new_heartbeat_test_run(1)
     run.dependencies.tool_heartbeat_interval = SECOND / SECOND
@@ -268,7 +268,7 @@ async def test_coordinator_heartbeat_propagates_submission_failure() -> None:
     assert run.request_count() == 0, "model ran after heartbeat submission failed"
 
 
-@synctest
+@fake_time
 async def test_coordinator_heartbeat_requires_persistence() -> None:
     run = new_heartbeat_test_run(1)
     run.dependencies.tool_heartbeat_interval = SECOND / SECOND
@@ -282,7 +282,7 @@ async def test_coordinator_heartbeat_requires_persistence() -> None:
 
 
 @pytest.mark.parametrize("stage", ["input", "turn", "response"])
-@synctest
+@fake_time
 async def test_coordinator_replays_heartbeat(stage: str) -> None:
     run = new_heartbeat_test_run(1)
     run.store.history.append(stored_item(4, ItemKind.INPUT, heartbeat_input("heartbeat-1")))

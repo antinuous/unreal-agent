@@ -1,9 +1,0 @@
-package: openaiapi
-generate:
-  models: true
-output: types.gen.go
-output-options:
-  include-operation-ids:
-    - createResponse
-  user-templates:
-    imports.tmpl: ../apijson/imports.tmpl

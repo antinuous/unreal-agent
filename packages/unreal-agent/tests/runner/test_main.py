@@ -1,4 +1,4 @@
-"""Ports of cmd/unreal-agent-runner/tools_test.go, plus the console entry point."""
+"""Enabled tool set and console entry point tests."""
 
 import io
 import os

@@ -21,6 +21,7 @@ from tests.coordinator._helpers import (
     assert_completed_results,
     caused_by,
     external_event,
+    fake_time,
     heartbeat_input,
     independent_tool_calls,
     new_stop_test_run,
@@ -30,7 +31,6 @@ from tests.coordinator._helpers import (
     sleep_ns,
     stop_input,
     submit_test_input,
-    synctest,
     text_response,
     tool_grace_response,
     update_tool_grace_call,
@@ -39,7 +39,7 @@ from tests.coordinator._helpers import (
 )
 
 
-@synctest
+@fake_time
 async def test_coordinator_run_returns_dispatch_error_for_new_operation() -> None:
     run = new_tool_grace_test_run()
     want = RuntimeError("dispatch failed")
@@ -63,7 +63,7 @@ async def test_coordinator_run_returns_dispatch_error_for_new_operation() -> Non
     )
 
 
-@synctest
+@fake_time
 async def test_coordinator_dispatches_only_new_tool_operations() -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -89,7 +89,7 @@ async def test_coordinator_dispatches_only_new_tool_operations() -> None:
     assert len(run.operations.adds) == 2, "result delivery redispatched operations"
 
 
-@synctest
+@fake_time
 async def test_coordinator_scheduling_result_failure_prevents_dispatch() -> None:
     run = new_stop_test_run(0)
     want = RuntimeError("cannot translate result")
@@ -151,7 +151,7 @@ async def test_coordinator_reconciliation_rejects_untranslated_call() -> None:
         "input=true/steer=true",
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_run_defers_completions_until_model_finishes(
     start_with_input: bool, steer: bool
 ) -> None:
@@ -239,7 +239,7 @@ async def test_coordinator_run_defers_completions_until_model_finishes(
         run_task.cancel()
 
 
-@synctest
+@fake_time
 async def test_coordinator_run_slurps_independent_operation_completions() -> None:
     store, registry = independent_tool_calls(3)
     operations = FakeOperationManager()

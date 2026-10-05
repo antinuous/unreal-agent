@@ -21,12 +21,12 @@ from tests.coordinator._helpers import (
     assert_stop_result,
     caused_by,
     external_event,
+    fake_time,
     new_stop_test_run,
     persist_test_run,
     restore_test_run,
     sleep_ns,
     stop_input,
-    synctest,
     text_response,
     text_result,
     user_message,
@@ -40,7 +40,7 @@ COMPLETED = str(Status.COMPLETED)
 @pytest.mark.parametrize(
     "stage", ["in flight", "response committed", "turn write failed", "response write failed"]
 )
-@synctest
+@fake_time
 async def test_coordinator_submission_boundary_survives_recovery(stage: str) -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
@@ -122,7 +122,7 @@ async def test_coordinator_submission_boundary_survives_recovery(stage: str) -> 
     assert len(resumed.calls) == 1, "completion delivery did not settle in one response"
 
 
-@synctest
+@fake_time
 async def test_coordinator_steering_commits_pending_suffix_before_new_response() -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
@@ -155,7 +155,7 @@ async def test_coordinator_steering_commits_pending_suffix_before_new_response()
 
 
 @pytest.mark.parametrize("kind", ["external", "heartbeat", "hard stop"])
-@synctest
+@fake_time
 async def test_coordinator_recovers_pending_results_after_input_write_failure(kind: str) -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
@@ -200,7 +200,7 @@ async def test_coordinator_recovers_pending_results_after_input_write_failure(ki
     assert len(resumed.calls) == 1, "restored results were not delivered exactly once"
 
 
-@synctest
+@fake_time
 async def test_coordinator_starts_new_tool_while_delivering_previous_completion() -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
@@ -312,7 +312,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
     assert len(resumed.calls) == 1, "completed calls were not delivered exactly once"
 
 
-@synctest
+@fake_time
 async def test_coordinator_hard_stop_preserves_pending_inputs_on_replay() -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)

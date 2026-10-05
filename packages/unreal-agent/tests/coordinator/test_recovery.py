@@ -15,20 +15,20 @@ from tests.coordinator._helpers import (
     assert_stop_result,
     caused_by,
     external_event,
+    fake_time,
     new_stop_test_run,
     persist_test_run,
     restore_test_run,
     stop_input,
     stored_item,
     submit_test_input,
-    synctest,
     text_response,
     with_preamble,
 )
 
 
 @pytest.mark.parametrize("stage", ["untranslated", "rejected", "accepted"])
-@synctest
+@fake_time
 async def test_coordinator_resumes_unavailable_tool(stage: str) -> None:
     run = new_stop_test_run(1)
     want_error = 'tool "ViewImage" is not available'
@@ -79,7 +79,7 @@ async def test_coordinator_resumes_unavailable_tool(stage: str) -> None:
 @pytest.mark.parametrize(
     "stage", ["input", "turn", "response", "compaction", "compaction response"]
 )
-@synctest
+@fake_time
 async def test_coordinator_resumes_unanswered_input(stage: str) -> None:
     run = new_stop_test_run(0)
     run.store.history = [stored_item(1, ItemKind.INPUT, external_event("user", "hello"))]
@@ -127,7 +127,7 @@ async def test_coordinator_resumes_unanswered_input(stage: str) -> None:
         pytest.param(ControlMode.STOP_WHEN_IDLE, id=str(ControlMode.STOP_WHEN_IDLE)),
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_stop_rejects_unsupported_operation(mode: ControlMode) -> None:
     run = new_stop_test_run(1)
     manager = LocalOperationManager()
@@ -153,7 +153,7 @@ async def test_coordinator_stop_rejects_unsupported_operation(mode: ControlMode)
         pytest.param(Status.CANCELED, id=str(Status.CANCELED)),
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_resumes_saved_terminal_operation(terminal: Status) -> None:
     run = new_stop_test_run(1)
     store = MemoryStore()

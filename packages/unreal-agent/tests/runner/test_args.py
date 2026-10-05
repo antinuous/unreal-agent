@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/args_test.go."""
+"""Command-line argument tests."""
 
 import io
 

@@ -1,5 +1,5 @@
 # ruff: noqa: ASYNC240
-"""Ports of cmd/internal/agentrunner/run_test.go."""
+"""End-to-end runner tests."""
 
 import asyncio
 import glob

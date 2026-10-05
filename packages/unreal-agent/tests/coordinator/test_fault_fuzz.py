@@ -1,7 +1,7 @@
 """Property test for coordinator dependency faults, ported from Go's FuzzCoordinatorFaults.
 
 The Go seed corpus is the fuzz target's `f.Add` calls. Each example runs in a
-fresh looptime event loop, the equivalent of one `synctest.Test` bubble, so
+fresh looptime event loop, the equivalent of one `fake_time.Test` bubble, so
 hour-long operation delays cost no real time. The real Responses adapter runs
 over an `httpx.MockTransport`.
 """
@@ -571,7 +571,7 @@ async def run_coordinator_fault_case(
     actions: bytes, mode: int, occurrence: int, text: str, tokens: int
 ) -> None:
     loop = asyncio.get_running_loop()
-    # Fire timers only at their deadline, as Go's synctest does (see conftest.exact_timers).
+    # Fire timers only at their deadline, as Go's fake_time does (see conftest.exact_timers).
     cast(Any, loop)._clock_resolution = 1e-12
     if not actions:
         actions = b"\x00"

@@ -1,6 +1,6 @@
 """Shared fakes and harnesses for the coordinator tests ported from harness/coordinator.
 
-Fake time follows Go's testing/synctest: `@synctest` runs a test under
+Fake time follows Go's testing/fake_time: `@fake_time` runs a test under
 looptime with nanosecond resolution, `wait()` runs the loop until nothing
 is ready, and `sleep_ns` advances fake time and then waits.
 """
@@ -70,8 +70,8 @@ from unreal_agent.tool import (
 )
 from unreal_agent.tool._go import go_quote
 
-# Go's testing/synctest: fake time with nanosecond resolution so deadlines land exactly.
-synctest = pytest.mark.looptime(resolution=1e-9)
+# Go's testing/fake_time: fake time with nanosecond resolution so deadlines land exactly.
+fake_time = pytest.mark.looptime(resolution=1e-9)
 
 NANOSECOND = 1
 MILLISECOND = 1_000_000
@@ -86,7 +86,7 @@ TOOL_CALL_RUN_GRACE_PERIOD_NS = SECOND
 
 
 async def wait() -> None:
-    """Go's `synctest.Wait`: run the loop until no callback is ready or due."""
+    """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
     internals = cast(Any, loop)
     while True:
@@ -104,7 +104,7 @@ def now_ns() -> int:
 
 
 async def sleep_ns(duration: int) -> None:
-    """Go's `synctest.Sleep`: advance fake time by `duration`, then `wait()`."""
+    """Go's `fake_time.Sleep`: advance fake time by `duration`, then `wait()`."""
     if duration > 0:
         await asyncio.sleep(duration / SECOND)
     await wait()

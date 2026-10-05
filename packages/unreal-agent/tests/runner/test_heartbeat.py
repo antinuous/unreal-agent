@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/heartbeat_test.go."""
+"""Tool heartbeat flag tests."""
 
 import asyncio
 import io

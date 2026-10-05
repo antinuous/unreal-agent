@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/resume_test.go."""
+"""Session resume tests."""
 
 import asyncio
 import io

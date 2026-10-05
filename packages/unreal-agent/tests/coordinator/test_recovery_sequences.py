@@ -21,12 +21,12 @@ from tests.coordinator._helpers import (
     assert_stop_result,
     caused_by,
     external_event,
+    fake_time,
     new_stop_test_run,
     persist_test_run,
     restore_test_run,
     sleep_ns,
     stop_input,
-    synctest,
     text_response,
     value_spec,
     wait,
@@ -34,7 +34,7 @@ from tests.coordinator._helpers import (
 
 
 @pytest.mark.parametrize("stage", ["steered-request", "followup-request"])
-@synctest
+@fake_time
 async def test_coordinator_resumes_mixed_delivery_after_steering(stage: str) -> None:
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
@@ -102,7 +102,7 @@ async def test_coordinator_resumes_mixed_delivery_after_steering(stage: str) -> 
     assert len(resumed.calls) == 1, "resumed delivery did not settle exactly once"
 
 
-@synctest
+@fake_time
 async def test_coordinator_resumes_partially_completed_tool_call() -> None:
     run = new_stop_test_run(1)
     second = replace(run.store.resume.operations[0], ID="operation-1")
@@ -156,7 +156,7 @@ async def test_coordinator_resumes_partially_completed_tool_call() -> None:
 
 
 @pytest.mark.parametrize("failure", ["reconciliation", "initial-build", "initial-turn"])
-@synctest
+@fake_time
 async def test_coordinator_retries_recovery_persistence_failures(failure: str) -> None:
     run = new_stop_test_run(1)
     store = await persist_test_run(run)
@@ -197,7 +197,7 @@ async def test_coordinator_retries_recovery_persistence_failures(failure: str) -
     assert len(resumed.calls) == 1, "retry did not settle delivery exactly once"
 
 
-@synctest
+@fake_time
 async def test_coordinator_retries_initial_tool_status_persistence_failure() -> None:
     run = new_stop_test_run(1)
     run.store.history = run.store.history[:2]

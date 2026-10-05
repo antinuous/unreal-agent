@@ -1,4 +1,4 @@
-"""Shared fakes and log helpers for the runner tests (Go's run_test.go and log fuzz helpers)."""
+"""Shared fakes and log helpers for the runner tests."""
 
 import asyncio
 import contextlib
@@ -256,7 +256,7 @@ class FailingItemWriter:
 
 
 async def wait() -> None:
-    """Go's `synctest.Wait`: run the loop until no callback is ready or due."""
+    """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
     internals = cast(Any, loop)
     while True:

@@ -12,7 +12,7 @@ async def exact_timers() -> AsyncIterator[None]:
     """Fire timers only at their deadline, and require every task to exit afterwards.
 
     asyncio runs a timer early when it is within one clock resolution of
-    now, which breaks nanosecond fake-time deadlines. Go's synctest also
+    now, which breaks nanosecond fake-time deadlines. Go's fake_time also
     fails a test whose bubble goroutines do not exit once the test context
     is canceled; teardown cancels leftover tasks and fails on any that stay
     pending.

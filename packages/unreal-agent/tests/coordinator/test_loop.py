@@ -66,12 +66,12 @@ from tests.coordinator._helpers import (
     deps,
     empty_fake_store,
     external_event,
+    fake_time,
     new_stop_test_run,
     new_test_coordinator,
     new_test_inbox,
     stored_item,
     submit_test_input,
-    synctest,
     text_response,
     value_spec,
     wait,
@@ -670,7 +670,7 @@ async def test_coordinator_rejects_invalid_session_item_data(item: Item, want: s
     assert want in str(caught.value), f"error = {caught.value!r}, want substring {want!r}"
 
 
-@synctest
+@fake_time
 async def test_coordinator_run_returns_context_cancellation() -> None:
     current = new_test_coordinator(
         empty_fake_store(),

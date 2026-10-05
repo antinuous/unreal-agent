@@ -18,11 +18,11 @@ from tests.coordinator._helpers import (
     SubmittingTranslator,
     TestTranslator,
     external_event,
+    fake_time,
     new_stop_test_run,
     persist_test_run,
     sleep_ns,
     stop_input,
-    synctest,
     text_response,
     value_spec,
     wait,
@@ -40,7 +40,7 @@ FORK_PARENT_STAGES = ["unscheduled", "running", "completed", "compaction", "comp
         for tool in (False, True)
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_fork_stops_when_child_is_idle(
     parent_stage: str, child_tool: bool
 ) -> None:

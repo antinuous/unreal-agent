@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/retry_test.go."""
+"""Max-attempts resolution tests."""
 
 import io
 

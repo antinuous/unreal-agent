@@ -1,7 +1,7 @@
 # ruff: noqa: ASYNC230
 """Property test ported from Go's FuzzCoordinatorLogMatchesExecution.
 
-Each example runs in a fresh looptime event loop (one `synctest.Test`
+Each example runs in a fresh looptime event loop (one `fake_time.Test`
 bubble) with the store's blocking work inlined, so no worker threads let
 fake time jump. The Go seed corpus is the `@example` list.
 """
@@ -126,7 +126,7 @@ async def run_coordinator_log_case(
     actions: bytes, text: str, input: int, cached: int, written: int, output: int, reasoning: int
 ) -> None:
     loop = asyncio.get_running_loop()
-    # Fire timers only at their deadline, as Go's synctest does.
+    # Fire timers only at their deadline, as Go's fake_time does.
     cast(Any, loop)._clock_resolution = 1e-12
     text = to_valid_utf8(text)
     usage = fuzz_log_usage(text, input, cached, written, output, reasoning)

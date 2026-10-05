@@ -10,7 +10,7 @@ from unreal_agent.coordinator.loop import (
     slurp,
 )
 
-from tests.coordinator._helpers import now_ns, sleep_ns, synctest, wait
+from tests.coordinator._helpers import fake_time, now_ns, sleep_ns, wait
 
 SLURP_IDLE_TIMEOUT_NANOSECONDS = round(SLURP_IDLE_TIMEOUT * 1e9)
 
@@ -34,7 +34,7 @@ async def close_source[T](source: Source[T]) -> None:
 
 
 @pytest.mark.parametrize("count", [0, 3])
-@synctest
+@fake_time
 async def test_slurp_channel_preserves_order(count: int) -> None:
     output: asyncio.Queue[int] = asyncio.Queue(count)
     want: list[int] = []
@@ -52,7 +52,7 @@ async def test_slurp_channel_preserves_order(count: int) -> None:
     await close_source(source)
 
 
-@synctest
+@fake_time
 async def test_slurp_channel_resets_idle_timeout() -> None:
     output: asyncio.Queue[int] = asyncio.Queue(1)
     output.put_nowait(1)
@@ -72,7 +72,7 @@ async def test_slurp_channel_resets_idle_timeout() -> None:
 
 
 @pytest.mark.parametrize("count", [99, 100, 101])
-@synctest
+@fake_time
 async def test_slurp_channel_caps_batch(count: int) -> None:
     output: asyncio.Queue[int] = asyncio.Queue(count)
     want = list(range(count))
@@ -98,7 +98,7 @@ async def test_slurp_channel_caps_batch(count: int) -> None:
 
 
 @pytest.mark.parametrize("buffered", [False, True])
-@synctest
+@fake_time
 async def test_slurp_channel_returns_accumulated_values_on_closure(buffered: bool) -> None:
     output: asyncio.Queue[str] = asyncio.Queue(2)
     want: list[str] = []
@@ -114,7 +114,7 @@ async def test_slurp_channel_returns_accumulated_values_on_closure(buffered: boo
     assert elapsed == 0, f"closure advanced time by {elapsed}"
 
 
-@synctest
+@fake_time
 async def test_slurp_channel_returns_cancellation_cause() -> None:
     cause = "session stopped"
     source = queue_source(asyncio.Queue[str]())

@@ -1,4 +1,4 @@
-"""Ports of cmd/internal/agentrunner/config_test.go."""
+"""Runner configuration tests."""
 
 import io
 

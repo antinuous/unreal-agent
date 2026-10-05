@@ -13,12 +13,12 @@ from tests.coordinator._helpers import (
     TOOL_CALL_RUN_GRACE_PERIOD_NS,
     assert_stop_result,
     external_event,
+    fake_time,
     heartbeat_input,
     new_tool_grace_test_run,
     now_ns,
     sleep_ns,
     stop_input,
-    synctest,
     text_response,
     tool_grace_response,
     update_tool_grace_call,
@@ -28,7 +28,7 @@ from tests.coordinator._helpers import (
 @pytest.mark.parametrize(
     "terminal", [Status.COMPLETED, Status.FAILED, Status.CANCELED], ids=lambda value: str(value)
 )
-@synctest
+@fake_time
 async def test_coordinator_tool_grace_batches_completions_until_all_calls_finish(
     terminal: Status,
 ) -> None:
@@ -52,7 +52,7 @@ async def test_coordinator_tool_grace_batches_completions_until_all_calls_finish
 
 
 @pytest.mark.parametrize("end_grace", ["steering", "expiry"])
-@synctest
+@fake_time
 async def test_coordinator_tool_grace_waits_only_for_latest_turn(end_grace: str) -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -87,7 +87,7 @@ async def test_coordinator_tool_grace_waits_only_for_latest_turn(end_grace: str)
     assert_stop_result(run.calls[3].request, "C", str(Status.COMPLETED))
 
 
-@synctest
+@fake_time
 async def test_coordinator_tool_grace_deadline_does_not_reset_on_completion() -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -112,7 +112,7 @@ async def test_coordinator_tool_grace_deadline_does_not_reset_on_completion() ->
     assert not run.calls[1].canceled, "grace deadline repeated or interrupted the continuation"
 
 
-@synctest
+@fake_time
 async def test_coordinator_tool_grace_expiry_without_results_does_not_start_turn() -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -127,7 +127,7 @@ async def test_coordinator_tool_grace_expiry_without_results_does_not_start_turn
 
 
 @pytest.mark.parametrize("kind", ["external", "heartbeat"])
-@synctest
+@fake_time
 async def test_coordinator_inbox_ends_tool_grace_period(kind: str) -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -149,7 +149,7 @@ async def test_coordinator_inbox_ends_tool_grace_period(kind: str) -> None:
     assert_stop_result(run.calls[2].request, "B", str(Status.COMPLETED))
 
 
-@synctest
+@fake_time
 async def test_coordinator_tool_grace_discards_previous_deadline() -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -171,7 +171,7 @@ async def test_coordinator_tool_grace_discards_previous_deadline() -> None:
 
 
 @pytest.mark.parametrize("name", [VIEW_IMAGE_NAME, "unavailable"])
-@synctest
+@fake_time
 async def test_coordinator_immediate_tool_status_bypasses_grace(name: str) -> None:
     run = new_tool_grace_test_run()
     await run.start()
@@ -200,7 +200,7 @@ async def test_coordinator_immediate_tool_status_bypasses_grace(name: str) -> No
 @pytest.mark.parametrize(
     "mode", [ControlMode.STOP_HARD, ControlMode.STOP_WHEN_IDLE], ids=lambda value: str(value)
 )
-@synctest
+@fake_time
 async def test_coordinator_stop_during_tool_grace_period(mode: ControlMode) -> None:
     run = new_tool_grace_test_run()
     await run.start()

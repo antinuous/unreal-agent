@@ -18,6 +18,7 @@ from tests.coordinator._helpers import (
     assert_stop_result,
     caused_by,
     external_event,
+    fake_time,
     heartbeat_input,
     new_stop_test_run,
     sleep_ns,
@@ -25,13 +26,12 @@ from tests.coordinator._helpers import (
     stop_test_adapter,
     stored_item,
     submit_test_input,
-    synctest,
     text_response,
     wait,
 )
 
 
-@synctest
+@fake_time
 async def test_coordinator_remains_available_until_stop() -> None:
     run = new_stop_test_run(0)
     await run.start()
@@ -53,7 +53,7 @@ async def test_coordinator_remains_available_until_stop() -> None:
         for during in (False, True)
     ],
 )
-@synctest
+@fake_time
 async def test_coordinator_when_idle_delivers_pending_results(
     terminal: Status, during_request: bool
 ) -> None:
@@ -77,7 +77,7 @@ async def test_coordinator_when_idle_delivers_pending_results(
     assert len(run.operations.cancels) == 0, "when_idle canceled an operation"
 
 
-@synctest
+@fake_time
 async def test_coordinator_stops_after_cancellation_is_recorded() -> None:
     run = new_stop_test_run(2)
     await run.start()
@@ -107,7 +107,7 @@ async def test_coordinator_stops_after_cancellation_is_recorded() -> None:
 @pytest.mark.parametrize(
     "mode", [ControlMode.STOP_HARD, "steer"], ids=[ControlMode.STOP_HARD, "steer"]
 )
-@synctest
+@fake_time
 async def test_coordinator_cancels_compaction_without_recording_a_response(mode: str) -> None:
     run = new_stop_test_run(0)
     run.dependencies.llm = stop_test_adapter(run, ignore_cancellation=True)
@@ -144,7 +144,7 @@ async def test_coordinator_cancels_compaction_without_recording_a_response(mode:
     run.assert_stopped()
 
 
-@synctest
+@fake_time
 async def test_coordinator_hard_stop_overrides_when_idle() -> None:
     run = new_stop_test_run(1)
     await run.start()
@@ -179,7 +179,7 @@ async def test_coordinator_hard_stop_overrides_when_idle() -> None:
     assert len(run.calls) == 1, "stop repeated cancellation or started another model request"
 
 
-@synctest
+@fake_time
 async def test_coordinator_hard_stop_discards_late_model_response() -> None:
     run = new_stop_test_run(1)
     run.dependencies.llm = stop_test_adapter(run, ignore_cancellation=True)
@@ -210,7 +210,7 @@ async def test_coordinator_hard_stop_discards_late_model_response() -> None:
 
 
 @pytest.mark.parametrize("failure", ["input", "cancel", "operation", "tool-result"])
-@synctest
+@fake_time
 async def test_coordinator_stop_propagates_errors(failure: str) -> None:
     run = new_stop_test_run(2)
     want = RuntimeError("test failure")
@@ -236,7 +236,7 @@ async def test_coordinator_stop_propagates_errors(failure: str) -> None:
 
 
 @pytest.mark.parametrize("source", ["inbox", "operation updates"])
-@synctest
+@fake_time
 async def test_coordinator_cancellation_while_collecting_updates(source: str) -> None:
     run = new_stop_test_run(1)
     run.go()
@@ -269,7 +269,7 @@ async def test_coordinator_cancellation_while_collecting_updates(source: str) ->
     )
 
 
-@synctest
+@fake_time
 async def test_coordinator_drains_inbox_and_operations_before_calling_model() -> None:
     run = new_stop_test_run(1)
     await run.start()
@@ -301,7 +301,7 @@ async def test_coordinator_drains_inbox_and_operations_before_calling_model() ->
     )
 
 
-@synctest
+@fake_time
 async def test_coordinator_cancellation_takes_precedence_over_model_error() -> None:
     run = new_stop_test_run(0)
     results: asyncio.Future[Exception] = asyncio.get_running_loop().create_future()
@@ -335,7 +335,7 @@ async def test_coordinator_cancellation_takes_precedence_over_model_error() -> N
     [ControlMode.STOP_HARD, ControlMode.STOP_WHEN_IDLE],
     ids=[ControlMode.STOP_HARD, ControlMode.STOP_WHEN_IDLE],
 )
-@synctest
+@fake_time
 async def test_coordinator_stop_controls_do_not_repeat_on_resume(mode: ControlMode) -> None:
     run = new_stop_test_run(0)
     run.store.history.append(stored_item(3, ItemKind.INPUT, stop_input("old-stop", mode)))
@@ -349,7 +349,7 @@ async def test_coordinator_stop_controls_do_not_repeat_on_resume(mode: ControlMo
 
 
 @pytest.mark.parametrize("stage", ["completed", "request-started", "response-recorded"])
-@synctest
+@fake_time
 async def test_coordinator_when_idle_delivers_restored_results(stage: str) -> None:
     run = new_stop_test_run(1)
     status = cast(ToolCallStatus, run.store.history[2].Data)

@@ -54,7 +54,7 @@ from tests.llm.responsesapi._helpers import (
     valid_request,
 )
 
-# Nanosecond loop time lets jittered backoff deadlines land exactly, as under Go's synctest.
+# Nanosecond loop time lets jittered backoff deadlines land exactly, as under Go's fake_time.
 pytestmark = pytest.mark.looptime(resolution=1e-9)
 
 BASE_NS = 1_785_758_400 * 10**9
@@ -200,7 +200,7 @@ async def settle() -> None:
         await asyncio.sleep(0)
 
 
-# --- adapter_test.go ------------------------------------------------------------
+# --- adapter ------------------------------------------------------------------
 
 
 async def test_adapter_remote_requests_use_uuid_correlation_ids() -> None:
@@ -503,7 +503,7 @@ async def test_headerless_http_error_preserves_details() -> None:
     assert traced[-1].response_body == body
 
 
-# --- stream_test.go -------------------------------------------------------------
+# --- stream -------------------------------------------------------------------
 
 
 async def test_responses_streaming_returns_terminal_response() -> None:
@@ -768,7 +768,7 @@ async def test_responses_preserves_terminal_after_disconnect(max_attempts: int) 
     assert response == decode_response(COMPLETED_RESPONSE)
 
 
-# --- retry_test.go --------------------------------------------------------------
+# --- retry --------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -864,7 +864,7 @@ async def test_adapter_does_not_retry_missing_required_parameter() -> None:
     assert attempts == 1
 
 
-# --- retry_timing_test.go -------------------------------------------------------
+# --- retry timing -------------------------------------------------------------
 
 
 @dataclass
@@ -1099,7 +1099,7 @@ async def test_exchange_backoff_cancellation(
     assert len(transport.calls) == 2, "retried after cancellation or deadline"
 
 
-# --- exchange_retry_test.go -----------------------------------------------------
+# --- exchange retry -----------------------------------------------------------
 
 
 @pytest.mark.parametrize("kind", ["error", "response.failed"])
@@ -1241,7 +1241,7 @@ async def test_exchange_incomplete_responses_are_not_retried(reason: str, stop: 
     assert calls == 1
 
 
-# --- transport_retry_test.go ----------------------------------------------------
+# --- transport retry ----------------------------------------------------------
 
 
 async def test_exchange_retries_header_timeout() -> None:
