@@ -65,6 +65,7 @@ class ReasoningEffort(StrEnum):
 
 
 class StopReason(StrEnum):
+    NONE = ""
     COMPLETE = "complete"
     MAX_OUTPUT_TOKENS = "max_output_tokens"
     REFUSED = "refused"
@@ -217,7 +218,7 @@ _Failure = Failure
 
 class Response(Struct):
     ID: str = ""
-    Stop: StopReason = ""
+    Stop: StopReason = StopReason.NONE
     Output: Annotated[list[Item], OmitZero] = []
     Usage: _Usage = field(default_factory=Usage)
     Failure: _Failure | None = None

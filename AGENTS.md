@@ -54,7 +54,8 @@ are copied next to the tests that use them.
   `json.loads`/`json.dumps`.
 - Go `any` fields selected by a sibling kind tag get an explicit codec that
   decodes the envelope with `Raw` and then decodes by kind.
-- String enums are `StrEnum`. Internal, non-serialized state uses
+- String enums are `StrEnum`. If Go can persist an enum field's zero value,
+  give the enum a `NONE = ""` member so decoding accepts it. Internal, non-serialized state uses
   `@dataclass(slots=True)`.
 - Sentinel errors become exception classes; `errors.Is` becomes `isinstance`.
   `errors.Join` becomes an `ExceptionGroup` or a joined message, matching what

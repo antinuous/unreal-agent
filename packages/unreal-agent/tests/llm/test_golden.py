@@ -83,3 +83,14 @@ def test_golden_fixture_round_trips_byte_identical(name: str) -> None:
     assert counts["input"] == 1
     assert counts["response"] >= 1
     assert counts["item"] >= 2
+
+
+def test_failed_response_round_trips_with_empty_stop() -> None:
+    from unreal_agent import gojson
+    from unreal_agent.llm import Failure, Response, StopReason
+
+    encoded = gojson.encode(Response(ID="r", Failure=Failure(Code="c", Message="m")))
+    assert b'"Stop":""' in encoded
+    decoded = gojson.decode(encoded, Response)
+    assert decoded.Stop is StopReason.NONE
+    assert gojson.encode(decoded) == encoded
