@@ -146,3 +146,60 @@ def test_compact_rewrites_string_escapes_like_go() -> None:
     expected = ('{"ab":["<é/😀' + chr(0x2028) + '\\n\\u0007x",1.50e+3,-0]}').encode()
     assert compact(source) == expected
     assert encode(Sample(B=Raw(source))).startswith(b'{"A":0,"B":' + expected + b",")
+
+
+def test_encode_empty_raw_as_null_like_go() -> None:
+    class Value(Struct):
+        V: Raw = Raw(b"")
+        E: Annotated[Raw, OmitEmpty] = Raw(b"")
+
+    assert encode(Raw(b"")) == b"null"
+    assert encode([Raw(b"")]) == b"[null]"
+    assert encode(Value()) == b'{"V":null}'
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2026-01-01t00:00:00Z",
+        "2026-01-01T00:00:00z",
+        "2026-01-01T00:00:00,5Z",
+        "2026-01-01T00:00:00.Z",
+        "0001-02-29T00:00:00Z",
+        "\u0662026-01-01T00:00:00Z",
+    ],
+)
+def test_timestamp_parse_rejects_like_go(text: str) -> None:
+    with pytest.raises(JSONError):
+        Timestamp.parse(text)
+
+
+@pytest.mark.parametrize(
+    ("text", "formatted"),
+    [
+        ("2026-01-01T00:00:00.1234567891Z", "2026-01-01T00:00:00.123456789Z"),
+        ("2026-01-01T00:00:00.9999999999Z", "2026-01-01T00:00:00.999999999Z"),
+        ("0000-02-29T00:00:00Z", "0000-02-29T00:00:00Z"),
+        ("0000-01-01T00:00:00+01:00", "0000-01-01T00:00:00+01:00"),
+        ("9999-12-31T23:59:59.999999999-23:59", "9999-12-31T23:59:59.999999999-23:59"),
+    ],
+)
+def test_timestamp_parse_accepts_like_go(text: str, formatted: str) -> None:
+    assert Timestamp.parse(text).format() == formatted
+
+
+def test_timestamp_year_zero_orders_before_go_zero() -> None:
+    year_zero = Timestamp.parse("0000-12-31T23:59:59Z")
+    assert year_zero.unix_ns == Timestamp().unix_ns - 10**9
+    assert (
+        Timestamp.parse("0000-01-01T00:00:00Z").unix_ns == Timestamp().unix_ns - 366 * 86400 * 10**9
+    )
+
+
+def test_encode_rejects_years_outside_go_range() -> None:
+    last = Timestamp.parse("9999-12-31T23:59:59Z")
+    with pytest.raises(JSONError, match=r"year outside of range \[0,9999\]"):
+        encode(Timestamp(last.unix_ns + 10**9))
+    first = Timestamp.parse("0000-01-01T00:00:00Z")
+    with pytest.raises(JSONError, match=r"year outside of range \[0,9999\]"):
+        encode(Timestamp(first.unix_ns - 1))

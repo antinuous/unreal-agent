@@ -77,10 +77,17 @@ class Struct(msgspec.Struct, kw_only=True):
 
 
 _TIME_RE: Final = re.compile(
-    r"(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(?:([Zz])|([+-])(\d{2}):(\d{2}))\Z"
+    r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(?:(Z)|([+-])(\d{2}):(\d{2}))\Z",
+    re.ASCII,
 )
 _EPOCH: Final = datetime(1970, 1, 1, tzinfo=UTC)
 _GO_ZERO_UNIX_NS: Final = -62135596800 * 10**9
+# datetime starts at year 1; year 0 is handled by shifting one 400-year
+# Gregorian cycle, which preserves weekdays and leap years.
+_CYCLE_YEARS: Final = 400
+_CYCLE_SECONDS: Final = 146097 * 86400
+_MIN_LOCAL_SECONDS: Final = _GO_ZERO_UNIX_NS // 10**9 - 366 * 86400
+_MAX_LOCAL_SECONDS: Final = 253402300800
 
 
 class Timestamp:
@@ -131,14 +138,22 @@ class Timestamp:
             offset = offset_hours * 3600 + offset_minutes * 60
             if match.group(9) == "-":
                 offset = -offset
+        shift = _CYCLE_YEARS if year == 0 else 0
         try:
             base = datetime(
-                year, month, day, hour, minute, second, tzinfo=timezone(timedelta(seconds=offset))
+                year + shift,
+                month,
+                day,
+                hour,
+                minute,
+                second,
+                tzinfo=timezone(timedelta(seconds=offset)),
             )
         except ValueError as error:
             raise JSONError(f"invalid RFC 3339 timestamp {text!r}") from error
-        nanos = int(fraction.ljust(9, "0")) if fraction else 0
-        return cls(cls.from_datetime(base).unix_ns + nanos, offset)
+        nanos = int(fraction[:9].ljust(9, "0")) if fraction else 0
+        unix_ns = cls.from_datetime(base).unix_ns - (_CYCLE_SECONDS if shift else 0) * 10**9
+        return cls(unix_ns + nanos, offset)
 
     def is_zero(self) -> bool:
         return self.unix_ns == _GO_ZERO_UNIX_NS
@@ -154,10 +169,11 @@ class Timestamp:
     def format(self) -> str:
         """Format like Go's time.RFC3339Nano."""
         seconds, nanos = divmod(self.unix_ns, 10**9)
-        local = _EPOCH + timedelta(seconds=seconds + self.offset_seconds)
+        local_seconds = seconds + self.offset_seconds
+        shift = _CYCLE_YEARS if local_seconds < _GO_ZERO_UNIX_NS // 10**9 else 0
+        local = _EPOCH + timedelta(seconds=local_seconds + (_CYCLE_SECONDS if shift else 0))
         text = local.strftime("%Y-%m-%dT%H:%M:%S")
-        if local.year < 1000:
-            text = f"{local.year:04d}{text[text.index('-') :]}"
+        text = f"{local.year - shift:04d}{text[text.index('-') :]}"
         if nanos:
             text += "." + f"{nanos:09d}".rstrip("0")
         if self.offset_seconds == 0:
@@ -165,6 +181,12 @@ class Timestamp:
         sign = "-" if self.offset_seconds < 0 else "+"
         hours, minutes = divmod(abs(self.offset_seconds) // 60, 60)
         return f"{text}{sign}{hours:02d}:{minutes:02d}"
+
+    def check_year_range(self) -> None:
+        """Raise JSONError for a local year Go's MarshalJSON cannot encode."""
+        local_seconds = self.unix_ns // 10**9 + self.offset_seconds
+        if not _MIN_LOCAL_SECONDS <= local_seconds < _MAX_LOCAL_SECONDS:
+            raise JSONError("year outside of range [0,9999]")
 
     def __lt__(self, other: Timestamp) -> bool:
         return self.unix_ns < other.unix_ns
@@ -408,10 +430,9 @@ class _Encoder:
             case bytes() | bytearray() | memoryview():
                 out += b'"' + base64.b64encode(value) + b'"'
             case msgspec.Raw():
-                if len(value) == 0:
-                    raise JSONError("empty raw JSON value")
-                out += compact(value)
+                out += compact(value) if len(value) else b"null"
             case Timestamp():
+                value.check_year_range()
                 out += b'"' + value.format().encode() + b'"'
             case msgspec.Struct():
                 self.write_struct(value)
