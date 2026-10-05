@@ -34,7 +34,7 @@ ignore = ["RUF012"]
 
 [tool.pyrefly]
 project-includes = ["packages/*/src", "packages/*/tests"]
-search-path = ["packages/unreal-agent/src"]
+search-path = ["packages/unreal-agent/src", "packages/unreal-agent"]
 use-ignore-files = true
 python-version = "3.14"
 
@@ -44,3 +44,4 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 timeout = 120
 addopts = ["--import-mode=importlib", "--strict-markers"]
+pythonpath = ["packages/unreal-agent"]

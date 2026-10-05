@@ -39,7 +39,8 @@ The Python package mirrors the Go packages:
 | `cmd/internal/agentrunner`, `cmd/unreal-agent-runner` | `unreal_agent.runner` |
 
 Tests live in `packages/unreal-agent/tests/<package>/test_*.py`. Test fixtures
-are copied next to the tests that use them.
+are copied next to the tests that use them. Shared test helpers go in
+`tests/<package>/_helpers.py` and are imported as `tests.<package>._helpers`.
 
 ## Porting conventions
 
