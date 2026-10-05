@@ -29,68 +29,9 @@ from unreal_agent.sessionstore import Item as StoreItem
 from unreal_agent.sessionstore import ItemKind, ModelResponse
 from unreal_agent.tool import bash
 
+from tests.llm.responsesapi._helpers import detailed_request, valid_request
+
 INVALID_BYTE = b"\xff".decode("utf-8", "surrogateescape")
-
-
-def valid_request() -> Request:
-    return Request(
-        Model=Model(ID="gpt-test"),
-        Input=[Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="hello"))],
-    )
-
-
-def detailed_request() -> Request:
-    return Request(
-        Model=Model(ID="gpt-test", MaxOutputTokens=128),
-        Input=[
-            Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text="Be concise.")),
-            Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="weather?")),
-            Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text="Use tools.")),
-            Item(
-                ProviderID="previous-message",
-                Type=ItemType.MESSAGE,
-                Data=Message(Role=Role.ASSISTANT, Text="Checking.", Phase="commentary"),
-            ),
-            Item(
-                ProviderID="previous-reasoning",
-                Type=ItemType.REASONING,
-                Data=Reasoning(
-                    Summary=["Checked the request."],
-                    Raw=Raw(
-                        b'{"id":"previous-reasoning","type":"reasoning","status":"completed",'
-                        b'"summary":[{"type":"summary_text","text":"Checked the request."}],'
-                        b'"content":[{"type":"reasoning_text","text":"verbatim"}],'
-                        b'"encrypted_content":"previous-opaque"}'
-                    ),
-                ),
-            ),
-            Item(
-                ProviderID="previous-tool-call",
-                Type=ItemType.TOOL_CALL,
-                Data=ToolCall(CallID="call-1", Name="weather", Arguments='{"city":"London"}'),
-            ),
-            Item(
-                Type=ItemType.TOOL_RESULT,
-                Data=ToolResult(
-                    CallID="call-1",
-                    Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="sunny")],
-                ),
-            ),
-        ],
-        Tools=[
-            Tool(
-                Type=ToolType.FUNCTION,
-                Name="weather",
-                Description="Get weather",
-                Parameters={
-                    "type": "object",
-                    "properties": {"city": {"type": "string"}},
-                    "required": ["city"],
-                    "additionalProperties": False,
-                },
-            )
-        ],
-    )
 
 
 @pytest.mark.parametrize(

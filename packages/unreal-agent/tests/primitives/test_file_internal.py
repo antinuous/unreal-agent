@@ -9,14 +9,12 @@ from pathlib import Path
 import pytest
 from unreal_agent.primitives import (
     IO_READ_CHUNK_SIZE,
-    TERMINAL_EVENT_TYPES,
     CorrelationID,
     IOReadCompletedResult,
     IOReadOutputResult,
     IOReadRequest,
     PrimitiveEvent,
     PrimitiveEventType,
-    PrimitiveFailureResult,
     SourceID,
 )
 from unreal_agent.primitives._errors import (
@@ -31,7 +29,7 @@ from unreal_agent.primitives._fileio import File
 from unreal_agent.primitives.channel import Channel
 from unreal_agent.primitives.file import ReadableFile, inspect_and_stream_file, stream_open_file
 
-MAX_INT64 = 2**63 - 1
+from tests.primitives._helpers import MAX_INT64, collect_events, failure_text, single_event
 
 type OpenReadFile = Callable[[bytes], File]
 
@@ -206,15 +204,6 @@ def start_canceled_file_stream(
     return asyncio.create_task(body()), events
 
 
-async def collect_events(events: Channel[PrimitiveEvent]) -> list[PrimitiveEvent]:
-    collected: list[PrimitiveEvent] = []
-    while True:
-        event = await events.get()
-        collected.append(event)
-        if event.type in TERMINAL_EVENT_TYPES:
-            return collected
-
-
 async def collect_stream(
     task: asyncio.Task[None], events: Channel[PrimitiveEvent]
 ) -> list[PrimitiveEvent]:
@@ -223,17 +212,6 @@ async def collect_stream(
     await task
     assert events.empty()
     return collected
-
-
-def single_event(events: list[PrimitiveEvent], event_type: PrimitiveEventType) -> PrimitiveEvent:
-    assert len(events) == 1, events
-    assert events[0].type == event_type, events
-    return events[0]
-
-
-def failure_text(event: PrimitiveEvent) -> str:
-    assert isinstance(event.result, PrimitiveFailureResult)
-    return event.result.error
 
 
 def assert_closed(file: File) -> None:

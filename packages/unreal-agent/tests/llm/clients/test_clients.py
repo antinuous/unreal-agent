@@ -40,6 +40,8 @@ from unreal_agent.llm.clients import (
 )
 from unreal_agent.llm.responsesapi import APIError, Exchange
 
+from tests.llm.clients._helpers import write_test_auth
+
 CACHE_KEY = "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b"
 COMPLETED = (
     b'data: {"type":"response.completed","response":{"id":"r","status":"completed","output":[]}}'
@@ -378,22 +380,6 @@ async def test_ollama_live_tool_round_trip() -> None:
 
 
 # --- openaicodex ----------------------------------------------------------------
-
-
-def write_test_auth(path: Path, token: str, account: str) -> None:
-    path.write_text(
-        json.dumps(
-            {
-                "auth_mode": "chatgpt",
-                "tokens": {
-                    "access_token": token,
-                    "account_id": account,
-                    "refresh_token": "never-use-or-write",
-                },
-            }
-        )
-    )
-    path.chmod(0o600)
 
 
 async def test_codex_client_uses_subscription_protocol() -> None:

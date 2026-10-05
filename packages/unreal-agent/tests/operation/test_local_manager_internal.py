@@ -36,9 +36,7 @@ from unreal_agent.primitives import (
     SourceID,
 )
 
-
-class Panic(BaseException):
-    pass
+from tests.operation._helpers import Panic
 
 
 def _shell_operation(state: ShellState, max_output_length: int) -> Operation:

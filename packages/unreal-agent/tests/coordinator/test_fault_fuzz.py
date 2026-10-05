@@ -47,6 +47,8 @@ from unreal_agent.sessionstore import (
 from unreal_agent.tool import SKILL_USE_NAME, Skill, StaticTranslators, new_registry
 from unreal_agent.tool._go import go_quote
 
+from tests.coordinator._helpers import chain
+
 MILLISECOND: Final = 0.001
 HOUR: Final = 3600.0
 MAX_INT64: Final = 2**63 - 1
@@ -427,20 +429,6 @@ def fault_json(value: Any) -> bytes:
     return gojson.encode(value, deterministic=True)
 
 
-def coordinator_fault_chain(error: BaseException | None) -> list[BaseException]:
-    seen: list[BaseException] = []
-    pending = [error]
-    while pending:
-        current = pending.pop()
-        if current is None or any(current is value for value in seen):
-            continue
-        seen.append(current)
-        pending.extend((current.__cause__, current.__context__))
-        if isinstance(current, BaseExceptionGroup):
-            pending.extend(current.exceptions)
-    return seen
-
-
 class FaultRequestOutput(msgspec.Struct):
     type: str | None = None
     text: str | None = None
@@ -694,13 +682,13 @@ async def run_coordinator_fault_case(
     if mode == 13:
         assert isinstance(err, asyncio.CancelledError), f"canceled HTTP request: {err!r}"
     elif trace.site != "":
-        chain = coordinator_fault_chain(err)
+        causes = chain(err)
         message = f"fault {trace.site!r} reached={trace.failed}, coordinator error={err!r}"
         assert trace.failed, message
         assert err is not None, message
-        assert not any(isinstance(value, TimeoutError) for value in chain), message
+        assert not any(isinstance(value, TimeoutError) for value in causes), message
         if mode < 9:
-            assert any(value is trace.error for value in chain), (
+            assert any(value is trace.error for value in causes), (
                 f"coordinator lost dependency error: {err!r}"
             )
     else:

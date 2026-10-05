@@ -10,51 +10,24 @@ from pathlib import Path
 import pytest
 from unreal_agent.primitives import (
     IO_CREATE_DEFAULT_MODE,
-    TERMINAL_EVENT_TYPES,
     CorrelationID,
     IOCreateKind,
     IOCreateRequest,
     IOCreateResult,
     PrimitiveEvent,
     PrimitiveEventType,
-    PrimitiveFailureResult,
     SourceID,
     create,
 )
 from unreal_agent.primitives.channel import Channel
 
-
-async def collect_events(events: Channel[PrimitiveEvent]) -> list[PrimitiveEvent]:
-    collected: list[PrimitiveEvent] = []
-    while True:
-        event = await events.get()
-        collected.append(event)
-        if event.type in TERMINAL_EVENT_TYPES:
-            return collected
+from tests.primitives._helpers import collect_events, failure_text, single_event, write_test_file
 
 
 async def create_events(request: IOCreateRequest) -> list[PrimitiveEvent]:
     events: Channel[PrimitiveEvent] = Channel()
     create(request, events)
     return await collect_events(events)
-
-
-def single_event(events: list[PrimitiveEvent], event_type: PrimitiveEventType) -> PrimitiveEvent:
-    assert len(events) == 1, events
-    assert events[0].type == event_type, events
-    return events[0]
-
-
-def failure_text(event: PrimitiveEvent) -> str:
-    assert isinstance(event.result, PrimitiveFailureResult)
-    return event.result.error
-
-
-def write_test_file(tmp_path: Path, contents: bytes, name: str = "input") -> str:
-    path = tmp_path / name
-    path.write_bytes(contents)
-    os.chmod(path, 0o600)
-    return str(path)
 
 
 def contents(path: str | Path) -> bytes:

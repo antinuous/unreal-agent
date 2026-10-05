@@ -4,19 +4,12 @@ from pathlib import Path
 
 import pytest
 from unreal_agent.llm import ToolCall
-from unreal_agent.operation import LocalOperationManager, Operation, Spec, Status
+from unreal_agent.operation import LocalOperationManager, Operation, Status
 from unreal_agent.tool import SKILL_USE_NAME, Skill, StaticTranslators, new_registry
 
+from tests.tool._helpers import RecordingContext
+
 TERMINAL = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
-
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
 
 
 async def receive_terminal(manager: LocalOperationManager, operation_id: str) -> Operation:

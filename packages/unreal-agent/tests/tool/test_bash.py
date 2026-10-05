@@ -9,19 +9,11 @@ from unreal_agent.operation import (
     ShellInput,
     ShellResult,
     ShellState,
-    Spec,
     Status,
 )
 from unreal_agent.tool import CallStatus, TranslationError, bash
 
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
+from tests.tool._helpers import RecordingContext
 
 
 def test_translator_submits_shell_operation() -> None:

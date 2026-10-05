@@ -1,19 +1,13 @@
 import asyncio
-import errno
 import os
-from collections.abc import AsyncIterator, Callable
+from collections.abc import Callable
 from pathlib import Path
 from typing import Final
 
 import pytest
 from msgspec.structs import replace
-from unreal_agent.gojson import Raw, decode, encode
+from unreal_agent.gojson import encode
 from unreal_agent.operation import (
-    DEFAULT_MAX_OUTPUT_LENGTH,
-    SHELL_ERR_FILENAME,
-    SHELL_OUT_FILENAME,
-    TYPE_SHELL,
-    VERSION_SHELL,
     ClosedError,
     LocalOperationManager,
     Manager,
@@ -24,71 +18,20 @@ from unreal_agent.operation import (
     ShellState,
     Status,
     UnsupportedError,
-    new_shell_spec,
+)
+
+from tests.operation._helpers import (
+    TERMINAL_STATUSES,
+    assert_process_group_gone,
+    create_shell_artifacts,
+    new_shell_operation,
+    receive_operation,
+    receive_terminal_operation,
+    shell_operation_with_state,
+    shell_state,
 )
 
 TEST_SHELL_PATH: Final = "/bin/sh"
-
-
-TERMINAL_STATUSES: Final = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
-
-
-def new_shell_operation(
-    operation_id: str, input: ShellInput, base_directory: str, max_output_length: int
-) -> Operation:
-    spec = new_shell_spec(input, base_directory, max_output_length)
-    return Operation(
-        ID=operation_id,
-        Type=spec.Type,
-        Version=spec.Version,
-        Status=Status.READY,
-        MaxOutputLength=spec.MaxOutputLength,
-        State=spec.State,
-        Idempotency=spec.Idempotency,
-    )
-
-
-def shell_operation_with_state(operation_id: str, state: ShellState) -> Operation:
-    return Operation(
-        ID=operation_id,
-        MaxOutputLength=DEFAULT_MAX_OUTPUT_LENGTH,
-        Type=TYPE_SHELL,
-        Version=VERSION_SHELL,
-        Status=Status.AWAITING,
-        State=Raw(encode(state)),
-    )
-
-
-def shell_state(current: Operation) -> ShellState:
-    return decode(bytes(current.State), ShellState)
-
-
-def create_shell_artifacts(directory: str, out: bytes, err: bytes) -> None:
-    os.mkdir(directory, 0o700)
-    for name, contents in ((SHELL_OUT_FILENAME, out), (SHELL_ERR_FILENAME, err)):
-        with open(os.path.join(directory, name), "wb") as file:
-            file.write(contents)
-        os.chmod(os.path.join(directory, name), 0o600)
-
-
-async def receive_operation(
-    updates: AsyncIterator[Operation],
-    operation_id: str,
-    accept: Callable[[Operation], bool],
-) -> Operation:
-    async with asyncio.timeout(15):
-        async for current in updates:
-            if operation_id == current.ID and accept(current):
-                return current
-    pytest.fail("updates closed before operation completed")
-
-
-async def receive_terminal_operation(
-    updates: AsyncIterator[Operation], operation_id: str
-) -> Operation:
-    return await receive_operation(
-        updates, operation_id, lambda current: current.Status in TERMINAL_STATUSES
-    )
 
 
 async def wait_for_file_contents(path: str, want: str) -> None:
@@ -112,12 +55,6 @@ type NewManager = Callable[..., LocalOperationManager]
 
 def _conforms_to_manager(manager: LocalOperationManager) -> Manager:
     return manager
-
-
-def _assert_process_group_gone(process_group_id: int) -> None:
-    with pytest.raises(ProcessLookupError) as error:
-        os.killpg(process_group_id, 0)
-    assert error.value.errno == errno.ESRCH
 
 
 def _process_running(current: Operation) -> bool:
@@ -282,7 +219,7 @@ async def test_local_operation_manager_cancels_active_shell_operation(
     assert state.Phase == ""
     assert state.ProcessGroupID == process_group_id
     assert state.Result is None
-    _assert_process_group_gone(process_group_id)
+    assert_process_group_gone(process_group_id)
 
 
 async def test_local_operation_manager_cancel_is_idempotent(
@@ -358,7 +295,7 @@ async def test_local_operation_manager_shutdown_cancels_active_shell_operation(
     async with asyncio.timeout(15):
         async for _ in manager.updates():
             pass
-    _assert_process_group_gone(process_group_id)
+    assert_process_group_gone(process_group_id)
 
 
 async def test_local_operation_manager_isolates_primitive_failure(

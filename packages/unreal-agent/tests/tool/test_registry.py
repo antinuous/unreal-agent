@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import pytest
 from unreal_agent.llm import Tool, ToolCall, ToolResult, ToolType
-from unreal_agent.operation import Operation, Spec
+from unreal_agent.operation import Operation
 from unreal_agent.tool import (
     BASH_NAME,
     NIL_REGISTRATION_ID,
@@ -29,15 +29,6 @@ class FixedTranslator:
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
     ) -> ToolResult:
         return self.result
-
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
 
 
 def test_registry_has_fixed_definitions_and_injected_translators() -> None:

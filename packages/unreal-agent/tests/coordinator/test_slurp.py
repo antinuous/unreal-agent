@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any, cast
 
 import pytest
 from unreal_agent.coordinator.loop import (
@@ -11,33 +10,9 @@ from unreal_agent.coordinator.loop import (
     slurp,
 )
 
-slurp_synctest = pytest.mark.looptime(resolution=1e-9)
+from tests.coordinator._helpers import now_ns, sleep_ns, synctest, wait
 
 SLURP_IDLE_TIMEOUT_NANOSECONDS = round(SLURP_IDLE_TIMEOUT * 1e9)
-
-
-async def slurp_wait() -> None:
-    """Go's `synctest.Wait`: run the loop until no callback is ready or due."""
-    loop = asyncio.get_running_loop()
-    internals = cast(Any, loop)
-    while True:
-        await asyncio.sleep(0)
-        if internals._ready:
-            continue
-        scheduled = internals._scheduled
-        if scheduled and not scheduled[0].cancelled() and scheduled[0].when() <= loop.time():
-            continue
-        return
-
-
-async def slurp_sleep(nanoseconds: int) -> None:
-    if nanoseconds > 0:
-        await asyncio.sleep(nanoseconds / 1e9)
-    await slurp_wait()
-
-
-def slurp_now() -> int:
-    return round(asyncio.get_running_loop().time() * 1e9)
 
 
 def queue_source[T](queue: asyncio.Queue[T]) -> Source[T]:
@@ -59,7 +34,7 @@ async def close_source[T](source: Source[T]) -> None:
 
 
 @pytest.mark.parametrize("count", [0, 3])
-@slurp_synctest
+@synctest
 async def test_slurp_channel_preserves_order(count: int) -> None:
     output: asyncio.Queue[int] = asyncio.Queue(count)
     want: list[int] = []
@@ -67,29 +42,29 @@ async def test_slurp_channel_preserves_order(count: int) -> None:
         output.put_nowait(value)
         want.append(value)
     source = queue_source(output)
-    started_at = slurp_now()
+    started_at = now_ns()
     got = await slurp(source)
     assert got == want, f"slurped values = {got}, want {want}"
-    elapsed = slurp_now() - started_at
+    elapsed = now_ns() - started_at
     assert elapsed == SLURP_IDLE_TIMEOUT_NANOSECONDS, (
         f"slurp duration = {elapsed}, want {SLURP_IDLE_TIMEOUT_NANOSECONDS}"
     )
     await close_source(source)
 
 
-@slurp_synctest
+@synctest
 async def test_slurp_channel_resets_idle_timeout() -> None:
     output: asyncio.Queue[int] = asyncio.Queue(1)
     output.put_nowait(1)
     source = queue_source(output)
     task = asyncio.create_task(slurp(source))
-    await slurp_wait()
-    await slurp_sleep(SLURP_IDLE_TIMEOUT_NANOSECONDS // 2)
+    await wait()
+    await sleep_ns(SLURP_IDLE_TIMEOUT_NANOSECONDS // 2)
     output.put_nowait(2)
-    await slurp_wait()
-    await slurp_sleep(SLURP_IDLE_TIMEOUT_NANOSECONDS - 1)
+    await wait()
+    await sleep_ns(SLURP_IDLE_TIMEOUT_NANOSECONDS - 1)
     assert not task.done(), "slurp returned before a full idle interval after the last value"
-    await slurp_sleep(1)
+    await sleep_ns(1)
     assert task.done(), "slurp did not return after a full idle interval"
     values = task.result()
     assert values == [1, 2], f"slurp result: values={values}"
@@ -97,16 +72,16 @@ async def test_slurp_channel_resets_idle_timeout() -> None:
 
 
 @pytest.mark.parametrize("count", [99, 100, 101])
-@slurp_synctest
+@synctest
 async def test_slurp_channel_caps_batch(count: int) -> None:
     output: asyncio.Queue[int] = asyncio.Queue(count)
     want = list(range(count))
     for value in want:
         output.put_nowait(value)
     source = queue_source(output)
-    started_at = slurp_now()
+    started_at = now_ns()
     got = await slurp(source)
-    elapsed = slurp_now() - started_at
+    elapsed = now_ns() - started_at
     batch_size = min(count, SLURP_MAX_ITEMS)
     assert got == want[:batch_size], f"slurped values = {got}, want {want[:batch_size]}"
     assert output.qsize() == count - batch_size, (
@@ -123,7 +98,7 @@ async def test_slurp_channel_caps_batch(count: int) -> None:
 
 
 @pytest.mark.parametrize("buffered", [False, True])
-@slurp_synctest
+@synctest
 async def test_slurp_channel_returns_accumulated_values_on_closure(buffered: bool) -> None:
     output: asyncio.Queue[str] = asyncio.Queue(2)
     want: list[str] = []
@@ -132,26 +107,26 @@ async def test_slurp_channel_returns_accumulated_values_on_closure(buffered: boo
         output.put_nowait("third")
         want.extend(["second", "third"])
     output.shutdown()
-    started_at = slurp_now()
+    started_at = now_ns()
     got = await slurp(queue_source(output))
     assert got == want, f"slurp result = {got}; want {want}"
-    elapsed = slurp_now() - started_at
+    elapsed = now_ns() - started_at
     assert elapsed == 0, f"closure advanced time by {elapsed}"
 
 
-@slurp_synctest
+@synctest
 async def test_slurp_channel_returns_cancellation_cause() -> None:
     cause = "session stopped"
     source = queue_source(asyncio.Queue[str]())
     task = asyncio.create_task(slurp(source))
-    await slurp_wait()
-    started_at = slurp_now()
+    await wait()
+    started_at = now_ns()
     task.cancel(cause)
-    await slurp_wait()
+    await wait()
     assert task.cancelled(), f"slurp error = {task!r}, want {cause!r}"
     with pytest.raises(asyncio.CancelledError) as caught:
         task.result()
     assert caught.value.args == (cause,), f"slurp error = {caught.value!r}, want {cause!r}"
-    elapsed = slurp_now() - started_at
+    elapsed = now_ns() - started_at
     assert elapsed == 0, f"cancellation advanced time by {elapsed}"
     await close_source(source)

@@ -14,11 +14,8 @@ from unreal_agent.operation import (
     SHELL_OUT_FILENAME,
     LocalOperationManager,
     Operation,
-    Shell,
     ShellInput,
-    Spec,
     Status,
-    Step,
     decode_shell_state,
     new_shell_spec,
 )
@@ -34,18 +31,8 @@ from unreal_agent.primitives import (
 )
 from unreal_agent.tool import CallStatus, bash
 
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
-
-
-def advance_shell_once(current: Operation, event: PrimitiveEvent | None) -> Step:
-    return Shell(current).handle(event)
+from tests.operation._helpers import advance_shell_once
+from tests.tool._helpers import RecordingContext
 
 
 @pytest.mark.parametrize("terminal", [Status.FAILED, Status.CANCELED])

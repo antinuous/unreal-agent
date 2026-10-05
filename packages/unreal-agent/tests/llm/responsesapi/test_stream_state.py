@@ -8,24 +8,11 @@ from unreal_agent.llm.responsesapi.stream import ResponseState
 from unreal_agent.primitives import sse_data
 from unreal_agent.primitives._errors import UnexpectedEOFError
 
-COMPLETED_RESPONSE = (
-    b'{"id":"resp-1","status":"completed","output":[{"id":"fc-1","type":"function_call",'
-    b'"call_id":"call-1","name":"Bash","arguments":"{\\"command\\":\\"pwd\\"}","status":"completed"},'
-    b'{"id":"rs-1","type":"reasoning","encrypted_content":"opaque","summary":[{"type":"summary_text",'
-    b'"text":"Check directory"}]}],"usage":{"input_tokens":12,"input_tokens_details":'
-    b'{"cached_tokens":5},"output_tokens":8,"output_tokens_details":{"reasoning_tokens":4}}}'
-)
-FALLBACK_MESSAGE = (
-    b'{"id":"msg-1","type":"message","status":"completed","role":"assistant","phase":"final_answer",'
-    b'"content":[{"type":"output_text","text":"fallback"}]}'
-)
+from tests.llm.responsesapi._helpers import COMPLETED_RESPONSE, FALLBACK_CALL, FALLBACK_MESSAGE
+
 FALLBACK_REASONING = (
     b'{"id":"rs-1","type":"reasoning","summary":[],"encrypted_content":"opaque",'
     b'"vendor_field":"kept"}'
-)
-FALLBACK_CALL = (
-    b'{"id":"fc-1","type":"function_call","call_id":"call-1","name":"Bash",'
-    b'"arguments":"{\\"command\\":\\"pwd\\"}","status":"completed"}'
 )
 
 

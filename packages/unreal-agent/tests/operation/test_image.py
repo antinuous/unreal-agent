@@ -49,6 +49,8 @@ from unreal_agent.primitives import (
 )
 from unreal_agent.primitives._errors import ContextCanceledError, go_quote
 
+from tests.operation._helpers import Panic
+
 WEBP_FIXTURE = base64.b64decode("UklGRh4AAABXRUJQVlA4TBIAAAAvAkAAAA+w//Mf8x8V5iCi/xE=")
 
 
@@ -526,10 +528,6 @@ def test_image_reader_and_writer_honor_cancellation() -> None:
     writer = ImageContentWriter(canceled, 100)
     with pytest.raises(ContextCanceledError):
         writer.write(b"image")
-
-
-class Panic(BaseException):
-    pass
 
 
 class PanicSignal:

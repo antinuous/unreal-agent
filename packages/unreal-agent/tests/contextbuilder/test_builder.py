@@ -28,18 +28,12 @@ from unreal_agent.llm import (
 )
 from unreal_agent.tool import Skill
 
+from tests.contextbuilder._helpers import text, tool_result
+
 
 def with_preamble(*items: Item) -> list[Item]:
     """The items after the preamble every builder starts with."""
     return [Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text=PREAMBLE)), *items]
-
-
-def text(value: str) -> list[ToolResultOutput]:
-    return [ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
-
-
-def tool_result(call_id: str, value: str) -> Item:
-    return Item(Type=ItemType.TOOL_RESULT, Data=ToolResult(CallID=call_id, Output=text(value)))
 
 
 def user(value: str) -> Item:

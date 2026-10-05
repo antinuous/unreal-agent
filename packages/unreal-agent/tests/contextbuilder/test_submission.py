@@ -10,18 +10,9 @@ from unreal_agent.llm import (
     Response,
     Role,
     ToolCall,
-    ToolResult,
-    ToolResultKind,
-    ToolResultOutput,
 )
 
-
-def text(value: str) -> list[ToolResultOutput]:
-    return [ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
-
-
-def tool_result(call_id: str, value: str) -> Item:
-    return Item(Type=ItemType.TOOL_RESULT, Data=ToolResult(CallID=call_id, Output=text(value)))
+from tests.contextbuilder._helpers import text, tool_result
 
 
 def message(role: Role, value: str, provider_id: str = "") -> Item:

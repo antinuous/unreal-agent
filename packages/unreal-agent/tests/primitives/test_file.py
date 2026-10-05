@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 from unreal_agent.primitives import (
     IO_READ_CHUNK_SIZE,
-    TERMINAL_EVENT_TYPES,
     CorrelationID,
     IOReadCompletedResult,
     IOReadOutputResult,
@@ -19,23 +18,7 @@ from unreal_agent.primitives import (
 )
 from unreal_agent.primitives.channel import Channel
 
-MAX_INT64 = 2**63 - 1
-
-
-async def collect_events(events: Channel[PrimitiveEvent]) -> list[PrimitiveEvent]:
-    collected: list[PrimitiveEvent] = []
-    while True:
-        event = await events.get()
-        collected.append(event)
-        if event.type in TERMINAL_EVENT_TYPES:
-            return collected
-
-
-def write_test_file(tmp_path: Path, contents: bytes) -> str:
-    path = tmp_path / "input"
-    path.write_bytes(contents)
-    os.chmod(path, 0o600)
-    return str(path)
+from tests.primitives._helpers import MAX_INT64, collect_events, write_test_file
 
 
 async def read_events(request: IOReadRequest) -> list[PrimitiveEvent]:

@@ -1,5 +1,4 @@
 import asyncio
-import errno
 import os
 import signal
 from collections.abc import Callable
@@ -9,13 +8,9 @@ from typing import Any, Final
 
 import pytest
 from msgspec.structs import replace
-from unreal_agent.gojson import Raw, decode, encode
 from unreal_agent.operation import (
-    DEFAULT_MAX_OUTPUT_LENGTH,
     SHELL_ERR_FILENAME,
     SHELL_OUT_FILENAME,
-    TYPE_SHELL,
-    VERSION_SHELL,
     Operation,
     OperationError,
     PrimitiveDispatch,
@@ -24,7 +19,6 @@ from unreal_agent.operation import (
     ShellPhase,
     ShellState,
     Status,
-    Step,
     new_shell_spec,
 )
 from unreal_agent.primitives import (
@@ -47,6 +41,17 @@ from unreal_agent.primitives import (
     start_process,
 )
 
+from tests.operation._helpers import (
+    advance_shell_once,
+    assert_process_group_gone,
+    create_shell_artifacts,
+    dispatch_data,
+    new_shell_operation,
+    one_dispatch_data,
+    shell_operation_with_state,
+    shell_state,
+)
+
 TEST_SHELL_PATH: Final = "/bin/sh"
 
 
@@ -61,62 +66,9 @@ _TERMINAL_EVENTS: Final = frozenset(
 )
 
 
-def new_shell_operation(
-    operation_id: str, input: ShellInput, base_directory: str, max_output_length: int
-) -> Operation:
-    spec = new_shell_spec(input, base_directory, max_output_length)
-    return Operation(
-        ID=operation_id,
-        Type=spec.Type,
-        Version=spec.Version,
-        Status=Status.READY,
-        MaxOutputLength=spec.MaxOutputLength,
-        State=spec.State,
-        Idempotency=spec.Idempotency,
-    )
-
-
-def shell_operation_with_state(operation_id: str, state: ShellState) -> Operation:
-    return Operation(
-        ID=operation_id,
-        MaxOutputLength=DEFAULT_MAX_OUTPUT_LENGTH,
-        Type=TYPE_SHELL,
-        Version=VERSION_SHELL,
-        Status=Status.AWAITING,
-        State=Raw(encode(state)),
-    )
-
-
-def shell_state(current: Operation) -> ShellState:
-    return decode(bytes(current.State), ShellState)
-
-
-def advance_shell_once(current: Operation, event: PrimitiveEvent | None) -> Step:
-    return Shell(current).handle(event)
-
-
-def create_shell_artifacts(directory: str, out: bytes, err: bytes) -> None:
-    os.mkdir(directory, 0o700)
-    for name, contents in ((SHELL_OUT_FILENAME, out), (SHELL_ERR_FILENAME, err)):
-        with open(os.path.join(directory, name), "wb") as file:
-            file.write(contents)
-        os.chmod(os.path.join(directory, name), 0o600)
-
-
 def assert_file_contents(path: str, want: bytes) -> None:
     with open(path, "rb") as file:
         assert file.read() == want, path
-
-
-def one_dispatch_data[T](step: Step, dispatch_type: PrimitiveDispatchType, kind: type[T]) -> T:
-    assert len(step.dispatches) == 1, step.dispatches
-    assert step.dispatches[0].type == dispatch_type, step.dispatches
-    return dispatch_data(step.dispatches[0], kind)
-
-
-def dispatch_data[T](dispatch: PrimitiveDispatch, kind: type[T]) -> T:
-    assert isinstance(dispatch.data, kind), dispatch.data
-    return dispatch.data
 
 
 @dataclass(slots=True)
@@ -224,12 +176,6 @@ async def run_shell_actor(
             if active is not None:
                 await active.drain()
         return current
-
-
-def _assert_process_group_gone(process_group_id: int) -> None:
-    with pytest.raises(ProcessLookupError) as error:
-        os.killpg(process_group_id, 0)
-    assert error.value.errno == errno.ESRCH
 
 
 async def test_shell_actor_captures_artifacts_and_completes(
@@ -678,7 +624,7 @@ async def test_shell_actor_cancellation_stops_active_process(tmp_path: Path) -> 
     assert state.Phase == ""
     assert state.ProcessGroupID == process_group_id
     assert state.Result is None
-    _assert_process_group_gone(process_group_id)
+    assert_process_group_gone(process_group_id)
 
 
 @pytest.mark.parametrize(

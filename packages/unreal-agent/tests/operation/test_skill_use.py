@@ -1,19 +1,14 @@
-import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import Callable
 from pathlib import Path
-from typing import Final
 
-import pytest
 from unreal_agent.gojson import Raw, encode
 from unreal_agent.operation import (
     TYPE_SKILL_USE,
     VERSION_SKILL_USE,
     LocalOperationManager,
     Operation,
-    PrimitiveDispatch,
     SkillUseState,
     Status,
-    Step,
     advance_skill_use,
     decode_skill_use,
     new_skill_use_spec,
@@ -23,39 +18,10 @@ from unreal_agent.primitives import (
     PrimitiveDispatchType,
 )
 
-TERMINAL_STATUSES: Final = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
-
-
-def one_dispatch_data[T](step: Step, dispatch_type: PrimitiveDispatchType, kind: type[T]) -> T:
-    assert len(step.dispatches) == 1, step.dispatches
-    assert step.dispatches[0].type == dispatch_type, step.dispatches
-    return dispatch_data(step.dispatches[0], kind)
-
-
-def dispatch_data[T](dispatch: PrimitiveDispatch, kind: type[T]) -> T:
-    assert isinstance(dispatch.data, kind), dispatch.data
-    return dispatch.data
-
-
-async def receive_operation(
-    updates: AsyncIterator[Operation],
-    operation_id: str,
-    accept: Callable[[Operation], bool],
-) -> Operation:
-    async with asyncio.timeout(15):
-        async for current in updates:
-            if operation_id == current.ID and accept(current):
-                return current
-    pytest.fail("updates closed before operation completed")
-
-
-async def receive_terminal_operation(
-    updates: AsyncIterator[Operation], operation_id: str
-) -> Operation:
-    return await receive_operation(
-        updates, operation_id, lambda current: current.Status in TERMINAL_STATUSES
-    )
-
+from tests.operation._helpers import (
+    one_dispatch_data,
+    receive_terminal_operation,
+)
 
 type NewManager = Callable[..., LocalOperationManager]
 

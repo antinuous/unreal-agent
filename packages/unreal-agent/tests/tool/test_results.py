@@ -6,7 +6,6 @@ from unreal_agent.operation import (
     VERSION_SKILL_USE,
     Operation,
     SkillUseState,
-    Spec,
     Status,
 )
 from unreal_agent.tool import (
@@ -20,14 +19,7 @@ from unreal_agent.tool import (
     new_registry,
 )
 
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
+from tests.tool._helpers import RecordingContext
 
 
 def text(value: str) -> ToolResult:

@@ -7,6 +7,8 @@ import pytest
 from unreal_agent.llm.clients.openaicodex import Config, environment_config
 from unreal_agent.llm.clients.openaicodex.credentials import credentials
 
+from tests.llm.clients._helpers import write_test_auth
+
 
 def subscription_token(account: str, expires: int) -> str:
     claims = json.dumps(
@@ -15,22 +17,6 @@ def subscription_token(account: str, expires: int) -> str:
     )
     payload = base64.urlsafe_b64encode(claims.encode()).rstrip(b"=").decode()
     return f"e30.{payload}.signature"
-
-
-def write_test_auth(path: Path, token: str, account: str) -> None:
-    path.write_text(
-        json.dumps(
-            {
-                "auth_mode": "chatgpt",
-                "tokens": {
-                    "access_token": token,
-                    "account_id": account,
-                    "refresh_token": "never-use-or-write",
-                },
-            }
-        )
-    )
-    path.chmod(0o600)
 
 
 FUTURE = int(time.time()) + 3600

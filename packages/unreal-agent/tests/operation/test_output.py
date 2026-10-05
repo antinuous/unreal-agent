@@ -17,7 +17,6 @@ from unreal_agent.operation import (
     ShellPhase,
     ShellState,
     Status,
-    Step,
     bound_output,
     decode_shell_state,
     new_shell_spec,
@@ -33,10 +32,7 @@ from unreal_agent.primitives import (
     SourceID,
 )
 
-
-def advance_shell_once(current: Operation, event: PrimitiveEvent | None) -> Step:
-    return Shell(current).handle(event)
-
+from tests.operation._helpers import advance_shell_once
 
 _MARKER = re.compile(r"\.\.\.([0-9]+) bytes truncated\.\.\.")
 

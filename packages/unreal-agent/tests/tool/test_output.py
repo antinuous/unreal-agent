@@ -4,7 +4,7 @@ from typing import Final
 import pytest
 from unreal_agent.gojson import decode, encode
 from unreal_agent.llm import ToolCall
-from unreal_agent.operation import DEFAULT_MAX_OUTPUT_LENGTH, MAX_OUTPUT_LENGTH, Spec
+from unreal_agent.operation import DEFAULT_MAX_OUTPUT_LENGTH, MAX_OUTPUT_LENGTH
 from unreal_agent.tool import (
     BASH_NAME,
     CallStatus,
@@ -15,16 +15,9 @@ from unreal_agent.tool import (
     parse_max_output_length,
 )
 
+from tests.tool._helpers import RecordingContext
+
 _TRUNCATION_MARKER: Final = re.compile(r"\.\.\.[0-9]+ bytes truncated\.\.\.")
-
-
-class RecordingContext:
-    def __init__(self) -> None:
-        self.specs: list[Spec] = []
-
-    def submit(self, spec: Spec, /) -> str:
-        self.specs.append(spec)
-        return "operation-1"
 
 
 def new_bash() -> Translator:
