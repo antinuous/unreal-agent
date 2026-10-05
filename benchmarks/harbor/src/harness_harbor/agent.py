@@ -5,14 +5,13 @@ from tempfile import NamedTemporaryFile
 from typing import Any, override
 from uuid import uuid4
 
-import certifi
 from harbor.agents.installed.base import BaseInstalledAgent, with_prompt_template
 from harbor.agents.model_connection import ModelConnectionSpec
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trajectories import Agent
 
-from harness_harbor.bundle import Bundle
+from harness_harbor.bundle import ARCHIVE, LAUNCHER, Bundle
 from harness_harbor.trajectory import convert
 
 APT_ARCHIVE_FALLBACK = (
@@ -45,12 +44,10 @@ class UnrealAgent(BaseInstalledAgent):
         if (
             not separator
             or not self._model
-            or self._provider
-            not in {"anthropic", "openai", "openrouter", "fireworks_ai"}
+            or self._provider not in {"anthropic", "openai", "openrouter", "fireworks_ai"}
         ):
             raise ValueError(
-                "Model must use the anthropic/, openai/, openrouter/ "
-                "or fireworks_ai/ prefix"
+                "Model must use the anthropic/, openai/, openrouter/ or fireworks_ai/ prefix"
             )
         # A task may declare MCP servers or a skills directory for agents that use
         # them; this integration exposes Bash and ViewImage, so they are recorded in
@@ -81,22 +78,17 @@ class UnrealAgent(BaseInstalledAgent):
     async def install(self, environment: BaseEnvironment) -> None:
         await self.ensure_curl(environment)
         await self.exec_as_root(environment, command=f"mkdir -p {self._remote}")
-        # Upload a verified snapshot so replacing the local file cannot mix binaries.
+        archive = self._remote / ARCHIVE
+        # Upload a verified snapshot so replacing the local file cannot mix bundles.
         with NamedTemporaryFile() as snapshot:
-            snapshot.write(self._bundle.read_binary())
+            snapshot.write(self._bundle.read_archive())
             snapshot.flush()
-            await environment.upload_file(
-                Path(snapshot.name), str(self._remote / "runner")
-            )
-        await environment.upload_file(
-            Path(certifi.where()), str(self._remote / "ca.pem")
-        )
+            await environment.upload_file(Path(snapshot.name), str(archive))
         await self.exec_as_root(
             environment,
             command=(
-                f"chmod 755 {self._remote}/runner && "
-                f"chmod 644 {self._remote}/ca.pem && "
-                f"{self._remote}/runner -h"
+                f"tar -xzf {archive} -C {self._remote} && rm {archive} && "
+                f"{self._remote / LAUNCHER} -h"
             ),
         )
 
@@ -109,9 +101,7 @@ class UnrealAgent(BaseInstalledAgent):
         try:
             await self.ensure_system_dependencies(environment, ("curl",))
         except Exception as error:
-            self.logger.warning(
-                "curl install failed (%s); retrying with archive.debian.org", error
-            )
+            self.logger.warning("curl install failed (%s); retrying with archive.debian.org", error)
             await self.exec_as_root(environment, command=APT_ARCHIVE_FALLBACK)
             await self.ensure_system_dependencies(environment, ("curl",))
 
@@ -131,9 +121,7 @@ class UnrealAgent(BaseInstalledAgent):
             "session_id": self._runner_session,
             "disallowed_tools": ["SkillUse"],
         }
-        await self.exec_as_agent(
-            environment, command=f"mkdir -p {shlex.quote(str(logs))}"
-        )
+        await self.exec_as_agent(environment, command=f"mkdir -p {shlex.quote(str(logs))}")
         await self._upload_config_text(
             environment,
             content=json.dumps(request),
@@ -149,12 +137,10 @@ class UnrealAgent(BaseInstalledAgent):
         if connection.configured_base_url:
             env["UNREAL_HARNESS_LLM_BASE_URL"] = connection.configured_base_url
         command = (
-            "if [ ! -s /etc/ssl/certs/ca-certificates.crt ]; then "
-            f"export SSL_CERT_FILE={self._remote}/ca.pem; fi; "
             'export SHELL="$(command -v bash)"; '
             + shlex.join(
                 [
-                    str(self._remote / "runner"),
+                    str(self._remote / LAUNCHER),
                     "-workspace",
                     ".",
                     "-session-directory",
@@ -171,15 +157,17 @@ class UnrealAgent(BaseInstalledAgent):
 
     @override
     def populate_context_post_run(self, context: AgentContext) -> None:
+        provenance = {
+            "bundle_sha256": self._bundle.sha256,
+            "arch": self._bundle.arch,
+            "python_version": self._bundle.python_version,
+            "thinking_level": self._thinking_level,
+        }
         identity = Agent(
             name=self.name(),
             version=self.version(),
             model_name=self.model_name,
-            extra={
-                "binary_sha256": self._bundle.sha256,
-                "arch": self._bundle.arch,
-                "thinking_level": self._thinking_level,
-            },
+            extra=provenance,
         )
         records_path = self.logs_dir / "runner.jsonl"
         if not records_path.exists():
@@ -192,21 +180,21 @@ class UnrealAgent(BaseInstalledAgent):
             }
             return
         with records_path.open() as records:
-            trajectory = convert(
-                records, identity, self._runner_session, output_dir=self.logs_dir
-            )
+            trajectory = convert(records, identity, self._runner_session, output_dir=self.logs_dir)
         (self.logs_dir / "trajectory.json").write_text(
             json.dumps(trajectory.to_json_dict(), ensure_ascii=False, indent=2) + "\n"
         )
         metrics = trajectory.final_metrics
+        if metrics is None:
+            raise ValueError("Converted trajectory has no final metrics")
         context.n_input_tokens = metrics.total_prompt_tokens
         context.n_cache_tokens = metrics.total_cached_tokens
         context.n_output_tokens = metrics.total_completion_tokens
         context.cost_usd = None
         context.metadata = {
             **(context.metadata or {}),
-            **identity.extra,
-            **trajectory.extra,
+            **provenance,
+            **(trajectory.extra or {}),
             **self._not_offered,
             "revision": self.version(),
         }

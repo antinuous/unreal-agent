@@ -1,7 +1,7 @@
 # Harbor evaluation adapter
 
-Evaluates `unreal-agent-runner` as `unreal-agent` with Harbor 0.22.0. Requires Go
-from the root `go.mod`, Python 3.12+, uv, and Docker or Modal.
+Evaluates `unreal-agent-runner` as `unreal-agent` with Harbor 0.22.0. Requires uv
+0.12 or later and Docker or Modal. The adapter is a member of the root uv workspace.
 
 ## Setup and build
 
@@ -9,14 +9,31 @@ From the repository root:
 
 ```sh
 make -C benchmarks/harbor sync
-make -C benchmarks/harbor build REVISION=HEAD
+make -C benchmarks/harbor build REVISION=HEAD ARCH=amd64
 ```
 
-Builds committed source into `bin/harbor/<short-commit>/` with a revision and
-checksum manifest. Defaults to Linux amd64. Existing bundles are not overwritten;
-set `BUNDLE` to a new directory to rebuild.
+The build exports the committed revision with `git archive`, builds the
+`unreal-agent` wheel, and installs it with its locked dependencies for
+`manylinux_2_28` into a relocatable CPython 3.14 from python-build-standalone,
+fetched with `uv python install`. It needs no Docker or emulation. `ARCH` is
+`amd64` (default) or `arm64`; match the task containers.
 
-The manifest records the selected runner along with the revision.
+The output directory `bin/harbor/<short-commit>/` holds:
+
+- `unreal-agent-runner.tar.gz`, which contains `python/` and the
+  `unreal-agent-runner` launcher.
+- `manifest.json` with `revision`, `runner`, the archive `sha256`, `os`, `arch`,
+  and `python_version`.
+
+Existing bundles are not overwritten; set `BUNDLE` to a new directory to rebuild.
+The agent verifies the checksum when it loads the bundle and again before upload.
+
+The bundle runs in glibc 2.28+ Linux containers without a system Python or CA
+certificates. It needs `/bin/sh`, `tar`, and `gzip` in the container. Musl
+images such as Alpine are not supported. The launcher runs Python in isolated
+mode (`-I`), so task `PYTHON*` variables are ignored, and it passes the caller's
+environment to tool processes unchanged. TLS uses the bundled `certifi`
+certificates unless `SSL_CERT_FILE` or `SSL_CERT_DIR` is set.
 
 ## Run
 
@@ -64,16 +81,23 @@ Inspect results with `harbor view jobs/<job-name>`.
   include original format and coordinate-scaling metadata when applicable.
 - Logs and sessions are under `agent/`; `agent/trajectory.json` contains ATIF
   observations and token totals.
+- Trial metadata records `revision`, `bundle_sha256`, `arch`, `python_version`,
+  and `thinking_level`.
 - Observations are grouped by tool call. Their `extra` sequence, timestamp, and
   `available_before_turn` fields preserve asynchronous timing.
 
 ## Validation
 
 ```sh
-make -C benchmarks/harbor test check
-make -C benchmarks/harbor smoke BUNDLE=../../bin/harbor/<short-commit>
+make -C benchmarks/harbor sync check test
+make -C benchmarks/harbor build ARCH=arm64 BUNDLE=../../bin/harbor/<short-commit>-arm64
+make -C benchmarks/harbor smoke BUNDLE=../../bin/harbor/<short-commit>-arm64
 ```
 
-The smoke test uses Docker and a local test model.
+`check` runs ruff and pyrefly; `test` runs pytest. The smoke test runs a Harbor
+Docker trial against a local test model. Build the bundle for the Docker host
+architecture (`docker info --format '{{.Architecture}}'`). The task image sets an
+empty `LANG` and a hostile `PYTHONPATH`, and the test checks that tool processes
+see neither `LC_CTYPE` nor `LD_LIBRARY_PATH`.
 
 Reference: [Harbor agents](https://www.harborframework.com/docs/agents).

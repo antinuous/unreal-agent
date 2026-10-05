@@ -6,17 +6,18 @@ ARCH ?= amd64
 BUNDLE ?= ../../bin/harbor/$(shell git rev-parse --short $(REVISION))
 
 sync:
-	uv sync --locked --all-extras
+	uv sync --locked --all-packages --all-extras
 
 check:
 	uv run --locked ruff check .
 	uv run --locked ruff format --check .
+	uv run --locked pyrefly check
 
 test:
-	uv run --locked python -m unittest discover -s tests -v
+	uv run --locked pytest
 
 build:
-	python3 build.py --revision "$(REVISION)" --runner "$(RUNNER)" --arch "$(ARCH)" --output "$(BUNDLE)"
+	uv run --locked python build.py --revision "$(REVISION)" --runner "$(RUNNER)" --arch "$(ARCH)" --output "$(BUNDLE)"
 
 smoke:
 	uv run --locked python tests/smoke.py --bundle $(BUNDLE)

@@ -51,20 +51,15 @@ def smoke(bundle: Path) -> None:
         if result.get("exception_info"):
             stderr = trial / "agent/runner.stderr"
             detail = stderr.read_text() if stderr.exists() else "No runner stderr"
-            raise AssertionError(
-                f"{result['exception_info']['exception_message']}\n{detail}"
-            )
+            raise AssertionError(f"{result['exception_info']['exception_message']}\n{detail}")
         assert result["verifier_result"]["rewards"]["reward"] == 1
-        trajectory = Trajectory.model_validate_json(
-            (trial / "agent/trajectory.json").read_text()
-        )
+        trajectory = Trajectory.model_validate_json((trial / "agent/trajectory.json").read_text())
         requests = [
             json.loads(line)
-            for line in (trial / "verifier/model-requests.jsonl")
-            .read_text()
-            .splitlines()
+            for line in (trial / "verifier/model-requests.jsonl").read_text().splitlines()
         ]
-        assert requests and all(request.get("stream") is True for request in requests)
+        assert requests
+        assert all(request.get("stream") is True for request in requests)
         assert all(
             {tool["name"] for tool in request["tools"]} == {"Bash", "ViewImage"}
             for request in requests
@@ -88,16 +83,18 @@ def smoke(bundle: Path) -> None:
             if not step.observation:
                 continue
             for observation in step.observation.results:
-                if "available_before_turn" not in observation.extra:
+                if "available_before_turn" not in (observation.extra or {}):
                     continue
                 if isinstance(observation.content, str):
                     parts = [("text", observation.content)]
                 else:
+                    assert observation.content is not None
                     parts = []
                     for part in observation.content:
                         if part.type == "text":
                             parts.append(("text", part.text))
                         else:
+                            assert part.source is not None
                             data = (trial / "agent" / part.source.path).read_bytes()
                             assert data[:8] == b"\x89PNG\r\n\x1a\n"
                             assert struct.unpack(">II", data[16:24]) == (2000, 1)
@@ -113,9 +110,7 @@ def smoke(bundle: Path) -> None:
                         "multiply coordinates by 2.00 to approximate original",
                     ), parts
                 exported.add((observation.source_call_id, tuple(parts)))
-        assert {call_id for call_id, _ in exported} == {"plain", "bounded", "image"}, (
-            exported
-        )
+        assert {call_id for call_id, _ in exported} == {"plain", "bounded", "image"}, exported
         assert exported == observed, (exported, observed)
         assert len([s for s in trajectory.steps if s.source == "user"]) == 1
         metrics = result["agent_result"]
@@ -123,18 +118,23 @@ def smoke(bundle: Path) -> None:
         assert metrics["n_cache_tokens"] == 4 * len(requests), metrics
         assert metrics["n_output_tokens"] == 3 * len(requests), metrics
         assert metrics["cost_usd"] is None, metrics
-        assert (
-            trajectory.agent.extra["binary_sha256"]
-            == json.loads((bundle / "manifest.json").read_text())["sha256"]
+        manifest = json.loads((bundle / "manifest.json").read_text())
+        assert trajectory.agent.extra is not None
+        assert trajectory.agent.extra["bundle_sha256"] == manifest["sha256"]
+        assert trajectory.agent.extra["python_version"] == manifest["python_version"]
+        tool_env = dict(
+            line.split("=", 1)
+            for line in (trial / "verifier/tool-env").read_text().splitlines()
+            if "=" in line
         )
+        assert tool_env.get("PYTHONPATH") == "/hostile", tool_env
+        for name in ("LC_CTYPE", "LD_LIBRARY_PATH", "PYTHONHOME", "SSL_CERT_FILE"):
+            assert name not in tool_env, (name, tool_env)
         sessions = list((trial / "agent/sessions").glob("*.session.jsonl"))
         assert sessions, "No persisted session was collected"
         for session in sessions:
             assert "harbor-smoke-test-key" not in session.read_text()
-        print(
-            "Harbor Docker smoke passed: reward, text/image observations, "
-            "usage and provenance."
-        )
+        print("Harbor Docker smoke passed: rewards, observations, usage, provenance, tool env.")
 
 
 if __name__ == "__main__":
