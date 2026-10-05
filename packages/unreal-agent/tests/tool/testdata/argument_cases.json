@@ -1,0 +1,2681 @@
+[
+ {
+  "arguments": "",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": " ",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "   ",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "\t{}\n",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' at start of value\"}"
+  }
+ },
+ {
+  "arguments": "]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' at start of value\"}"
+  }
+ },
+ {
+  "arguments": ",",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value\"}"
+  }
+ },
+ {
+  "arguments": ":",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ':' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ':' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ':' at start of value\"}"
+  }
+ },
+ {
+  "arguments": "\u0001",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\x01' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\x01' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\x01' at start of value\"}"
+  }
+ },
+ {
+  "arguments": "null",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "[]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "{}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "42",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON number into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON number into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON number into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "\"x\"",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON string into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON string into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON string into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "true",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON boolean into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON boolean into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "tru",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 3\"}"
+  }
+ },
+ {
+  "arguments": "nul",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 3\"}"
+  }
+ },
+ {
+  "arguments": " [1]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" } after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "  \"x\"",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON string into Go map[string]jsontext.Value after offset 2\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON string into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" } after offset 2\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON string into Go tool.skillUseArguments after offset 2\"}"
+  }
+ },
+ {
+  "arguments": " 42",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON number into Go map[string]jsontext.Value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON number into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" } after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON number into Go tool.skillUseArguments after offset 1\"}"
+  }
+ },
+ {
+  "arguments": " true",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON boolean into Go map[string]jsontext.Value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" } after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON boolean into Go tool.skillUseArguments after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "\n[",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" } after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "[",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "[}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "[,1]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "[1,]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "[1:2]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments_base64": "WyL/Il0=",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "﻿{}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\ufeff' at start of value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\ufeff' at start of value\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\ufeff' at start of value\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\"}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":40000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"pwd\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"command\":\"ls\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":42}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash argument \\\"command\\\": json: cannot unmarshal JSON number into Go string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":true}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash argument \\\"command\\\": json: cannot unmarshal JSON boolean into Go string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":[]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash argument \\\"command\\\": json: cannot unmarshal JSON array into Go string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":{}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash argument \\\"command\\\": json: cannot unmarshal JSON object into Go string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":null}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be a string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":-0}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash argument \\\"command\\\": json: cannot unmarshal JSON number into Go string\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":0}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must be a positive integer\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1.5}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 1.5 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":\"10\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON string into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":true}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON boolean into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":null}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must be a positive integer\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":[]}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON array into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":{}}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON object into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":999999999999999999999999}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 999999999999999999999999 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1e3}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 1e3 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1000000000}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must not exceed 1000000\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":-1}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must be a positive integer\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1001}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":1001,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"pwd\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1000000}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":1000000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"pwd\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\",\"max_output_length\":1000001}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must not exceed 1000000\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":01}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '1' after object value (expecting ',' or '}') after offset 22\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '1' after object value (expecting ',' or '}') after offset 22\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '1' after object value (expecting ',' or '}') after offset 22\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":1.0}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 1.0 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":1E2}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 1E2 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":-0}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must be a positive integer\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":9223372036854775807}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must not exceed 1000000\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":9223372036854775808}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 9223372036854775808 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":-9223372036854775808}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: max_output_length must be a positive integer\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":-9223372036854775809}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number -9223372036854775809 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":18446744073709551615}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 18446744073709551615 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":18446744073709551616}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 18446744073709551616 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":99999999999999999999}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 99999999999999999999 into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number into Go int: value out of range\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":1.555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJjb21tYW5kIjoiYf9iIn0=",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 13\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 13\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 13\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\\ud800\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid surrogate pair `\\\\ud800\\\"}` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid surrogate pair `\\\\ud800\\\"}` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid surrogate pair `\\\\ud800\\\"}` in string within \\\"/command\\\" after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\"} trailing",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 't' after top-level value after offset 16\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 't' after top-level value after offset 16\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 't' after top-level value after offset 16\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\"}{}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '{' after top-level value after offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '{' after top-level value after offset 15\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '{' after top-level value after offset 15\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":null}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":false}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":12}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON number into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":12}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON number into Go string within \\\"/name\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":null}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"a\",\"name\":\"b\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"name\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"name\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"name\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"Path\":\"a\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"NAME\":\"review\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"a\",\"extra\":1}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"view_image\",\"Version\":1,\"State\":{\"Path\":\"/workspace/a\",\"Config\":{\"MaxSize\":4999000,\"MaxHeight\":2000,\"MaxWidth\":2000},\"Result\":null}}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of value after offset 14\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value after offset 14\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value after offset 14\"}"
+  }
+ },
+ {
+  "arguments": "{'command':1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\'' at start of value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\'' at start of value after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\'' at start of value after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\" \"y\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 15\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 15\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":nul}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in literal null (expecting 'l') within \\\"/command\\\" after offset 14\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in literal null (expecting 'l') within \\\"/command\\\" after offset 14\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in literal null (expecting 'l') within \\\"/command\\\" after offset 14\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\\x01\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid escape sequence `\\\\x` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid escape sequence `\\\\x` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid escape sequence `\\\\x` in string within \\\"/command\\\" after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\\q\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid escape sequence `\\\\q` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid escape sequence `\\\\q` in string within \\\"/command\\\" after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid escape sequence `\\\\q` in string within \\\"/command\\\" after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\"",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 14\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 14\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 14\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 15\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 15\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\"",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 11\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 11\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 11\"}"
+  }
+ },
+ {
+  "arguments": "[1,",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1,\"a\":2}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":1,\"max_output_length\":2,\"command\":\"x\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"max_output_length\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"max_output_length\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"max_output_length\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",\"Command\":\"y\"}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":40000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"x\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":false,\"x\":",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/x\\\" after offset 18\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/x\\\" after offset 18\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":false} x",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' after top-level value after offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' after top-level value after offset 15\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":false,\"path\":1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON boolean into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":1,\"path\":\"a\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON number into Go string within \\\"/path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":42,",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 14\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 14\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 14\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":42} x",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' after top-level value after offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' after top-level value after offset 15\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' after top-level value after offset 15\"}"
+  }
+ },
+ {
+  "arguments": "[\"a\" \"b\"]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: json: cannot unmarshal JSON array into Go map[string]jsontext.Value\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: json: cannot unmarshal JSON array into Go struct { Path string \\\"json:\\\\\\\"path\\\\\\\"\\\" }\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go tool.skillUseArguments\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":[1 2]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '2' after array element (expecting ',' or ']') within \\\"/a\\\" after offset 8\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '2' after array element (expecting ',' or ']') within \\\"/a\\\" after offset 8\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '2' after array element (expecting ',' or ']') within \\\"/a\\\" after offset 8\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":{\"b\":[1,{\"c\":tru}]}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in literal true (expecting 'e') within \\\"/a/b/1/c\\\" after offset 21\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in literal true (expecting 'e') within \\\"/a/b/1/c\\\" after offset 21\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in literal true (expecting 'e') within \\\"/a/b/1/c\\\" after offset 21\"}"
+  }
+ },
+ {
+  "arguments": "{\"a~/b\":x}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' at start of value within \\\"/a~0~1b\\\" after offset 8\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' at start of value within \\\"/a~0~1b\\\" after offset 8\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' at start of value within \\\"/a~0~1b\\\" after offset 8\"}"
+  }
+ },
+ {
+  "arguments": "{\"\":x}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' at start of value within \\\"/\\\" after offset 4\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' at start of value within \\\"/\\\" after offset 4\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' at start of value within \\\"/\\\" after offset 4\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\\\"b\":x}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' at start of value within \\\"/a\\\\\\\"b\\\" after offset 8\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' at start of value within \\\"/a\\\\\\\"b\\\" after offset 8\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' at start of value within \\\"/a\\\\\\\"b\\\" after offset 8\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"a\"} {",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '{' after top-level value after offset 13\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '{' after top-level value after offset 13\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '{' after top-level value after offset 13\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"a\u0000\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\x00' in string (expecting non-control character) within \\\"/path\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\x00' in string (expecting non-control character) within \\\"/path\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\x00' in string (expecting non-control character) within \\\"/path\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\t\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\t' in string (expecting non-control character) within \\\"/path\\\" after offset 9\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\t' in string (expecting non-control character) within \\\"/path\\\" after offset 9\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\t' in string (expecting non-control character) within \\\"/path\\\" after offset 9\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\\u0000\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" contains a NUL byte at offset 0\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1e}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":-}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1.}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in number (expecting digit) within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":.5}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '.' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '.' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '.' at start of value within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":+1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '+' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '+' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '+' at start of value within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":NaN}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'N' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'N' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'N' at start of value within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":Infinity}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'I' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'I' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'I' at start of value within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800\\u0041\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\u0041` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\u0041` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\u0041` in string within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\udc00\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid surrogate pair `\\\\udc00\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid surrogate pair `\\\\udc00\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid surrogate pair `\\\\udc00\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\u12\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid escape sequence `\\\\u12\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid escape sequence `\\\\u12\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid escape sequence `\\\\u12\\\"}` in string within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\" 1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{1:2}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: object member name must be a string after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: object member name must be a string after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: object member name must be a string after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "{null:2}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: object member name must be a string after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: object member name must be a string after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: object member name must be a string after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1 , }",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of value after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":5,\"command\":",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 33\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 33\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/command\\\" after offset 33\"}"
+  }
+ },
+ {
+  "arguments": "{\"max_output_length\":\"x\",\"command\":42}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON string into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":42,\"max_output_length\":\"x\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON string into Go int\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJjb21tYW5kIjoieCIsIm1heF9vdXRwdXRfbGVuZ3RoIjowLCJvdGhlciI6/30=",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\\xff' at start of value within \\\"/other\\\" after offset 45\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\\xff' at start of value within \\\"/other\\\" after offset 45\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\\xff' at start of value within \\\"/other\\\" after offset 45\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",\"max_output_length\":-1.5}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number -1.5 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",\"max_output_length\":0.0}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 0.0 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"x\",\"max_output_length\":1e400}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument: decode max_output_length: json: cannot unmarshal JSON number 1e400 into Go int: invalid syntax\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"a\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill \\\"a\\\" is not registered\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"review\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"skill_use\",\"Version\":1,\"State\":{\"Path\":\"/skills/review/SKILL.md\",\"Content\":\"\",\"TerminalError\":\"\"}}"
+  }
+ },
+ {
+  "arguments": "{\"name\":[1,2] ,\"x\":1}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON array into Go string within \\\"/name\\\"\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJjb21tYW5kIjoi7aCAIn0=",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/command\\\" after offset 12\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyL/IjoxfQ==",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 after offset 2\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 after offset 2\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 after offset 2\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"x\"\n,\"b\":}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of value within \\\"/b\\\" after offset 14\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' at start of value within \\\"/b\\\" after offset 14\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' at start of value within \\\"/b\\\" after offset 14\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"  \"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":[{\"b\":1,\"b\":2}]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/a/0\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/a/0\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/a/0\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":{\"b\":1},\"a\":2}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"a\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\/\\b\\f\\n\\r\\t\\\"\\\\\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":tRue}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'R' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'R' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'R' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":t}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' in literal true (expecting 'r') within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"x",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"x\\",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\u00",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800\\",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800\\udc",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800\\ud8",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\ud8` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\ud8` in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid surrogate pair `\\\\ud800\\\\ud8` in string within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud800 x\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid surrogate pair \\\"\\\\\\\\ud800 x\\\\\\\"}\\\" in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid surrogate pair \\\"\\\\\\\\ud800 x\\\\\\\"}\\\" in string within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid surrogate pair \\\"\\\\\\\\ud800 x\\\\\\\"}\\\" in string within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":\"\\ud83d\\ude00\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":12",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":-",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1.",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1e+",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":[",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":[1",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":[1,",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 8\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 8\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 8\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\"",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 4\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 4\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 4\"}"
+  }
+ },
+ {
+  "arguments": "{\"a",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF after offset 3\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF after offset 3\"}"
+  }
+ },
+ {
+  "arguments": "{\n \"a\":",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' after top-level value after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' after top-level value after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' after top-level value after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":1]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{]",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' at start of value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' at start of value after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' at start of value after offset 1\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\":]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\"::1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ':' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ':' at start of value within \\\"/a\\\" after offset 5\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ':' at start of value within \\\"/a\\\" after offset 5\"}"
+  }
+ },
+ {
+  "arguments": "{\"a\",1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/a\\\" after offset 4\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/a\\\" after offset 4\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/a\\\" after offset 4\"}"
+  }
+ },
+ {
+  "arguments": "{,}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of value after offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value after offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value after offset 1\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJhIjoi4oI=",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: unexpected EOF within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJhIjoi4oIifQ==",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJhIjoiwyJ9",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJhIjoi9JCAgCJ9",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments_base64": "eyJhIjoiwK8ifQ==",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid UTF-8 within \\\"/a\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"x\"} ",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill \\\"x\\\" is not registered\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"x\"}\n\t ",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill \\\"x\\\" is not registered\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"a\",\"path\":\"b\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"path\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":12,\"name\":\"x\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"name\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"name\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: json: cannot unmarshal JSON number into Go string within \\\"/name\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":]}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[1}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1,}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of string (expecting '\\\"') within \\\"/x\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 11\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 11\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\" 1}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/x/a\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/x/a\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '1' after object name (expecting ':') within \\\"/x/a\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1 \"b\":2}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[1,]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 8\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{,}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of string (expecting '\\\"') within \\\"/x\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value within \\\"/x\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":{\"b\":1,\"b\":2}}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/x/a\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/x/a\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"b\\\" within \\\"/x/a\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1,\"a\":2}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"a\\\" within \\\"/x\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"a\\\" within \\\"/x\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"a\\\" within \\\"/x\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{1:2}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '1' at start of string (expecting '\\\"') within \\\"/x\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: object member name must be a string within \\\"/x\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: object member name must be a string within \\\"/x\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of value within \\\"/x/a\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: missing value after object name within \\\"/x/a\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: missing value after object name within \\\"/x/a\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of value within \\\"/x/0\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '}' at start of value within \\\"/x/0\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '}' at start of value within \\\"/x/0\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' at start of string (expecting '\\\"') within \\\"/x\\\" after offset 6\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' at start of value within \\\"/x\\\" after offset 6\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' at start of value within \\\"/x\\\" after offset 6\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[1:2]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ':' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ':' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ':' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 7\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\",1}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/x/a\\\" after offset 9\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/x/a\\\" after offset 9\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' after object name (expecting ':') within \\\"/x/a\\\" after offset 9\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1:2}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ':' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 11\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ':' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 11\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ':' after object value (expecting ',' or '}') within \\\"/x\\\" after offset 11\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[[1],[2,{\"q\":[3,}]]]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '}' at start of value within \\\"/x/1/1/q/1\\\" after offset 21\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value within \\\"/x/1/1/q\\\" after offset 20\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value within \\\"/x/1/1/q\\\" after offset 20\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1}\"y\":2}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\"' after object value (expecting ',' or '}') after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":[\"a\" \"b\"]}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character '\\\"' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 10\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character '\\\"' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 10\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character '\\\"' after array element (expecting ',' or ']') within \\\"/x\\\" after offset 10\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1},}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ',' at start of value after offset 12\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ',' at start of value after offset 12\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ',' at start of value after offset 12\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":{\"a\":1}}x",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' after top-level value after offset 13\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' after top-level value after offset 13\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' after top-level value after offset 13\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"a\",\"\\u0063ommand\":\"b\"}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: duplicate object member name \\\"command\\\"\"}"
+  }
+ },
+ {
+  "arguments": "{\"\\u0063ommand\":\"pwd\"}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":40000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"pwd\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"p\\u0061th\":\"img.png\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"view_image\",\"Version\":1,\"State\":{\"Path\":\"/workspace/img.png\",\"Config\":{\"MaxSize\":4999000,\"MaxHeight\":2000,\"MaxWidth\":2000},\"Result\":null}}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"n\\u0061me\":\"review\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"skill_use\",\"Version\":1,\"State\":{\"Path\":\"/skills/review/SKILL.md\",\"Content\":\"\",\"TerminalError\":\"\"}}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\\u0000pwd\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" contains a NUL byte at offset 0\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"pwd\\u0000\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" contains a NUL byte at offset 3\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"a\\u0000b\\u0000\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" contains a NUL byte at offset 1\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\\u00e9\\u96ea\\u0000\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" contains a NUL byte at offset 5\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"cat <<'EOF'\\ncaf\\u0000e9\\nEOF\\n\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" contains a NUL byte at offset 15\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"a\\u0000b\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" contains a NUL byte at offset 1\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"  \"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\" image.png \"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"view_image\",\"Version\":1,\"State\":{\"Path\":\"/workspace/ image.png \",\"Config\":{\"MaxSize\":4999000,\"MaxHeight\":2000,\"MaxWidth\":2000},\"Result\":null}}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"/abs.png\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"view_image\",\"Version\":1,\"State\":{\"Path\":\"/abs.png\",\"Config\":{\"MaxSize\":4999000,\"MaxHeight\":2000,\"MaxWidth\":2000},\"Result\":null}}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\\u3000\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\\u0085\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"path\":\"\\u001c\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"Type\":\"view_image\",\"Version\":1,\"State\":{\"Path\":\"/workspace/\\u001c\",\"Config\":{\"MaxSize\":4999000,\"MaxHeight\":2000,\"MaxWidth\":2000},\"Result\":null}}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"\\u001c\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill \\\"\\\\x1c\\\" is not registered\"}"
+  }
+ },
+ {
+  "arguments": "{\"name\":\"\\u00a0\"}",
+  "bash": {
+   "status": "{\"Error\":\"bash argument \\\"command\\\" must be set\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"x\":\"yyyyyyyyyy\",\"kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk\":{\"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm\":[tru]}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character ']' in literal true (expecting 'e') within \\\"/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk…/mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm/0\\\" after offset 209\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character ']' in literal true (expecting 'e') within \\\"/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk…/mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm/0\\\" after offset 209\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character ']' in literal true (expecting 'e') within \\\"/kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk…/mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm/0\\\" after offset 209\"}"
+  }
+ },
+ {
+  "arguments": "{\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\":{\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\":{\"c\":{\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\":x}}}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' at start of value within \\\"/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…/…/…dddddddddddddddddddddddddddddddddddddddddddddddddd\\\" after offset 197\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' at start of value within \\\"/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…/…/…dddddddddddddddddddddddddddddddddddddddddddddddddd\\\" after offset 197\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' at start of value within \\\"/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…/…/…dddddddddddddddddddddddddddddddddddddddddddddddddd\\\" after offset 197\"}"
+  }
+ },
+ {
+  "arguments": "{\"a/b~c\":{\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\":{\"z\":[0,1,{\"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\":x}]}}}",
+  "bash": {
+   "status": "{\"Error\":\"decode Bash arguments: jsontext: invalid character 'x' at start of value within \\\"/a~1b~0c/…/…wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\\\" after offset 217\"}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"decode ViewImage arguments: jsontext: invalid character 'x' at start of value within \\\"/a~1b~0c/…/…wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\\\" after offset 217\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"decode skill-use arguments: jsontext: invalid character 'x' at start of value within \\\"/a~1b~0c/…/…wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\\\" after offset 217\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"echo hi\",\"max_output_length\":7}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":7,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"echo hi\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"\"}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":40000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"\",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ },
+ {
+  "arguments": "{\"command\":\"  printf '%s' \\\"$HOME\\\"; exit 7  \"}",
+  "bash": {
+   "status": "{\"Error\":\"\",\"WaitingFor\":[\"operation-1\"]}",
+   "spec": "{\"MaxOutputLength\":40000,\"Type\":\"shell\",\"Version\":3,\"State\":{\"Input\":{\"Command\":\"  printf '%s' \\\"$HOME\\\"; exit 7  \",\"Shell\":\"/bin/sh\",\"Directory\":\"/workspace\"},\"BaseDirectory\":\"/operations\",\"Phase\":\"\",\"ProcessGroupID\":0,\"PendingExitCode\":null,\"OutSize\":0,\"ErrSize\":0,\"InlineOut\":\"\",\"InlineErr\":\"\",\"InlineOutTail\":\"\",\"InlineErrTail\":\"\",\"Result\":null,\"TerminalError\":\"\",\"ErrorTruncated\":false,\"OutTruncated\":true,\"ErrTruncated\":true,\"OutPath\":\"\",\"ErrPath\":\"\"}}"
+  },
+  "view_image": {
+   "status": "{\"Error\":\"ViewImage argument \\\"path\\\" must be set\"}"
+  },
+  "skill_use": {
+   "status": "{\"Error\":\"skill-use argument \\\"name\\\" must be set\"}"
+  }
+ }
+]
