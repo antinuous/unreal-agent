@@ -1,7 +1,9 @@
 import json
 from typing import cast
 
+import msgspec
 import pytest
+from unreal_agent.contextbuilder import new_builder
 from unreal_agent.gojson import Raw, decode, encode, validate
 from unreal_agent.llm import (
     Item,
@@ -22,6 +24,10 @@ from unreal_agent.llm import (
 )
 from unreal_agent.llm.responsesapi import decode_response, request_body
 from unreal_agent.llm.responsesapi.request import request_input_item
+from unreal_agent.operation import Spec
+from unreal_agent.sessionstore import Item as StoreItem
+from unreal_agent.sessionstore import ItemKind, ModelResponse
+from unreal_agent.tool import bash
 
 INVALID_BYTE = b"\xff".decode("utf-8", "surrogateescape")
 
@@ -460,38 +466,171 @@ def test_request_body_matches_go_for_edge_values() -> None:
     )
 
 
+class _WireContent(msgspec.Struct):
+    type: str = ""
+    text: str = ""
+
+
+class _WireItem(msgspec.Struct):
+    type: str = ""
+    call_id: str = ""
+    name: str = ""
+    arguments: str = ""
+    output: list[_WireContent] = []
+
+
+class _WireRequest(msgspec.Struct):
+    input: list[_WireItem] = []
+
+
+class _ReplayToolContext:
+    def __init__(self) -> None:
+        self.submissions = 0
+
+    def submit(self, spec: Spec, /) -> str:
+        self.submissions += 1
+        return "unexpected-operation"
+
+
+def _text(value: str) -> list[ToolResultOutput]:
+    return [ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
+
+
 def test_request_body_replays_rejected_tool_call_from_history() -> None:
-    """The encoding half of Go's replay test; the Bash rejection needs the tool port."""
     response = decode_response(
         b'{"id":"response-1","status":"completed","output":[{"type":"function_call",'
         b'"id":"function-1","call_id":"call-1","name":"Bash",'
         b'"arguments":"{\\"command\\":\\"apt-get install -y r-base"}]}'
     )
-    history = encode(response)
-    restored = decode(history, Response)
-    call = restored.Output[0].Data
-    assert isinstance(call, ToolCall)
-    valid_call = ToolCall(CallID="call-2", Name="Search", Arguments=' {"query":"weather"} ')
-    request = Request(
-        Input=[
-            restored.Output[0],
-            Item(
-                Type=ItemType.TOOL_RESULT,
-                Data=ToolResult(
-                    CallID="call-1",
-                    Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="rejected")],
-                ),
-            ),
-            Item(Type=ItemType.TOOL_CALL, Data=valid_call),
-        ]
+    history = encode(
+        StoreItem(
+            Kind=ItemKind.MODEL_RESPONSE,
+            Data=ModelResponse(TurnID="turn-1", Response=response),
+        )
     )
-    wire = json.loads(request_body(request, ""))["input"]
-    assert json.loads(wire[0]["arguments"]) == {"invalid_arguments": call.Arguments}
-    assert wire[0]["call_id"] == "call-1"
-    assert wire[2]["arguments"] == valid_call.Arguments
-    assert encode(restored) == history
+    restored = decode(history, StoreItem)
+    assert isinstance(restored.Data, ModelResponse)
+    response = restored.Data.Response
+    call = response.Output[0].Data
+    assert isinstance(call, ToolCall)
+    translator = bash.new(bash.Config())
+    tool_context = _ReplayToolContext()
+    status = translator.translate(tool_context, call)
+    assert "decode Bash arguments:" in status.Error
+    assert tool_context.submissions == 0
+    result = translator.translate_result(call.CallID, status, [])
+
+    builder = new_builder()
+    builder.add_model_response(response)
+    builder.add_tool_result(result.CallID, result.Output, False)
+    builder.commit()
+    valid_call = ToolCall(CallID="call-2", Name="Search", Arguments=' {"query":"weather"} ')
+    builder.add_model_response(Response(Output=[Item(Type=ItemType.TOOL_CALL, Data=valid_call)]))
+    builder.add_tool_result(valid_call.CallID, _text("found"), False)
+    built = builder.build()
+
+    wire = msgspec.json.decode(request_body(built.request, ""), type=_WireRequest).input
+    assert len(wire) == 5, "want system message and two call/result pairs"
+    assert json.loads(wire[1].arguments) == {"invalid_arguments": call.Arguments}
+    assert wire[1:] == [
+        _WireItem(
+            type="function_call",
+            call_id=call.CallID,
+            name=call.Name,
+            arguments=wire[1].arguments,
+        ),
+        _WireItem(
+            type="function_call_output",
+            call_id=call.CallID,
+            output=[_WireContent(type="input_text", text=result.Output[0].Value)],
+        ),
+        _WireItem(
+            type="function_call",
+            call_id=valid_call.CallID,
+            name=valid_call.Name,
+            arguments=valid_call.Arguments,
+        ),
+        _WireItem(
+            type="function_call_output",
+            call_id=valid_call.CallID,
+            output=[_WireContent(type="input_text", text="found")],
+        ),
+    ]
+    assert encode(restored) == history, "replay changed persisted history"
 
 
-@pytest.mark.skip(reason="needs unreal_agent.contextbuilder, which is not ported yet")
-def test_submitted_prefix_and_late_result_order_on_wire() -> None:
-    """Go's TestSubmittedPrefixAndLateResultOrderOnWire builds requests with contextbuilder."""
+_REASONING = (
+    b'{"id":"reasoning","type":"reasoning","summary":[{"type":"summary_text",'
+    b'"text":"Keep working."}],"encrypted_content":"opaque"}'
+)
+
+
+class _RawInput(msgspec.Struct):
+    input: list[msgspec.Raw] = []
+
+
+@pytest.mark.parametrize(
+    ("output", "want"),
+    [
+        pytest.param(
+            b'[{"id":"message","type":"message","role":"assistant","status":"completed",'
+            b'"phase":"final_answer","content":[{"type":"output_text","text":"Waiting.",'
+            b'"annotations":[],"logprobs":[]}]}]',
+            b'[{"id":"message","type":"message","role":"assistant","status":"completed",'
+            b'"phase":"final_answer","content":[{"type":"output_text","text":"Waiting.",'
+            b'"annotations":[],"logprobs":[]}]}]',
+            id="assistant message",
+        ),
+        pytest.param(
+            b"["
+            + _REASONING
+            + b',{"id":"item-C","type":"function_call","call_id":"C","name":"test",'
+            b'"arguments":"{}","status":"completed"}]',
+            b"["
+            + _REASONING
+            + b',{"id":"item-C","type":"function_call","call_id":"C","name":"test",'
+            b'"arguments":"{}"}]',
+            id="reasoning and tool call",
+        ),
+        pytest.param(b"[]", b"[]", id="empty output"),
+    ],
+)
+def test_submitted_prefix_and_late_result_order_on_wire(output: bytes, want: bytes) -> None:
+    builder = new_builder()
+    builder.set_model(Model(ID="test"))
+    builder.add_model_response(
+        Response(
+            Output=[
+                Item(
+                    Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="A", Name="test", Arguments="{}")
+                ),
+                Item(
+                    Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="B", Name="test", Arguments="{}")
+                ),
+            ]
+        )
+    )
+    builder.add_tool_result("A", _text(""), True)
+    builder.add_tool_result("B", _text("done B"), False)
+    before_body = request_body(builder.build().request, "session")
+    builder.commit()
+    builder.add_tool_result("A", _text("done A"), False)
+    builder.add_model_response(
+        decode_response(
+            b'{"id":"response","object":"response","status":"completed","output":' + output + b"}"
+        )
+    )
+    after_body = request_body(builder.build().request, "session")
+
+    sent = [bytes(item) for item in msgspec.json.decode(before_body, type=_RawInput).input]
+    following = [bytes(item) for item in msgspec.json.decode(after_body, type=_RawInput).input]
+    assert following[: len(sent)] == sent, "serialized submitted prefix changed"
+    want_tail = [
+        *json.loads(want),
+        {
+            "type": "function_call_output",
+            "call_id": "A",
+            "output": [{"type": "input_text", "text": "done A"}],
+        },
+    ]
+    assert [json.loads(item) for item in following[len(sent) :]] == want_tail
