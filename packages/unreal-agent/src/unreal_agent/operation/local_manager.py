@@ -211,16 +211,18 @@ class _Actor:
         for current in list(self.operations.values()):
             current.cancel()
         self.remote_jobs.stop()
-        await self.drain_local_primitives(self.active_primitives)
-        self.active_primitives = 0
-        await self.remote_jobs.wait()
-        while True:
-            try:
-                message = self.mailbox.receive_nowait()
-            except asyncio.QueueEmpty:
-                break
-            _reject(message)
-        self.updates.shutdown(immediate=True)
+        try:
+            await self.drain_local_primitives(self.active_primitives)
+            self.active_primitives = 0
+            await self.remote_jobs.wait()
+        finally:
+            while True:
+                try:
+                    message = self.mailbox.receive_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                _reject(message)
+            self.updates.shutdown(immediate=True)
 
     async def _add(self, request: _AddRequest) -> None:
         current = request.operation
@@ -528,4 +530,8 @@ class LocalOperationManager:
             raise ClosedError
         result: asyncio.Future[None] = asyncio.get_running_loop().create_future()
         self._actor.mailbox.post(build(result))
+        await asyncio.wait((result, self._task), return_when=asyncio.FIRST_COMPLETED)
+        if not result.done():
+            result.cancel()
+            raise ClosedError
         await result

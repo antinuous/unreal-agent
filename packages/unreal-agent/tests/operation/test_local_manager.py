@@ -147,7 +147,7 @@ async def test_local_operation_manager_queues_updates_while_unread(
         ShellPhase.READ_OUT,
         ShellPhase.READ_ERR,
     ]
-    ranks = {phase: rank for rank, phase in enumerate(phases)}
+    ranks: dict[str, int] = {phase: rank for rank, phase in enumerate(phases)}
     last_rank = -1
     seen: set[tuple[Status, bytes, bytes]] = set()
     async with asyncio.timeout(15):

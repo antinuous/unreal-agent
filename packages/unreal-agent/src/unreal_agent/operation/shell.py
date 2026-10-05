@@ -98,7 +98,7 @@ class ShellState(Struct):
     Input: ShellInput = msgspec.field(default_factory=ShellInput)
     BaseDirectory: str = ""
 
-    Phase: ShellPhase = ShellPhase.NONE
+    Phase: str = ShellPhase.NONE
     ProcessGroupID: Int64 = 0
     PendingExitCode: Int64 | None = None
     OutSize: Int64 = 0

@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
@@ -9,9 +10,12 @@ from unreal_agent.gojson import Raw, encode
 from unreal_agent.operation import (
     TYPE_SHELL,
     VERSION_SHELL,
+    ClosedError,
+    LocalOperationManager,
     Operation,
     OperationError,
     PrimitiveDispatch,
+    RemoteJobPlan,
     Shell,
     ShellInput,
     ShellPhase,
@@ -19,8 +23,15 @@ from unreal_agent.operation import (
     Status,
     Step,
     decode_shell_state,
+    new_remote_job_spec,
 )
-from unreal_agent.operation.local_manager import _Actor, _RunningOperation, start_local_primitive
+from unreal_agent.operation.local_manager import (
+    _Actor,
+    _AddRequest,
+    _Close,
+    _RunningOperation,
+    start_local_primitive,
+)
 from unreal_agent.primitives import (
     ComputeRequest,
     CorrelationID,
@@ -347,3 +358,75 @@ async def test_local_operation_manager_rejects_invalid_compute_payload() -> None
     assert actor.updates.qsize() == 1
     assert actor.updates.get_nowait().Status == Status.FAILED
     assert current.canceled
+
+
+class _BlockingRemoteJobHandler:
+    def __init__(self) -> None:
+        self.adding = asyncio.Event()
+        self.updates: asyncio.Queue[Operation] = asyncio.Queue()
+
+    def remote_job_plan_type(self) -> str:
+        return "test"
+
+    def remote_job_plan_version(self) -> int:
+        return 1
+
+    async def add_remote_job(self, operation: Operation) -> None:
+        self.adding.set()
+        await asyncio.Event().wait()
+
+    async def cancel_remote_job(self, id: str, reason: str) -> None:
+        pass
+
+    async def remote_job_updates(self) -> AsyncIterator[Operation]:
+        while True:
+            try:
+                yield await self.updates.get()
+            except asyncio.QueueShutDown:
+                return
+
+    def stop(self) -> None:
+        self.updates.shutdown()
+
+
+async def test_local_operation_manager_request_returns_when_actor_stops_mid_request() -> None:
+    handler = _BlockingRemoteJobHandler()
+    manager = LocalOperationManager(handler)
+    spec = new_remote_job_spec(RemoteJobPlan(Type="test", Version=1, Data=Raw(b"{}")))
+    operation = Operation(
+        ID="remote",
+        Type=spec.Type,
+        Version=spec.Version,
+        Status=Status.READY,
+        MaxOutputLength=spec.MaxOutputLength,
+        State=spec.State,
+    )
+    adding = asyncio.create_task(manager.add(operation))
+    async with asyncio.timeout(5):
+        await handler.adding.wait()
+    manager._task.cancel()
+    async with asyncio.timeout(5):
+        with pytest.raises(ClosedError):
+            await adding
+        with pytest.raises(asyncio.CancelledError):
+            await manager.wait_closed()
+
+
+async def test_local_operation_manager_ends_updates_when_cancelled_during_drain() -> None:
+    actor = _Actor()
+    actor.active_primitives = 1
+    task = asyncio.create_task(actor.run())
+    actor.mailbox.post(_Close())
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    result: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+    actor.mailbox.post(_AddRequest(Operation(ID="late"), result))
+    await asyncio.sleep(0)
+    task.cancel()
+    async with asyncio.timeout(5):
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        with pytest.raises(asyncio.QueueShutDown):
+            await actor.updates.get()
+        with pytest.raises(ClosedError):
+            await result

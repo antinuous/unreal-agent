@@ -8,6 +8,7 @@ from typing import Any, Final
 
 import pytest
 from msgspec.structs import replace
+from unreal_agent.gojson import Raw, encode
 from unreal_agent.operation import (
     SHELL_ERR_FILENAME,
     SHELL_OUT_FILENAME,
@@ -860,3 +861,32 @@ def test_shell_rejects_invalid_tail_events(
     assert step.operation is not None
     assert step.operation.Status == Status.FAILED
     assert not step.dispatches
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        None,
+        PrimitiveEvent(
+            PrimitiveEventType.IO_READ_COMPLETED,
+            SourceID("shell-unknown-phase"),
+            CorrelationID("unknown"),
+            IOReadCompletedResult(0),
+        ),
+    ],
+)
+def test_shell_actor_fails_unknown_persisted_phase(
+    tmp_path: Path, event: PrimitiveEvent | None
+) -> None:
+    state = encode(ShellState(Input=ShellInput(Shell=TEST_SHELL_PATH), BaseDirectory=str(tmp_path)))
+    current = replace(
+        shell_operation_with_state("shell-unknown-phase", ShellState()),
+        State=Raw(state.replace(b'"Phase":""', b'"Phase":"unknown"')),
+    )
+    step = advance_shell_once(current, event)
+    assert step.operation is not None
+    assert step.operation.Status == Status.FAILED
+    assert not step.dispatches
+    failed = shell_state(step.operation)
+    assert failed.TerminalError == 'shell operation has invalid phase "unknown"'
+    assert failed.Phase == ""
