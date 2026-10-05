@@ -651,9 +651,6 @@ class ImageContentWriter:
     def content(self) -> str:
         return b"".join(self._content).decode("ascii")
 
-    def retained(self) -> int:
-        return sum(len(part) for part in self._content)
-
 
 class _Base64Writer:
     """Streams standard base64 into a writer, like Go's `base64.NewEncoder`."""

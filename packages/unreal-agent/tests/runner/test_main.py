@@ -12,7 +12,7 @@ import pytest
 from unreal_agent.runner import Config, run_main
 from unreal_agent.runner.__main__ import NAME, parse_request
 from unreal_agent.runner.flags import REQUEST_HELP, usage
-from unreal_agent.tool import static_names
+from unreal_agent.tool import BASH_NAME, SKILL_USE_NAME, VIEW_IMAGE_NAME
 
 from tests.runner._helpers import must_not_read_environment, reader
 
@@ -25,7 +25,7 @@ async def test_parse_request_configures_static_tools() -> None:
     assert factory is not None
     from unreal_agent.runner import ToolConfig
 
-    configured = await factory(ToolConfig(names=static_names()))
+    configured = await factory(ToolConfig(names=[BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME]))
     names = [definition.tool.Name for definition in configured.registry.static_definitions()]
     assert names == ["ViewImage"]
     for name in ["Bash", "SkillUse", "McpSearch", "McpCall"]:

@@ -18,7 +18,6 @@ consumer. All methods run on the event loop thread.
   inputs, wakes a pending `get()` with `ClosedError`, and makes later submits
   raise `ClosedError`. It is idempotent.
 
-`Writer` is the protocol for anything with `async submit(input)`.
 `Input.decode_control_message()` parses control payloads strictly and rejects
 unknown members in the envelope and in settings parameters.
 """
@@ -30,7 +29,6 @@ from unreal_agent.inbox.inbox import (
     Input,
     InputKind,
     Settings,
-    Writer,
 )
 from unreal_agent.inbox.local import ClosedError, Inbox
 
@@ -43,5 +41,4 @@ __all__ = [
     "Input",
     "InputKind",
     "Settings",
-    "Writer",
 ]

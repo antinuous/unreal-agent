@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 from unreal_agent.primitives import (
-    IO_CREATE_DEFAULT_MODE,
     CorrelationID,
     IOCreateKind,
     IOCreateRequest,
@@ -53,7 +52,7 @@ async def test_create_file_creates_empty_file(tmp_path: Path) -> None:
         correlation_id=CorrelationID("create-1"),
         kind=IOCreateKind.REGULAR_FILE,
         path=path,
-        mode=IO_CREATE_DEFAULT_MODE,
+        mode=0o664,
     )
     event = single_event(await create_events(request), PrimitiveEventType.IO_CREATE_COMPLETED)
     assert (event.source, event.correlation_id) == (request.source, request.correlation_id)
@@ -264,7 +263,7 @@ async def test_create_file_canceled_before_start(tmp_path: Path) -> None:
     path = str(tmp_path / "canceled")
     events: Channel[PrimitiveEvent] = Channel()
     task = create(
-        IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path=path, mode=IO_CREATE_DEFAULT_MODE),
+        IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path=path, mode=0o664),
         events,
     )
     task.cancel()
@@ -280,7 +279,7 @@ async def test_create_file_failure_is_terminal(tmp_path: Path) -> None:
         correlation_id=CorrelationID("create-1"),
         kind=IOCreateKind.REGULAR_FILE,
         path=str(tmp_path / "missing" / "created"),
-        mode=IO_CREATE_DEFAULT_MODE,
+        mode=0o664,
     )
     event = single_event(await create_events(request), PrimitiveEventType.FAILED)
     assert failure_text(event)

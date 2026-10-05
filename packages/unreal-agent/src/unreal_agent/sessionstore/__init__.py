@@ -14,7 +14,6 @@ JSONL file per session. Failures raise `StoreError`. `NotExistError` (a
 
 from unreal_agent.sessionstore.sessionstore import (
     BEFORE_FIRST,
-    NIL_OBSERVER_ID,
     ExistError,
     Fork,
     Item,
@@ -36,7 +35,6 @@ from unreal_agent.sessionstore.sessionstore import (
 
 __all__ = [
     "BEFORE_FIRST",
-    "NIL_OBSERVER_ID",
     "ExistError",
     "Fork",
     "Item",

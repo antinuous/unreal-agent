@@ -513,9 +513,9 @@ def test_image_content_writer_counts_beyond_limit() -> None:
     writer = ImageContentWriter(threading.Event(), 5)
     for data in (b"abc", b"de", b"fghi", b"j"):
         assert writer.write(data) == len(data)
-        assert writer.retained() <= writer.limit, "retained oversized content"
+        assert len(writer.content()) <= writer.limit, "retained oversized content"
     assert writer.size == 10
-    assert writer.retained() == 0
+    assert len(writer.content()) == 0
 
 
 def test_image_reader_and_writer_honor_cancellation() -> None:

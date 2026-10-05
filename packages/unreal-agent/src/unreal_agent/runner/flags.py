@@ -101,10 +101,6 @@ class Options:
     arguments: list[str] = field(default_factory=list)
 
 
-class _ParseError(Exception):
-    pass
-
-
 def usage(name: str) -> str:
     return (
         "Usage:\n"

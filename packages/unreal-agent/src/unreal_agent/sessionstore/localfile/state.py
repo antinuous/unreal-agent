@@ -159,10 +159,6 @@ class SessionHead:
         return Item(Sequence=self.item_sequence, RecordedAt=recorded_at, Kind=kind, Data=data)
 
 
-def new_session_head(id: SessionID, created_at: Timestamp) -> SessionHead:
-    return SessionHead(snapshot=Snapshot(session=Session(ID=id, CreatedAt=created_at)))
-
-
 @dataclass(slots=True)
 class StoredState:
     head: SessionHead
@@ -243,7 +239,9 @@ class StoredState:
 
 
 def new_stored_state(id: SessionID, created_at: Timestamp) -> StoredState:
-    return StoredState(head=new_session_head(id, created_at))
+    return StoredState(
+        head=SessionHead(snapshot=Snapshot(session=Session(ID=id, CreatedAt=created_at)))
+    )
 
 
 def fork_stored_state(

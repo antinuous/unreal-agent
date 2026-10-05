@@ -26,7 +26,7 @@ from unreal_agent.tool.registry import (
     new_registry,
 )
 from unreal_agent.tool.skill_use import SkillUseTranslator
-from unreal_agent.tool.static import BASH_NAME, SKILL_USE_NAME, VIEW_IMAGE_NAME, static_names
+from unreal_agent.tool.static import BASH_NAME, SKILL_USE_NAME, VIEW_IMAGE_NAME
 from unreal_agent.tool.tool import (
     CallStatus,
     Context,
@@ -59,5 +59,4 @@ __all__ = [
     "error_status",
     "new_registry",
     "parse_max_output_length",
-    "static_names",
 ]

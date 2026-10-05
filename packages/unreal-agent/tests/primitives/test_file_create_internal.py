@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from unreal_agent.primitives import IO_CREATE_DEFAULT_MODE, IOCreateKind, IOCreateRequest
+from unreal_agent.primitives import IOCreateKind, IOCreateRequest
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
     FileClosedError,
@@ -52,9 +52,7 @@ def test_create_new_path_uses_current_directory(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     result = create_new_path(
-        IOCreateRequest(
-            kind=IOCreateKind.REGULAR_FILE, path="created", mode=IO_CREATE_DEFAULT_MODE
-        ),
+        IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path="created", mode=0o664),
         threading.Event(),
     )
     assert result.kind == IOCreateKind.REGULAR_FILE
@@ -135,7 +133,7 @@ def test_open_new_file_at_rejects_closed_directory(tmp_path: Path) -> None:
     parent = open_create_directory(str(tmp_path))
     parent.close()
     with pytest.raises(FileClosedError):
-        open_new_file_at(parent, "created", unix_file_mode(IO_CREATE_DEFAULT_MODE))
+        open_new_file_at(parent, "created", unix_file_mode(0o664))
     assert not (tmp_path / "created").exists()
 
 

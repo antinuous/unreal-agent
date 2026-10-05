@@ -159,10 +159,9 @@ class FaultMemoryStore:
         self.operations: dict[OperationID, Operation] = {}
         self.observers: dict[ObserverID, Observer] = {}
 
-    def add_observer(self, observer: Observer | None, /) -> ObserverID:
+    def add_observer(self, observer: Observer, /) -> ObserverID:
         id = uuid.uuid4()
-        if observer is not None:
-            self.observers[id] = observer
+        self.observers[id] = observer
         return id
 
     def remove_observer(self, id: ObserverID, /) -> None:

@@ -63,7 +63,6 @@ from unreal_agent.primitives.file import (
     read_file,
 )
 from unreal_agent.primitives.file_create import (
-    IO_CREATE_DEFAULT_MODE,
     IOCreateKind,
     IOCreateRequest,
     IOCreateResult,
@@ -118,7 +117,6 @@ from unreal_agent.primitives.timer import TimerRequest, TimerResult, schedule_ti
 __all__ = [
     "DEFAULT_REMOTE_MAX_ATTEMPTS",
     "DEFAULT_RETRYABLE_STATUS_CODES",
-    "IO_CREATE_DEFAULT_MODE",
     "IO_READ_CHUNK_SIZE",
     "PROCESS_OUTPUT_CHUNK_SIZE",
     "TERMINAL_EVENT_TYPES",

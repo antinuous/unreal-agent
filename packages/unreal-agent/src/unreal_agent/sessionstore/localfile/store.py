@@ -20,7 +20,6 @@ from unreal_agent.operation import Operation
 from unreal_agent.session import ID as SessionID
 from unreal_agent.session import Turn, TurnID
 from unreal_agent.sessionstore import (
-    NIL_OBSERVER_ID,
     Item,
     ModelResponse,
     Observer,
@@ -94,9 +93,7 @@ class Store:
     def directory(self) -> str:
         return self._directory
 
-    def add_observer(self, observer: Observer | None, /) -> ObserverID:
-        if observer is None:
-            return NIL_OBSERVER_ID
+    def add_observer(self, observer: Observer, /) -> ObserverID:
         id = uuid.uuid4()
         self._observers[id] = observer
         return id

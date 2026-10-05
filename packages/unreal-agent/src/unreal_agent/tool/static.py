@@ -10,7 +10,6 @@ __all__ = [
     "BASH_NAME",
     "SKILL_USE_NAME",
     "VIEW_IMAGE_NAME",
-    "static_names",
 ]
 
 BASH_NAME: Final = "Bash"
@@ -37,10 +36,6 @@ class UnavailableTranslator:
 
     def _error_message(self) -> str:
         return f"static tool {go_quote(self._name)} is not configured"
-
-
-def static_names() -> list[str]:
-    return [definition.tool.Name for definition in static_definitions()]
 
 
 def static_definitions() -> list[Definition]:

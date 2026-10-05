@@ -38,7 +38,6 @@ __all__ = [
     "Struct",
     "Timestamp",
     "Uint32",
-    "Uint64",
     "compact",
     "decode",
     "encode",
@@ -65,7 +64,6 @@ class _Marker:
 OmitZero: Final = _Marker("OmitZero")
 OmitEmpty: Final = _Marker("OmitEmpty")
 
-Uint64 = Annotated[int, msgspec.Meta(ge=0, le=2**64 - 1)]
 Uint32 = Annotated[int, msgspec.Meta(ge=0, le=2**32 - 1)]
 Int64 = Annotated[int, msgspec.Meta(ge=-(2**63), le=2**63 - 1)]
 
@@ -165,14 +163,6 @@ class Timestamp:
 
     def is_zero(self) -> bool:
         return self.unix_ns == _GO_ZERO_UNIX_NS
-
-    def to_datetime(self) -> datetime:
-        """Return the instant truncated to microseconds."""
-        tz = UTC if self.offset_seconds == 0 else timezone(timedelta(seconds=self.offset_seconds))
-        return (_EPOCH + timedelta(microseconds=self.unix_ns // 1000)).astimezone(tz)
-
-    def utc(self) -> Timestamp:
-        return Timestamp(self.unix_ns, 0)
 
     def format(self) -> str:
         """Format like Go's time.RFC3339Nano."""

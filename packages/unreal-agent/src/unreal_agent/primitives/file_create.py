@@ -33,7 +33,6 @@ from unreal_agent.primitives.primitive_event import (
     start_primitive,
 )
 
-IO_CREATE_DEFAULT_MODE: Final = 0o664
 MAX_CREATE_CONTENTION_RETRIES: Final = 16
 _SUPPORTED_MODE_BITS: Final = 0o7777
 

@@ -39,7 +39,6 @@ from unreal_agent.operation import TYPE_SHELL, Operation, Spec, Status, new_valu
 from unreal_agent.session import ID as SessionID
 from unreal_agent.session import Session, Turn, TurnID, TurnType
 from unreal_agent.sessionstore import (
-    NIL_OBSERVER_ID,
     Item,
     ItemData,
     ItemKind,
@@ -321,8 +320,8 @@ class FakeStore:
     on_append_tool_call_status: Callable[[ToolCallStatus], None] | None = None
     on_save_operation: Callable[[Operation], None] | None = None
 
-    def add_observer(self, observer: Observer | None, /) -> ObserverID:
-        return NIL_OBSERVER_ID
+    def add_observer(self, observer: Observer, /) -> ObserverID:
+        return uuid.uuid4()
 
     def remove_observer(self, id: ObserverID, /) -> None:
         pass
@@ -413,9 +412,7 @@ class MemoryStore:
         self._states: dict[SessionID, StoredState] = {}
         self._observers: dict[ObserverID, Observer] = {}
 
-    def add_observer(self, observer: Observer | None, /) -> ObserverID:
-        if observer is None:
-            return NIL_OBSERVER_ID
+    def add_observer(self, observer: Observer, /) -> ObserverID:
         id = uuid.uuid4()
         self._observers[id] = observer
         return id

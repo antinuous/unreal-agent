@@ -19,7 +19,6 @@ from unreal_agent.tool import CallStatus
 
 __all__ = [
     "BEFORE_FIRST",
-    "NIL_OBSERVER_ID",
     "ExistError",
     "Fork",
     "Item",
@@ -166,8 +165,6 @@ def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
 
 type ObserverID = UUID
 
-NIL_OBSERVER_ID: Final[ObserverID] = UUID(int=0)
-
 type Observer = Callable[[SessionID, Item], None]
 """Called synchronously after an item is persisted, with the ID of the session holding it."""
 
@@ -206,7 +203,7 @@ class Store(Protocol):
     run in call order.
     """
 
-    def add_observer(self, observer: Observer | None, /) -> ObserverID:
+    def add_observer(self, observer: Observer, /) -> ObserverID:
         """Not safe to call while an item write is notifying observers."""
         ...
 

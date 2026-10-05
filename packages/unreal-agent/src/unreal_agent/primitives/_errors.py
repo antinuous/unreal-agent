@@ -1,6 +1,5 @@
 """Go-style error values: wrapped messages, joined errors, and `errors.Is` traversal."""
 
-import errno as errno_codes
 import os
 from collections.abc import Iterator
 
@@ -91,6 +90,3 @@ def is_only_context_cancellation(error: BaseException) -> bool:
     if error.__cause__ is not None:
         return is_only_context_cancellation(error.__cause__)
     return False
-
-
-EAGAIN_CODES = frozenset({errno_codes.EAGAIN, errno_codes.EWOULDBLOCK})

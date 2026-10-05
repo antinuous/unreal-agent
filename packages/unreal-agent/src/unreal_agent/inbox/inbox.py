@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Annotated, Protocol
+from typing import Annotated
 
 from unreal_agent._go import json_quote
 from unreal_agent.gojson import JSONError, OmitZero, Raw, Struct, decode, is_valid_json
@@ -12,7 +12,6 @@ __all__ = [
     "Input",
     "InputKind",
     "Settings",
-    "Writer",
 ]
 
 type ID = str
@@ -114,7 +113,3 @@ class Input(Struct):
                 )
             case _:
                 raise ValueError(f"unsupported control mode {json_quote(mode)}")
-
-
-class Writer(Protocol):
-    async def submit(self, input: Input) -> None: ...
