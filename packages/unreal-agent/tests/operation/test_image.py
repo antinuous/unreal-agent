@@ -52,6 +52,11 @@ from unreal_agent.primitives._errors import ContextCanceledError, go_quote
 from tests.operation._helpers import Panic
 
 WEBP_FIXTURE = base64.b64decode("UklGRh4AAABXRUJQVlA4TBIAAAAvAkAAAA+w//Mf8x8V5iCi/xE=")
+# Two 8x4 frames at (6, 4) on a 24x12 logical screen, encoded by Go's image/gif.
+ANIMATED_GIF_FIXTURE = base64.b64decode(
+    "R0lGODlhGAAMAIAAAAAAAP///yH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwGAAQACAAEAAACBYSPqYsFACH5"
+    "BAAKAAAALAYABAAIAAQAAAIFhI+piwUAOw=="
+)
 
 
 _PILLOW_FORMATS = {"png": "PNG", "jpeg": "JPEG", "gif": "GIF", "bmp": "BMP", "tiff": "TIFF"}
@@ -169,22 +174,12 @@ async def test_view_image_recognizes_formats_from_content(
         assert actual.convert("RGBA").tobytes() == source.tobytes()
 
 
-def _animated_gif() -> bytes:
-    frames = [Image.new("P", (24, 12), 0) for _ in range(2)]
-    for frame in frames:
-        frame.putpalette([0, 0, 0, 255, 255, 255])
-        frame.paste(1, (6, 4, 14, 8))
-    buffer = io.BytesIO()
-    frames[0].save(buffer, "GIF", save_all=True, append_images=frames[1:], duration=100)
-    return buffer.getvalue()
-
-
 @pytest.mark.parametrize("name", ["static", "animated"])
 async def test_view_image_rejects_gif(tmp_path: Path, name: str) -> None:
     data = (
         encode_view_image_fixture(view_image_fixture(24, 12), "gif")
         if name == "static"
-        else _animated_gif()
+        else ANIMATED_GIF_FIXTURE
     )
     current = view_image_test_operation(
         tmp_path, data, ViewImageConfig(MaxSize=1000, MaxWidth=12, MaxHeight=12)
@@ -449,7 +444,10 @@ async def test_view_image_reports_missing_file(tmp_path: Path) -> None:
     state = decode_view_image_state(current)
     os.remove(state.Path)
     completed, result = await run_view_image_test(current)
-    want = f"read image: open {go_quote(state.Path)}: {os.strerror(errno.ENOENT).lower()}"
+    want = (
+        f"read image: open {go_quote(state.Path)}: open {state.Path}: "
+        f"{os.strerror(errno.ENOENT).lower()}"
+    )
     assert completed.Status == Status.FAILED
     assert result.Error == want
 

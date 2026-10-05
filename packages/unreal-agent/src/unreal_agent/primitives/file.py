@@ -30,6 +30,14 @@ from unreal_agent.primitives.primitive_event import (
 )
 
 IO_READ_CHUNK_SIZE: Final = 32 * 1024
+_GO_FILE_TYPES: Final = {
+    stat.S_IFDIR: "d",
+    stat.S_IFLNK: "L",
+    stat.S_IFBLK: "D",
+    stat.S_IFCHR: "Dc",
+    stat.S_IFIFO: "p",
+    stat.S_IFSOCK: "S",
+}
 
 
 @dataclass(slots=True)
@@ -82,7 +90,10 @@ async def stream_file(request: IOReadRequest, events: EventSink) -> None:
         file = await run_blocking(File.open, request.path, os.O_RDONLY | os.O_NONBLOCK)
     except OSError as error:
         await send_terminal(
-            events, _read_failure(request, wrap(f"open {go_quote(request.path)}", error))
+            events,
+            _read_failure(
+                request, wrap(f"open {go_quote(request.path)}: open {request.path}", error)
+            ),
         )
         return
     await inspect_and_stream_file(request, file, events)
@@ -98,9 +109,10 @@ async def inspect_and_stream_file(
         await send_terminal(events, _read_failure(request, failure))
         return
     if not stat.S_ISREG(info.st_mode):
-        file_type = stat.filemode(stat.S_IFMT(info.st_mode))
         failure = join(
-            PrimitiveError(f"open {go_quote(request.path)}: unsupported file type {file_type}"),
+            PrimitiveError(
+                f"open {go_quote(request.path)}: unsupported file type {file_type(info.st_mode)}"
+            ),
             await _close(file),
         )
         await send_terminal(events, _read_failure(request, failure))
@@ -198,6 +210,10 @@ async def _finish_canceled_read(
         )
         return
     await send_terminal(events, _read_canceled(request))
+
+
+def file_type(mode: int) -> str:
+    return _GO_FILE_TYPES.get(stat.S_IFMT(mode), "?") + "---------"
 
 
 def _validate_io_read_request(request: IOReadRequest) -> PrimitiveError | None:

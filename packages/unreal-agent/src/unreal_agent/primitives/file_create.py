@@ -16,7 +16,7 @@ from unreal_agent.primitives._errors import (
     join,
     wrap,
 )
-from unreal_agent.primitives._fileio import File
+from unreal_agent.primitives._fileio import File, invalid_path_error
 from unreal_agent.primitives.primitive_event import (
     NO_CORRELATION,
     NO_SOURCE,
@@ -109,7 +109,9 @@ def create_new_path(request: IOCreateRequest, canceled: threading.Event) -> IOCr
     try:
         parent = open_create_directory(parent_path)
     except OSError as error:
-        raise wrap(f"open parent directory {go_quote(parent_path)}", error) from None
+        raise wrap(
+            f"open parent directory {go_quote(parent_path)}: open {parent_path}", error
+        ) from None
     return create_or_use_path(request, name, parent_path, parent, mode, canceled)
 
 
@@ -258,7 +260,10 @@ def open_new_file_at(parent: File, name: str, mode: int) -> File:
 
 
 def make_new_directory_at(parent: File, name: str, mode: int) -> None:
-    os.mkdir(name, mode, dir_fd=parent.fileno())
+    try:
+        os.mkdir(name, mode, dir_fd=parent.fileno())
+    except ValueError:
+        raise invalid_path_error(name) from None
 
 
 def unix_file_mode(mode: int) -> int:

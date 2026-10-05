@@ -380,3 +380,49 @@ def test_create_file_concurrent_processes_are_idempotent(tmp_path: Path) -> None
         assert result["Completed"]
         assert result["Kind"] == IOCreateKind.REGULAR_FILE
     assert os.listdir(tmp_path) == ["created"]
+
+
+@pytest.mark.parametrize(
+    ("kind", "path", "want"),
+    [
+        pytest.param(
+            IOCreateKind.REGULAR_FILE,
+            "parent\x00name/created",
+            'open parent directory "parent\\x00name/": open parent\x00name/: invalid argument',
+            id="parent",
+        ),
+        pytest.param(
+            IOCreateKind.REGULAR_FILE,
+            "created\x00name",
+            'create "created\\x00name": invalid argument',
+            id="file",
+        ),
+        pytest.param(
+            IOCreateKind.DIRECTORY,
+            "created\x00name",
+            'create "created\\x00name": invalid argument',
+            id="directory",
+        ),
+    ],
+)
+async def test_create_reports_invalid_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: IOCreateKind, path: str, want: str
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    event = single_event(
+        await create_events(IOCreateRequest(kind=kind, path=path, mode=0o700)),
+        PrimitiveEventType.FAILED,
+    )
+    assert failure_text(event) == want
+    assert os.listdir(tmp_path) == []
+
+
+async def test_create_parent_open_failure_includes_path_error(tmp_path: Path) -> None:
+    parent = f"{tmp_path}/missing/"
+    event = single_event(
+        await create_events(IOCreateRequest(kind=IOCreateKind.REGULAR_FILE, path=parent + "x")),
+        PrimitiveEventType.FAILED,
+    )
+    assert failure_text(event) == (
+        f'open parent directory "{parent}": open {parent}: no such file or directory'
+    )

@@ -1,5 +1,6 @@
 """Descriptor wrapper with Go `*os.File` close semantics."""
 
+import errno
 import os
 
 from unreal_agent.primitives._errors import FileClosedError
@@ -16,7 +17,11 @@ class File:
 
     @classmethod
     def open(cls, path: str, flags: int, mode: int = 0o777, *, dir_fd: int | None = None) -> File:
-        return cls(os.open(path, flags | os.O_CLOEXEC, mode, dir_fd=dir_fd), path)
+        try:
+            fd = os.open(path, flags | os.O_CLOEXEC, mode, dir_fd=dir_fd)
+        except ValueError:
+            raise invalid_path_error(path) from None
+        return cls(fd, path)
 
     @property
     def closed(self) -> bool:
@@ -59,3 +64,7 @@ class File:
 
     def __repr__(self) -> str:
         return f"File({self.name!r}, fd={self._fd})"
+
+
+def invalid_path_error(path: str) -> OSError:
+    return OSError(errno.EINVAL, os.strerror(errno.EINVAL), path)

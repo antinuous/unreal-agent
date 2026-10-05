@@ -1,6 +1,7 @@
 import asyncio
 import fcntl
 import os
+import stat
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,9 @@ from unreal_agent.primitives import (
     SourceID,
     read_file,
 )
+from unreal_agent.primitives._errors import go_quote
 from unreal_agent.primitives.channel import Channel
+from unreal_agent.primitives.file import file_type
 
 from tests.primitives._helpers import MAX_INT64, collect_events, write_test_file
 
@@ -182,3 +185,45 @@ async def test_read_file_rejects_negative_count() -> None:
     events = await read_events(IOReadRequest(path="unused", count=-1))
     assert [event.type for event in events] == [PrimitiveEventType.FAILED]
     assert "count must not be negative" in events[0].result.error
+
+
+@pytest.mark.parametrize("path", ["input\x00name", "input\ud800name"], ids=["nul", "surrogate"])
+async def test_read_file_reports_invalid_path(path: str) -> None:
+    async with asyncio.timeout(1):
+        events = await read_events(IOReadRequest(path=path, count=1))
+    assert [event.type for event in events] == [PrimitiveEventType.FAILED]
+    assert events[0].result.error == f"open {go_quote(path)}: open {path}: invalid argument"
+
+
+async def test_read_file_open_failure_includes_path_error(tmp_path: Path) -> None:
+    path = str(tmp_path / "missing")
+    events = await read_events(IOReadRequest(path=path, count=1))
+    assert events[0].result.error == f'open "{path}": open {path}: no such file or directory'
+
+
+@pytest.mark.parametrize(
+    ("path", "want"),
+    [pytest.param(None, "d---------", id="directory"), pytest.param("/dev/null", "Dc---------")],
+)
+async def test_read_file_reports_unsupported_file_type_like_go(
+    tmp_path: Path, path: str | None, want: str
+) -> None:
+    path = path or str(tmp_path)
+    events = await read_events(IOReadRequest(path=path, count=1))
+    assert events[0].result.error == f'open "{path}": unsupported file type {want}'
+
+
+@pytest.mark.parametrize(
+    ("mode", "want"),
+    [
+        (stat.S_IFDIR, "d---------"),
+        (stat.S_IFLNK, "L---------"),
+        (stat.S_IFBLK, "D---------"),
+        (stat.S_IFCHR, "Dc---------"),
+        (stat.S_IFIFO, "p---------"),
+        (stat.S_IFSOCK, "S---------"),
+        (0, "?---------"),
+    ],
+)
+def test_file_type_matches_go_file_mode(mode: int, want: str) -> None:
+    assert file_type(mode | 0o644) == want
