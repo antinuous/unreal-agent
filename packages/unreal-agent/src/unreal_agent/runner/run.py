@@ -1,6 +1,7 @@
 """One runner invocation: parse arguments, open the session, and drive the coordinator."""
 
 import asyncio
+import contextlib
 import io
 import os
 import re
@@ -149,7 +150,8 @@ async def run(
     except Exception as error:
         failure = error
     except BaseException:
-        await _clean_up(cleanups)
+        with contextlib.suppress(asyncio.CancelledError):
+            await _clean_up(cleanups)
         raise
     cleanup_error = await _clean_up(cleanups)
     error = join(failure, cleanup_error)
@@ -158,13 +160,29 @@ async def run(
 
 
 async def _clean_up(cleanups: list[_Cleanup]) -> BaseException | None:
+    """Run every cleanup to completion, like Go's defers.
+
+    A cancellation that lands during cleanup is deferred until all cleanups
+    have finished, then re-raised.
+    """
     error: BaseException | None = None
+    cancelled = False
     for cleanup in reversed(cleanups):
-        try:
-            await cleanup()
-        except Exception as failure:
+        task = asyncio.ensure_future(cleanup())
+        while not task.done():
+            try:
+                await asyncio.wait((task,))
+            except asyncio.CancelledError:
+                cancelled = True
+        if task.cancelled():
+            cancelled = True
+        elif (failure := task.exception()) is not None:
+            if not isinstance(failure, Exception):
+                raise failure
             error = join(error, failure)
     cleanups.clear()
+    if cancelled:
+        raise asyncio.CancelledError
     return error
 
 

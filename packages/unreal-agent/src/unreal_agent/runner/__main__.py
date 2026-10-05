@@ -1,13 +1,15 @@
 """unreal-agent-runner: execute one JSON request and write persisted session items as JSONL.
 
 SIGINT cancels the run (exit 130). SIGTERM keeps the default action and
-terminates the process immediately, as in the Go command.
+terminates the process immediately, as in the Go command. A write to a closed
+pipe on stdout or stderr kills the process with SIGPIPE, like the Go runtime.
 """
 
 import asyncio
 import os
 import signal
 import sys
+from typing import BinaryIO, NoReturn
 
 from unreal_agent.runner.config import Config, ToolConfig, ToolFactory, Tools
 from unreal_agent.runner.providers import default_providers
@@ -33,6 +35,31 @@ def parse_request(input: Reader) -> tuple[Request, ToolFactory]:
     return parsed, new_tools
 
 
+class _StandardStream:
+    __slots__ = ("_stream",)
+
+    def __init__(self, stream: BinaryIO) -> None:
+        self._stream = stream
+
+    def write(self, data: bytes, /) -> int:
+        try:
+            return self._stream.write(data)
+        except BrokenPipeError:
+            _die_of_sigpipe()
+
+    def flush(self) -> None:
+        try:
+            self._stream.flush()
+        except BrokenPipeError:
+            _die_of_sigpipe()
+
+
+def _die_of_sigpipe() -> NoReturn:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    os.kill(os.getpid(), signal.SIGPIPE)
+    os._exit(128 + signal.SIGPIPE)
+
+
 def _getenv(name: str) -> str:
     return os.environ.get(name, "")
 
@@ -55,8 +82,8 @@ async def _main(args: list[str]) -> int:
             args,
             _getenv,
             sys.stdin.buffer,
-            sys.stdout.buffer,
-            sys.stderr.buffer,
+            _StandardStream(sys.stdout.buffer),
+            _StandardStream(sys.stderr.buffer),
             Config(name=NAME, parse_request=parse_request, providers=default_providers()),
         )
     finally:
