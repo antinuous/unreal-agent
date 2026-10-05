@@ -1,0 +1,18 @@
+[project]
+name = "unreal-agent"
+version = "0.1.0"
+description = "An async-first agent harness"
+license = "MIT"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx[http2]>=0.28",
+    "msgspec>=0.22",
+    "pillow>=12.3",
+]
+
+[project.scripts]
+unreal-agent-runner = "unreal_agent.runner.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"

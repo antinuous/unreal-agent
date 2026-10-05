@@ -30,6 +30,27 @@ jobs:
       - name: Test, check, and build the library, runner, and TUI
         run: make test check build
 
+  python:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: '0.12.23'
+          python-version: '3.14'
+          enable-cache: false
+      - run: uv sync --locked
+      - run: make py-check py-test
+
   fuzz:
     name: Fuzzing (${{ matrix.target }})
     runs-on: ubuntu-24.04

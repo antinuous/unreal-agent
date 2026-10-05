@@ -1,0 +1,141 @@
+from typing import Annotated, Any
+
+import msgspec
+import pytest
+from unreal_agent.gojson import (
+    Int64,
+    JSONError,
+    OmitEmpty,
+    OmitZero,
+    Raw,
+    Struct,
+    Timestamp,
+    compact,
+    decode,
+    encode,
+    format_float,
+)
+
+
+class Sample(Struct):
+    A: Int64 = 0
+    B: Annotated[Raw, OmitZero] = Raw(b"")
+    C: list[str] = []
+    D: bytes = b""
+    E: int | None = None
+    F: dict[str, Any] = {}
+    G: float = 0.0
+    T: Timestamp = Timestamp()
+
+
+class Omits(Struct):
+    Zero: Annotated[list[str], OmitZero] = []
+    Empty: Annotated[list[str], OmitEmpty] = []
+    Nested: Annotated[Sample | None, OmitZero] = None
+    Kept: str = ""
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (1.0, "1"),
+        (0.1, "0.1"),
+        (1e21, "1e+21"),
+        (1e20, "100000000000000000000"),
+        (1e-6, "0.000001"),
+        (1e-7, "1e-7"),
+        (123456789.125, "123456789.125"),
+        (0.5, "0.5"),
+        (2.5e-8, "2.5e-8"),
+        (1.5e300, "1.5e+300"),
+        (-0.25, "-0.25"),
+    ],
+)
+def test_format_float_matches_go(value: float, expected: str) -> None:
+    assert format_float(value) == expected
+
+
+def test_encode_matches_go_struct_output() -> None:
+    value = Sample(
+        B=Raw(b' { "x" :  [1, 2.50] } '),
+        G=1e21,
+        T=Timestamp.parse("2026-01-02T03:04:05.12Z"),
+    )
+    assert encode(value) == (
+        b'{"A":0,"B":{"x":[1,2.50]},"C":[],"D":"","E":null,"F":{},"G":1e+21,'
+        b'"T":"2026-01-02T03:04:05.12Z"}'
+    )
+
+
+def test_encode_string_escaping_matches_go() -> None:
+    source = '\u2028\u2029<>&\x7f\x00\x01\x1f\b\f\n\r\t"\\é\U0001f600'
+    expected = '"\u2028\u2029<>&\x7f\\u0000\\u0001\\u001f\\b\\f\\n\\r\\t\\"\\\\é\U0001f600"'
+    assert encode(source) == expected.encode()
+
+
+def test_encode_rejects_lone_surrogate() -> None:
+    with pytest.raises(JSONError):
+        encode("\ud800")
+
+
+def test_map_order() -> None:
+    value = {"b": 1, "a": 2, "c": 3}
+    assert encode(value) == b'{"b":1,"a":2,"c":3}'
+    assert encode(value, deterministic=True) == b'{"a":2,"b":1,"c":3}'
+
+
+def test_omit_rules() -> None:
+    assert encode(Omits()) == b'{"Kept":""}'
+    assert encode(Omits(Zero=["a"], Empty=["b"], Nested=Sample(A=1))).startswith(
+        b'{"Zero":["a"],"Empty":["b"],"Nested":{"A":1,'
+    )
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b'{"A":1,"A":2}',
+        b'{"A":1.5}',
+        b'{"A":1e2}',
+        b'{"B":"\xff"}',
+        b'{"B":"\\ud800"}',
+        b'{"A":9223372036854775808}',
+        b'{"A":NaN}',
+        b'{"A":1} x',
+    ],
+)
+def test_decode_rejects_like_go(data: bytes) -> None:
+    with pytest.raises(JSONError):
+        decode(data, Sample)
+
+
+def test_decode_accepts_like_go() -> None:
+    assert decode(b'{"a":1}', Sample).A == 0
+    assert decode(b'{"A":-0}', Sample).A == 0
+    assert bytes(decode(b'{"B":"\\ud800\\udc00"}', Sample).B) == b'"\\ud800\\udc00"'
+    raw = decode(b'{"B":{"x" : 1 }}', Sample).B
+    assert bytes(raw) == b'{"x" : 1 }'
+    assert encode(Sample(B=raw)).startswith(b'{"A":0,"B":{"x":1},')
+
+
+def test_timestamp_round_trip() -> None:
+    for text in [
+        "2026-01-01T00:00:00.123456789+02:00",
+        "2026-08-27T10:01:00Z",
+        "0001-01-01T00:00:00Z",
+        "2026-01-02T03:04:05.1-07:30",
+    ]:
+        assert Timestamp.parse(text).format() == text
+    decoded = decode(b'{"T":"2026-01-01T00:00:00.123456789+02:00"}', Sample)
+    assert decoded.T.unix_ns % 10**9 == 123456789
+    assert Timestamp().is_zero()
+    with pytest.raises(JSONError):
+        Timestamp.parse("2026-01-01 00:00:00Z")
+
+
+def test_compact_preserves_tokens() -> None:
+    assert compact(b' { "a b" : [ 1.50 , "\\" x" ] } ') == b'{"a b":[1.50,"\\" x"]}'
+
+
+def test_struct_requires_defaults_for_lenient_decoding() -> None:
+    assert isinstance(decode(b"{}", Sample), msgspec.Struct)
