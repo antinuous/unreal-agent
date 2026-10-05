@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Timestamp, is_valid_json
 from unreal_agent.inbox import Input, InputKind
 from unreal_agent.operation import Operation, Status
@@ -22,7 +23,6 @@ from unreal_agent.sessionstore import (
     ToolCallStatus,
 )
 from unreal_agent.tool import CallStatus
-from unreal_agent.tool._go import go_quote
 
 _TERMINAL_STATUSES = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
 _VALID_STATUSES = frozenset(

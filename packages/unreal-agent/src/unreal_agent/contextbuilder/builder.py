@@ -2,6 +2,7 @@ from typing import Final
 
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote, go_trim_space
 from unreal_agent.contextbuilder.contextbuilder import Builder, Result
 from unreal_agent.contextbuilder.skills import format_skills_for_prompt, read_prompt
 from unreal_agent.inbox import ControlMessage, ControlMode, Input, InputKind, Settings
@@ -20,7 +21,6 @@ from unreal_agent.llm import (
     ToolResultOutput,
 )
 from unreal_agent.tool import Skill
-from unreal_agent.tool._go import go_quote, go_trim_space
 from unreal_agent.tool._jsonv2 import GoJSONError, decode_string
 
 __all__ = ["PREAMBLE", "TOOL_CALL_RUNNING_PAYLOAD", "new_builder"]

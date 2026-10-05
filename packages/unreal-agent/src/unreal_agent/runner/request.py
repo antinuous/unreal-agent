@@ -5,10 +5,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Final
 
+from unreal_agent._go import go_quote, go_trim_space
 from unreal_agent.llm import ReasoningEffort
 from unreal_agent.runner.errors import RunnerError, describe
 from unreal_agent.runner.streams import Reader
-from unreal_agent.tool._go import go_quote, go_trim_space
 from unreal_agent.tool._jsonv2 import GoJSONError, decode_raw_object
 
 __all__ = [

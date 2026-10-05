@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 from typing import Any, Final
 
+from unreal_agent._go import go_quote
 from unreal_agent.llm import Tool, ToolCall, ToolResult, ToolResultKind, ToolResultOutput, ToolType
 from unreal_agent.operation import DEFAULT_MAX_OUTPUT_LENGTH, MAX_OUTPUT_LENGTH, Operation
-from unreal_agent.tool._go import go_quote
 from unreal_agent.tool.tool import CallStatus, Context, Definition
 
 __all__ = [

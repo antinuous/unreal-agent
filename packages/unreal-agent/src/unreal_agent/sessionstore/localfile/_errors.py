@@ -1,8 +1,8 @@
 import os
 
+from unreal_agent._go import go_quote
 from unreal_agent.session import ID as SessionID
 from unreal_agent.sessionstore import ExistError, NotExistError, StoreError
-from unreal_agent.tool._go import go_quote
 
 
 def wrap(prefix: str, error: BaseException, op: str = "") -> StoreError:

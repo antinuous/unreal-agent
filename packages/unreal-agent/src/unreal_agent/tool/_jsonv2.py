@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Final
 
-from unreal_agent.tool._go import (
+from unreal_agent._go import (
     RUNE_ERROR,
     decode_rune,
     go_quote,

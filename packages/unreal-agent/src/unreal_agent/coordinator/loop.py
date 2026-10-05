@@ -9,6 +9,7 @@ from typing import Any, Final, NamedTuple, cast
 from msgspec.structs import replace
 
 from unreal_agent import gojson
+from unreal_agent._go import go_quote
 from unreal_agent.coordinator.coordinator import CoordinatorError, Dependencies
 from unreal_agent.inbox import ClosedError as InboxClosedError
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind
@@ -33,7 +34,6 @@ from unreal_agent.sessionstore import (
     ToolCallStatus,
 )
 from unreal_agent.tool import CallStatus, error_status
-from unreal_agent.tool._go import go_quote
 
 __all__ = [
     "HISTORY_PAGE_SIZE",

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Final
 
 import pytest
+from unreal_agent._go import go_quote, go_trim_space, to_valid_utf8
 from unreal_agent.gojson import JSONError, decode, encode
 from unreal_agent.llm import ToolCall
 from unreal_agent.tool import (
@@ -25,7 +26,6 @@ from unreal_agent.tool import (
     viewimage,
 )
 from unreal_agent.tool._glob import BadPatternError, match
-from unreal_agent.tool._go import go_quote, go_trim_space, to_valid_utf8
 
 from tests.tool._helpers import RecordingContext
 

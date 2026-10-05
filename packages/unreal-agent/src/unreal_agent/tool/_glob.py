@@ -7,7 +7,8 @@ not report malformed patterns, so skill discovery ports Go's version.
 import os
 from typing import Final
 
-from unreal_agent.tool._go import RUNE_ERROR, decode_rune, go_join
+from unreal_agent._filepath import go_join
+from unreal_agent._go import RUNE_ERROR, decode_rune
 
 __all__ = ["BadPatternError", "glob"]
 

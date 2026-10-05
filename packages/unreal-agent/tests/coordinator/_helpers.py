@@ -17,6 +17,7 @@ from typing import Any, Self, cast
 import pytest
 from msgspec.structs import replace
 from unreal_agent import gojson
+from unreal_agent._go import go_quote
 from unreal_agent.contextbuilder import Builder, Result, new_builder
 from unreal_agent.coordinator import Coordinator, Dependencies
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind, Settings
@@ -68,7 +69,6 @@ from unreal_agent.tool import (
     StaticTranslators,
     new_registry,
 )
-from unreal_agent.tool._go import go_quote
 
 # Go's testing/fake_time: fake time with nanosecond resolution so deadlines land exactly.
 fake_time = pytest.mark.looptime(resolution=1e-9)

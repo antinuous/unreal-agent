@@ -8,13 +8,9 @@ quoting, trimming, and replacement match Go's rune decoding.
 import re
 from typing import Final
 
-from unreal_agent._filepath import go_clean, go_join
-
 __all__ = [
     "decode_rune",
     "go_bytes",
-    "go_clean",
-    "go_join",
     "go_quote",
     "go_quote_rune",
     "go_trim_space",

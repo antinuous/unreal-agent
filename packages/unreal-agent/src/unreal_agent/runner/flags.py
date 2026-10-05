@@ -10,9 +10,9 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import Final
 
+from unreal_agent._go import go_quote
 from unreal_agent.runner.errors import RunnerError, describe, join
 from unreal_agent.runner.streams import Writer, write_flushed
-from unreal_agent.tool._go import go_quote
 
 __all__ = ["DEFAULT_TOOL_HEARTBEAT_INTERVAL", "FlagError", "HelpError", "Options", "parse_flags"]
 

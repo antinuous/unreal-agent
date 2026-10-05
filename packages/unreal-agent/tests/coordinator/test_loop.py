@@ -6,6 +6,7 @@ from typing import cast
 import pytest
 from msgspec.structs import replace
 from unreal_agent import gojson
+from unreal_agent._go import go_quote
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, CoordinatorError
 from unreal_agent.coordinator.loop import (
@@ -47,7 +48,6 @@ from unreal_agent.tool import (
     StaticTranslators,
     new_registry,
 )
-from unreal_agent.tool._go import go_quote
 
 from tests.coordinator._helpers import (
     FailingBuilder,

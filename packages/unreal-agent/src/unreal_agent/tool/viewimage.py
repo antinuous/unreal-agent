@@ -6,6 +6,7 @@ from typing import Final
 
 from msgspec.structs import replace
 
+from unreal_agent._go import go_bytes, go_quote, go_trim_space
 from unreal_agent.llm import ToolCall, ToolResult, ToolResultKind, ToolResultOutput
 from unreal_agent.operation import (
     DEFAULT_MAX_OUTPUT_LENGTH,
@@ -17,7 +18,6 @@ from unreal_agent.operation import (
     decode_view_image_state,
     new_view_image_spec,
 )
-from unreal_agent.tool._go import go_bytes, go_quote, go_trim_space
 from unreal_agent.tool._jsonv2 import GoJSONError, decode_string_field
 from unreal_agent.tool.output import error_status
 from unreal_agent.tool.tool import CallStatus, Context, TranslationError

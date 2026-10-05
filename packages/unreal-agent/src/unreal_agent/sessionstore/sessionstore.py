@@ -7,6 +7,7 @@ from uuid import UUID
 from msgspec import Meta
 from msgspec import field as struct_field
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import JSONError, OmitEmpty, Raw, Struct, Timestamp, decode
 from unreal_agent.inbox import ID as InputID
 from unreal_agent.inbox import Input
@@ -15,7 +16,6 @@ from unreal_agent.operation import Operation
 from unreal_agent.session import ID as SessionID
 from unreal_agent.session import Session, Turn, TurnID
 from unreal_agent.tool import CallStatus
-from unreal_agent.tool._go import go_quote
 
 __all__ = [
     "BEFORE_FIRST",

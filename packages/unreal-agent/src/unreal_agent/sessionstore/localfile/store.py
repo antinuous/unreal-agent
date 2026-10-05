@@ -13,6 +13,7 @@ from typing import Any, Final
 from msgspec.structs import replace
 
 from unreal_agent._filepath import go_abs, go_join
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Timestamp
 from unreal_agent.inbox import Input
 from unreal_agent.operation import Operation
@@ -47,7 +48,6 @@ from unreal_agent.sessionstore.localfile.state import (
     new_stored_state,
     validate_operation,
 )
-from unreal_agent.tool._go import go_quote
 
 __all__ = ["SESSION_FILE_SUFFIX", "Store"]
 

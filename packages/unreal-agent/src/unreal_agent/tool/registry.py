@@ -3,9 +3,10 @@ import uuid
 from dataclasses import dataclass
 from typing import Final
 
+from unreal_agent._filepath import go_join
+from unreal_agent._go import go_quote, go_trim_space
 from unreal_agent.primitives._errors import describe
 from unreal_agent.tool._glob import BadPatternError, glob
-from unreal_agent.tool._go import go_join, go_quote, go_trim_space
 from unreal_agent.tool.skill_use import SkillUseTranslator
 from unreal_agent.tool.static import (
     BASH_NAME,

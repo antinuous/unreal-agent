@@ -1,5 +1,6 @@
 from collections.abc import Callable, Sequence
 
+from unreal_agent._go import go_bytes, go_quote, go_trim_space, to_valid_utf8
 from unreal_agent.llm import ToolCall, ToolResult, ToolResultKind, ToolResultOutput
 from unreal_agent.operation import (
     Operation,
@@ -8,7 +9,6 @@ from unreal_agent.operation import (
     decode_skill_use,
     new_skill_use_spec,
 )
-from unreal_agent.tool._go import go_bytes, go_quote, go_trim_space, to_valid_utf8
 from unreal_agent.tool._jsonv2 import GoJSONError, decode_string_field
 from unreal_agent.tool.static import SKILL_USE_NAME
 from unreal_agent.tool.tool import CallStatus, Context, Skill, TranslationError

@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from unreal_agent._go import go_bytes, go_quote
 from unreal_agent.llm import ToolCall, ToolResult, ToolResultKind, ToolResultOutput
 from unreal_agent.operation import (
     TYPE_SHELL,
@@ -14,7 +15,6 @@ from unreal_agent.operation import (
     decode_shell_state,
     new_shell_spec,
 )
-from unreal_agent.tool._go import go_bytes, go_quote
 from unreal_agent.tool._jsonv2 import GoJSONError, decode_optional_string, decode_raw_object
 from unreal_agent.tool.output import error_status, parse_max_output_length
 from unreal_agent.tool.tool import CallStatus, Context, TranslationError

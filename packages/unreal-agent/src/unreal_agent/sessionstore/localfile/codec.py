@@ -6,13 +6,13 @@ from typing import Annotated, Any, Final
 from msgspec import field as struct_field
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Int64, JSONError, OmitEmpty, Raw, Struct, decode, encode, validate
 from unreal_agent.operation import Operation
 from unreal_agent.session import Session
 from unreal_agent.sessionstore import Item, ItemKind, StoreError, ToolCallStatus
 from unreal_agent.sessionstore.localfile._errors import validate_session_id, wrap
 from unreal_agent.sessionstore.localfile.state import StoredState, new_stored_state
-from unreal_agent.tool._go import go_quote
 
 FORMAT_VERSION: Final = 2
 

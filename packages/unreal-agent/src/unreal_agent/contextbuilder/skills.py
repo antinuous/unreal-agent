@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from importlib.resources import files
 from typing import Final
 
+from unreal_agent._go import decode_rune, go_bytes, go_trim_space
 from unreal_agent.tool import Skill
-from unreal_agent.tool._go import decode_rune, go_bytes, go_trim_space
 
 __all__ = ["format_skills_for_prompt", "read_prompt"]
 

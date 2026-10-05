@@ -20,6 +20,7 @@ from hypothesis import HealthCheck, assume, example, given, settings
 from hypothesis import strategies as st
 from msgspec.structs import replace
 from unreal_agent import gojson
+from unreal_agent._go import go_quote
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, Dependencies
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind
@@ -45,7 +46,6 @@ from unreal_agent.sessionstore import (
     ToolCallStatus,
 )
 from unreal_agent.tool import SKILL_USE_NAME, Skill, StaticTranslators, new_registry
-from unreal_agent.tool._go import go_quote
 
 from tests.coordinator._helpers import chain
 

@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, Final
 
 from unreal_agent import gojson
-from unreal_agent._filepath import go_abs
+from unreal_agent._filepath import go_abs, go_join
+from unreal_agent._go import go_quote, go_trim_space
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, Dependencies
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind, Settings
@@ -37,7 +38,6 @@ from unreal_agent.tool import (
     discover_skills,
     viewimage,
 )
-from unreal_agent.tool._go import go_join, go_quote, go_trim_space
 
 __all__ = [
     "DEFAULT_PROVIDER",
