@@ -521,19 +521,18 @@ async def test_shell_actor_fails_when_shell_cannot_start(
 
 
 @pytest.mark.parametrize(
-    ("input", "base_directory", "max_inline"),
+    ("input", "base_directory", "message"),
     [
-        (ShellInput(), "/tmp", 0),
-        (ShellInput(Shell="sh"), "/tmp", 0),
-        (ShellInput(Shell=TEST_SHELL_PATH), "relative", 0),
-        (ShellInput(Shell=TEST_SHELL_PATH), "/tmp", -1),
+        (ShellInput(), "/tmp", "shell path must be absolute"),
+        (ShellInput(Shell="sh"), "/tmp", "shell path must be absolute"),
+        (ShellInput(Shell=TEST_SHELL_PATH), "relative", "base directory must be absolute"),
     ],
 )
 def test_new_shell_spec_rejects_invalid_configuration(
-    input: ShellInput, base_directory: str, max_inline: int
+    input: ShellInput, base_directory: str, message: str
 ) -> None:
-    with pytest.raises(OperationError):
-        new_shell_spec(input, base_directory, max_inline)
+    with pytest.raises(OperationError, match=f"^{message}$"):
+        new_shell_spec(input, base_directory, 1)
 
 
 @pytest.mark.parametrize(
