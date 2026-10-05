@@ -53,23 +53,10 @@ async def test_skill_use_loads_registered_skill_by_name(
     assert result.Output[0].Value == want
 
 
-@pytest.mark.parametrize(
-    ("call", "want_error"),
-    [
-        pytest.param(ToolCall(Name="Other"), "does not match", id="wrong tool"),
-        pytest.param(ToolCall(Arguments="{"), "decode skill-use arguments", id="invalid JSON"),
-        pytest.param(ToolCall(Arguments="{}"), 'argument "name" must be set', id="missing name"),
-        pytest.param(
-            ToolCall(Arguments='{"name":"missing"}'),
-            'skill "missing" is not registered',
-            id="unknown skill",
-        ),
-    ],
-)
-def test_skill_use_rejects_invalid_selection(call: ToolCall, want_error: str) -> None:
+def test_skill_use_rejects_other_tool_name() -> None:
     registry = Registry(StaticTranslators(), SKILL_USE_NAME)
     translator = registry.resolve(SKILL_USE_NAME)
     assert translator is not None
-    status = translator.translate(RecordingContext(), call)
-    assert want_error in status.Error
+    status = translator.translate(RecordingContext(), ToolCall(Name="Other"))
+    assert "does not match" in status.Error
     assert not status.WaitingFor

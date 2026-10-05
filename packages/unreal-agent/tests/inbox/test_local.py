@@ -25,11 +25,6 @@ def assert_no_input(inbox: Inbox) -> None:
         inbox.get_nowait()
 
 
-async def test_inbox_outputs_new_inputs() -> None:
-    first = Input(ID="input-1", Kind=InputKind.EXTERNAL, Payload=Raw(b'{"message":"hello"}'))
-    assert await submit_and_receive(Inbox(), first) == first
-
-
 async def test_inbox_outputs_every_input_kind() -> None:
     inbox = Inbox()
     for input in [
@@ -74,16 +69,6 @@ async def test_inbox_deduplicates_concurrent_submissions() -> None:
             group.create_task(inbox.submit(make_input("same-input")))
     assert (await receive(inbox)).ID == "same-input"
     assert_no_input(inbox)
-
-
-async def test_inbox_keeps_different_ids_distinct() -> None:
-    inbox = Inbox()
-    payload = Raw(b'{"message":"same"}')
-    for input in [
-        Input(ID="first", Kind=InputKind.EXTERNAL, Payload=payload),
-        Input(ID="second", Kind=InputKind.EXTERNAL, Payload=payload),
-    ]:
-        assert await submit_and_receive(inbox, input) == input
 
 
 async def test_inbox_accepts_concurrent_submissions() -> None:

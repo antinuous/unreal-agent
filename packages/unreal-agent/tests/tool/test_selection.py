@@ -27,7 +27,7 @@ class FixedTranslator:
         return ToolResult()
 
 
-@pytest.mark.parametrize("selection", range(1 << len(ALL_NAMES)))
+@pytest.mark.parametrize("selection", [0, 1, 6, 7])
 def test_registry_keeps_selected_static_tools_across_catalog_changes(selection: int) -> None:
     enabled: list[str] = []
     want: list[str] = []

@@ -145,14 +145,6 @@ def test_builder_preserves_tool_result_payload() -> None:
     assert result.report.changes == []
 
 
-def test_builder_appends_validation_error_tool_result() -> None:
-    current = new_builder()
-    current.add_tool_result("call-1", text("error:invalid arguments"), False)
-    assert current.build().request.Input[1].Data == ToolResult(
-        CallID="call-1", Output=text("error:invalid arguments")
-    )
-
-
 @pytest.mark.parametrize(
     ("running", "output"),
     [

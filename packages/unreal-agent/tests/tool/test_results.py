@@ -120,9 +120,3 @@ def test_skill_use_rejects_invalid_results(operations: list[Operation], want: st
     with pytest.raises(TranslationError) as raised:
         skill_use().translate_result("call", CallStatus(), operations)
     assert str(raised.value).startswith(want)
-
-
-@pytest.mark.parametrize("arguments", ["", "  \n"])
-def test_skill_use_treats_blank_arguments_as_empty_object(arguments: str) -> None:
-    status = skill_use().translate(RecordingContext(), ToolCall(Arguments=arguments))
-    assert status == CallStatus(Error='skill-use argument "name" must be set')

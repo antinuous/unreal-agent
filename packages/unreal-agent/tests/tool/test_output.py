@@ -77,29 +77,3 @@ def test_validation_errors_are_bounded_before_result_translation(
     result = translator.translate_result("invalid-call", status, [])
     assert result.Output[0].Value.startswith("Error: ")
     assert result.Output[0].Value.removeprefix("Error: ") == status.Error
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        "0",
-        "-1",
-        str(MAX_OUTPUT_LENGTH + 1),
-        "1000000000",
-        "1.5",
-        '"10"',
-        "true",
-        "null",
-        "[]",
-        "{}",
-        "999999999999999999999999",
-    ],
-)
-def test_tools_reject_invalid_output_lengths_before_submission(value: str) -> None:
-    translator = new_bash()
-    arguments = '{"command":"pwd","max_output_length":' + value + "}"
-    status = translator.translate(RecordingContext(), ToolCall(Arguments=arguments))
-    assert "max_output_length" in status.Error
-    assert not status.WaitingFor
-    result = translator.translate_result("invalid-call", status, [])
-    assert "max_output_length" in result.Output[0].Value

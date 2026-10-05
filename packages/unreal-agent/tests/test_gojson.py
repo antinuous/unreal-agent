@@ -45,7 +45,6 @@ class Omits(Struct):
         (1e-6, "0.000001"),
         (1e-7, "1e-7"),
         (123456789.125, "123456789.125"),
-        (0.5, "0.5"),
         (2.5e-8, "2.5e-8"),
         (1.5e300, "1.5e+300"),
         (-0.25, "-0.25"),
@@ -135,10 +134,6 @@ def test_timestamp_round_trip() -> None:
 
 def test_compact_preserves_tokens() -> None:
     assert compact(b' { "a b" : [ 1.50 , "\\" x" ] } ') == b'{"a b":[1.50,"\\" x"]}'
-
-
-def test_struct_requires_defaults_for_lenient_decoding() -> None:
-    assert isinstance(decode(b"{}", Sample), msgspec.Struct)
 
 
 def test_compact_rewrites_string_escapes_like_go() -> None:

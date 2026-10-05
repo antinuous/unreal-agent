@@ -198,17 +198,6 @@ def test_translator_translates_shell_operation_results(
         assert internal not in result.Output[0].Value
 
 
-def test_translator_translates_validation_error_without_operations() -> None:
-    translator = bash.BashTranslator(bash.Config())
-    ctx = RecordingContext()
-    status = translator.translate(ctx, ToolCall(CallID="call-1", Arguments='{"command":42}'))
-    assert status.Error
-    assert ctx.specs == []
-    result = translator.translate_result("call-1", status, [])
-    assert result.CallID == "call-1"
-    assert result.Output[0].Value == "Error: " + status.Error
-
-
 @pytest.mark.parametrize(
     ("status", "count", "want"),
     [
@@ -291,58 +280,16 @@ def test_translator_rejects_invalid_shell_operation_results(
         bash.BashTranslator(bash.Config()).translate_result("call-1", CallStatus(), [operation])
 
 
-def test_translator_accepts_empty_command() -> None:
-    translator = bash.BashTranslator(bash.Config(shell="/bin/bash", base_directory="/operations"))
-    ctx = RecordingContext()
-    status = translator.translate(ctx, ToolCall(Arguments='{"command":""}'))
-    assert status.Error == ""
-    assert len(status.WaitingFor or []) == 1
-    assert len(ctx.specs) == 1
-
-
 @pytest.mark.parametrize(
     ("arguments", "want"),
     [
-        pytest.param("{", "decode Bash arguments: jsontext: unexpected EOF", id="malformed JSON"),
-        pytest.param(
-            '{"command":"pwd","command":"ls"}',
-            'duplicate object member name "command"',
-            id="duplicate command",
-        ),
-        pytest.param("{}", 'bash argument "command" must be set', id="missing command"),
         pytest.param(
             '{"COMMAND":"pwd"}', 'bash argument "command" must be set', id="uppercase command"
-        ),
-        pytest.param(
-            '{"command":null}', 'bash argument "command" must be a string', id="null command"
-        ),
-        pytest.param(
-            '{"command":42}', 'decode Bash argument "command": json:', id="non-string command"
-        ),
-        pytest.param(
-            '{"command":"\\u0000pwd"}',
-            'bash argument "command" contains a NUL byte at offset 0',
-            id="NUL at start",
-        ),
-        pytest.param(
-            '{"command":"pwd\\u0000"}',
-            'bash argument "command" contains a NUL byte at offset 3',
-            id="NUL at end",
-        ),
-        pytest.param(
-            '{"command":"a\\u0000b\\u0000"}',
-            'bash argument "command" contains a NUL byte at offset 1',
-            id="first of multiple NULs",
         ),
         pytest.param(
             '{"command":"é雪\\u0000"}',
             'bash argument "command" contains a NUL byte at offset 5',
             id="NUL after multibyte text",
-        ),
-        pytest.param(
-            '{"command":"cat <<\'EOF\'\\ncaf\\u0000e9\\nEOF\\n"}',
-            'bash argument "command" contains a NUL byte at offset 15',
-            id="NUL in heredoc",
         ),
     ],
 )

@@ -54,8 +54,31 @@ def case_arguments(case: dict[str, Any]) -> str:
     return base64.b64decode(case["arguments_base64"]).decode("utf-8", "surrogateescape")
 
 
-@pytest.mark.parametrize("tool", ["bash", "view_image", "skill_use"])
-@pytest.mark.parametrize("case", _CASES, ids=[str(index) for index in range(len(_CASES))])
+def skill_use_differs_from_view_image(case: dict[str, Any]) -> bool:
+    arguments = case_arguments(case)
+    if arguments in ("{", "{}") or "name" in arguments or "path" in arguments:
+        return True
+    if "spec" in case["skill_use"] or "spec" in case["view_image"]:
+        return True
+    renamed = (
+        case["view_image"]["status"]
+        .replace("decode ViewImage arguments: ", "decode skill-use arguments: ")
+        .replace('ViewImage argument \\"path\\"', 'skill-use argument \\"name\\"')
+    )
+    return renamed != case["skill_use"]["status"]
+
+
+# skill_use and view_image share one decoder, so skill_use only runs the cases
+# where its output is more than a renamed view_image output.
+_ARGUMENT_PARAMS: Final = [
+    pytest.param(case, tool, id=f"{index}-{tool}")
+    for tool in ("bash", "view_image", "skill_use")
+    for index, case in enumerate(_CASES)
+    if tool != "skill_use" or skill_use_differs_from_view_image(case)
+]
+
+
+@pytest.mark.parametrize(("case", "tool"), _ARGUMENT_PARAMS)
 def test_arguments_match_go(case: dict[str, Any], tool: str) -> None:
     ctx = RecordingContext()
     status = translators()[tool].translate(ctx, ToolCall(Arguments=case_arguments(case)))
@@ -80,13 +103,9 @@ _OBJECT_DEPTH_ERROR: Final = (
 @pytest.mark.parametrize(
     ("arguments", "error"),
     [
-        pytest.param('{"a":' + "[" * 9998 + "]" * 9998 + "}", "", id="arrays 9998"),
         pytest.param('{"a":' + "[" * 9999 + "]" * 9999 + "}", "", id="arrays 9999"),
         pytest.param(
             '{"a":' + "[" * 10000 + "]" * 10000 + "}", _ARRAY_DEPTH_ERROR, id="arrays 10000"
-        ),
-        pytest.param(
-            '{"a":' + "[" * 10001 + "]" * 10001 + "}", _ARRAY_DEPTH_ERROR, id="arrays 10001"
         ),
         pytest.param('{"a":' + '{"b":' * 9999 + "1" + "}" * 9999 + "}", "", id="objects 9999"),
         pytest.param(
