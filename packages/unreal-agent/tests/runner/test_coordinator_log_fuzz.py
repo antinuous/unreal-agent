@@ -28,7 +28,7 @@ from unreal_agent.runner.streams import TeeWriter
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import Item, ModelResponse
 from unreal_agent.sessionstore.localfile import Store
-from unreal_agent.tool import StaticTranslators, new_registry
+from unreal_agent.tool import Registry, StaticTranslators
 
 from tests.runner._helpers import (
     copy_log_response,
@@ -161,7 +161,7 @@ async def run_coordinator_log_case(
                     sessions=store,
                     context_builder=builder,
                     llm=model,
-                    tools=new_registry(StaticTranslators()),
+                    tools=Registry(StaticTranslators()),
                     operations=operations,
                 )
             )

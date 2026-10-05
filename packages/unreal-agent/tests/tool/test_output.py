@@ -8,10 +8,10 @@ from unreal_agent.operation import DEFAULT_MAX_OUTPUT_LENGTH, MAX_OUTPUT_LENGTH
 from unreal_agent.tool import (
     BASH_NAME,
     CallStatus,
+    Registry,
     StaticTranslators,
     Translator,
     bash,
-    new_registry,
     parse_max_output_length,
 )
 
@@ -26,7 +26,7 @@ def new_bash() -> Translator:
 
 def test_output_length_maximum_matches_tool_schemas() -> None:
     assert parse_max_output_length(str(MAX_OUTPUT_LENGTH).encode()) == MAX_OUTPUT_LENGTH
-    registry = new_registry(StaticTranslators(), BASH_NAME)
+    registry = Registry(StaticTranslators(), BASH_NAME)
     checked = 0
     for definition in registry.static_definitions():
         if definition.tool.Name != BASH_NAME:

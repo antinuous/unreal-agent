@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from unreal_agent.tool import Skill, StaticTranslators, discover_skills, new_registry
+from unreal_agent.tool import Registry, Skill, StaticTranslators, discover_skills
 
 
 def write(path: Path, contents: str) -> None:
@@ -63,6 +63,6 @@ def test_discover_skills_rejects_invalid_metadata_and_duplicate_names(tmp_path: 
         Skill(name="review", description="Review code.", path=str(tmp_path / "alpha" / "SKILL.md"))
     ]
     assert len(errors) == 3
-    registry = new_registry(StaticTranslators())
+    registry = Registry(StaticTranslators())
     for skill in skills:
         registry.register_skill(skill)

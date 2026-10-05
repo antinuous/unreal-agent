@@ -15,9 +15,9 @@ from unreal_agent.tool.static import (
     UnavailableTranslator,
     static_definitions,
 )
-from unreal_agent.tool.tool import Definition, RegistrationID, Registry, Skill, Translator
+from unreal_agent.tool.tool import Definition, RegistrationID, Skill, Translator
 
-__all__ = ["NIL_REGISTRATION_ID", "StaticTranslators", "discover_skills", "new_registry"]
+__all__ = ["NIL_REGISTRATION_ID", "Registry", "StaticTranslators", "discover_skills"]
 
 NIL_REGISTRATION_ID: Final = uuid.UUID(int=0)
 _MAX_SCAN_TOKEN_SIZE: Final = 64 * 1024
@@ -29,7 +29,13 @@ class StaticTranslators:
     view_image: Translator | None = None
 
 
-class _Registry:
+class Registry:
+    """Advertise and resolve only the `enabled` static tools.
+
+    A missing Bash or ViewImage translator resolves to one that reports the
+    tool is not configured.
+    """
+
     __slots__ = (
         "_enabled",
         "_lock",
@@ -39,7 +45,7 @@ class _Registry:
         "_static_translators",
     )
 
-    def __init__(self, configured: StaticTranslators, enabled: tuple[str, ...]) -> None:
+    def __init__(self, configured: StaticTranslators, *enabled: str) -> None:
         self._enabled = frozenset(enabled)
         self._lock = threading.Lock()
         self._skills: dict[RegistrationID, Skill] = {}
@@ -68,6 +74,7 @@ class _Registry:
         return self._static_translators.get(name)
 
     def register_skill(self, skill: Skill, /) -> RegistrationID:
+        """Raise `ValueError` for an invalid skill or a duplicate path or name."""
         validate_skill(skill)
         with self._lock:
             if skill.path in self._skill_ids_by_path:
@@ -100,15 +107,6 @@ class _Registry:
                 if self._skills[id].name == name:
                     return self._skills[id]
         return None
-
-
-def new_registry(configured: StaticTranslators, *enabled: str) -> Registry:
-    """Advertise and resolve only the `enabled` static tools.
-
-    A missing Bash or ViewImage translator resolves to one that reports the
-    tool is not configured.
-    """
-    return _Registry(configured, enabled)
 
 
 def validate_skill(skill: Skill) -> None:

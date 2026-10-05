@@ -9,9 +9,9 @@ from unreal_agent.tool import (
     VIEW_IMAGE_NAME,
     CallStatus,
     Context,
+    Registry,
     Skill,
     StaticTranslators,
-    new_registry,
 )
 
 ALL_NAMES = [BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME]
@@ -36,7 +36,7 @@ def test_registry_keeps_selected_static_tools_across_catalog_changes(selection: 
             enabled += [name, name]
             want.append(name)
     enabled.reverse()
-    registry = new_registry(StaticTranslators(), *enabled)
+    registry = Registry(StaticTranslators(), *enabled)
 
     def assert_selection() -> None:
         assert [definition.tool.Name for definition in registry.static_definitions()] == want
@@ -55,7 +55,7 @@ def test_registry_keeps_selected_static_tools_across_catalog_changes(selection: 
 
 
 def test_registry_does_not_resolve_unselected_translators() -> None:
-    registry = new_registry(StaticTranslators(bash=FixedTranslator(), view_image=FixedTranslator()))
+    registry = Registry(StaticTranslators(bash=FixedTranslator(), view_image=FixedTranslator()))
     assert registry.static_definitions() == []
     for name in ALL_NAMES:
         assert registry.resolve(name) is None

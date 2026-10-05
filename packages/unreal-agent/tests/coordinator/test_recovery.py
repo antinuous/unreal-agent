@@ -8,7 +8,7 @@ from unreal_agent.llm import ItemType, Message, Role
 from unreal_agent.operation import LocalOperationManager, Status, UnsupportedError
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind, ModelResponse, ToolCallStatus
-from unreal_agent.tool import CallStatus, StaticTranslators, new_registry
+from unreal_agent.tool import CallStatus, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     MemoryStore,
@@ -42,7 +42,7 @@ async def test_coordinator_resumes_unavailable_tool(stage: str) -> None:
     store = await persist_test_run(run)
     before = await store.items("session-1", BEFORE_FIRST, 100)
     await restore_test_run(run, store)
-    run.dependencies.tools = new_registry(StaticTranslators())
+    run.dependencies.tools = Registry(StaticTranslators())
     await run.start()
     if stage != "accepted":
         await run.input(stop_input("stop", ControlMode.STOP_WHEN_IDLE))
@@ -57,7 +57,7 @@ async def test_coordinator_resumes_unavailable_tool(stage: str) -> None:
         run.assert_stopped()
 
         resumed = new_stop_test_run(0)
-        resumed.dependencies.tools = new_registry(StaticTranslators())
+        resumed.dependencies.tools = Registry(StaticTranslators())
         await restore_test_run(resumed, store)
         await resumed.start()
         await resumed.input(stop_input("stop-again", ControlMode.STOP_WHEN_IDLE))

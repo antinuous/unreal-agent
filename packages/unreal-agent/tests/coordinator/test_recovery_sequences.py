@@ -7,7 +7,7 @@ from unreal_agent.inbox import ControlMode
 from unreal_agent.llm import ItemType, Message, Request, Response, ToolResult
 from unreal_agent.operation import Status
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind, ToolCallStatus
-from unreal_agent.tool import VIEW_IMAGE_NAME, StaticTranslators, new_registry
+from unreal_agent.tool import VIEW_IMAGE_NAME, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     SLURP_IDLE_TIMEOUT_NS,
@@ -203,7 +203,7 @@ async def test_coordinator_retries_initial_tool_status_persistence_failure() -> 
     run.store.history = run.store.history[:2]
     store = await persist_test_run(run)
     translator = SubmittingTranslator([value_spec(b"1")])
-    registry = new_registry(StaticTranslators(view_image=translator), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=translator), VIEW_IMAGE_NAME)
     run.dependencies.tools = registry
     want = RuntimeError("cannot persist initial tool status")
     faults = FailingStore(store)

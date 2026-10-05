@@ -66,7 +66,6 @@ from unreal_agent.tool import (
     Context,
     Registry,
     StaticTranslators,
-    new_registry,
 )
 
 # Go's testing/fake_time: fake time with nanosecond resolution so deadlines land exactly.
@@ -670,9 +669,7 @@ def deps(current: Coordinator) -> Dependencies:
 
 
 def independent_tool_calls(count: int) -> tuple[FakeStore, Registry]:
-    registry = new_registry(
-        StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME
-    )
+    registry = Registry(StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME)
     store = empty_fake_store()
     store.history = [
         stored_item(1, ItemKind.TURN, Turn(ID="turn-1", Type=TurnType.REGULAR)),
@@ -917,7 +914,7 @@ async def advance_heartbeat_time(duration: int) -> None:
 def new_tool_grace_test_run() -> StopTestRun:
     run = new_stop_test_run(0)
     translator = SubmissionTranslator([value_spec()])
-    run.dependencies.tools = new_registry(
+    run.dependencies.tools = Registry(
         StaticTranslators(bash=translator, view_image=OperationStatusTranslator()),
         BASH_NAME,
         VIEW_IMAGE_NAME,

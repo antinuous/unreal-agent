@@ -45,7 +45,7 @@ from unreal_agent.sessionstore import (
     StoreError,
     ToolCallStatus,
 )
-from unreal_agent.tool import SKILL_USE_NAME, Skill, StaticTranslators, new_registry
+from unreal_agent.tool import SKILL_USE_NAME, Registry, Skill, StaticTranslators
 
 from tests.coordinator._helpers import chain
 
@@ -598,7 +598,7 @@ async def run_coordinator_fault_case(
             Payload=gojson.Raw(fault_json(ControlMessage(Mode=ControlMode.STOP_WHEN_IDLE))),
         )
     )
-    registry = new_registry(StaticTranslators(), SKILL_USE_NAME)
+    registry = Registry(StaticTranslators(), SKILL_USE_NAME)
     manager = ControlledFaultOperations(ctx, trace, n * 4)
     wire_calls: list[dict[str, Any]] = []
     results: dict[str, str] = {}

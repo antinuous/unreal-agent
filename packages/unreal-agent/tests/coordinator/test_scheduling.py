@@ -10,7 +10,7 @@ from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, Message, Request, Response, Role, ToolCall
 from unreal_agent.operation import Operation, Status
 from unreal_agent.sessionstore import ToolCallStatus
-from unreal_agent.tool import BASH_NAME, StaticTranslators, new_registry
+from unreal_agent.tool import BASH_NAME, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     SLURP_IDLE_TIMEOUT_NS,
@@ -94,7 +94,7 @@ async def test_coordinator_scheduling_result_failure_prevents_dispatch() -> None
     run = new_stop_test_run(0)
     want = RuntimeError("cannot translate result")
     translator = SubmittingResultErrorTranslator(want, [value_spec()])
-    run.dependencies.tools = new_registry(StaticTranslators(bash=translator), BASH_NAME)
+    run.dependencies.tools = Registry(StaticTranslators(bash=translator), BASH_NAME)
 
     async def respond(request: Request) -> Response:
         return Response(

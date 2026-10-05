@@ -12,7 +12,6 @@ __all__ = [
     "Context",
     "Definition",
     "RegistrationID",
-    "Registry",
     "ResultTranslator",
     "Skill",
     "TranslationError",
@@ -70,17 +69,3 @@ class Skill:
     name: str = ""
     description: str = ""
     path: str = ""
-
-
-class Registry(Protocol):
-    def static_definitions(self) -> list[Definition]: ...
-
-    def resolve(self, name: str, /) -> Translator | None: ...
-
-    def register_skill(self, skill: Skill, /) -> RegistrationID:
-        """Raise `ValueError` for an invalid skill or a duplicate path or name."""
-        ...
-
-    def unregister_skill(self, id: RegistrationID, /) -> None: ...
-
-    def skills(self) -> list[Skill]: ...

@@ -10,10 +10,10 @@ from unreal_agent.tool import (
     VIEW_IMAGE_NAME,
     CallStatus,
     Context,
+    Registry,
     Skill,
     SkillUseTranslator,
     StaticTranslators,
-    new_registry,
 )
 
 
@@ -38,14 +38,14 @@ class FalsyTranslator(FixedTranslator):
 
 def test_registry_keeps_injected_translators_that_are_falsy() -> None:
     translators = StaticTranslators(bash=FalsyTranslator(), view_image=FalsyTranslator())
-    registry = new_registry(translators, BASH_NAME, VIEW_IMAGE_NAME)
+    registry = Registry(translators, BASH_NAME, VIEW_IMAGE_NAME)
     assert registry.resolve(BASH_NAME) is translators.bash
     assert registry.resolve(VIEW_IMAGE_NAME) is translators.view_image
 
 
 def test_registry_has_fixed_definitions_and_injected_translators() -> None:
     translators = StaticTranslators(bash=FixedTranslator(), view_image=FixedTranslator())
-    registry = new_registry(translators, BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME)
+    registry = Registry(translators, BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME)
     names = [definition.tool.Name for definition in registry.static_definitions()]
     assert names == [BASH_NAME, VIEW_IMAGE_NAME, SKILL_USE_NAME]
     assert registry.resolve(BASH_NAME) is translators.bash
@@ -55,7 +55,7 @@ def test_registry_has_fixed_definitions_and_injected_translators() -> None:
 
 
 def test_registry_owns_canonical_bash_definition() -> None:
-    got = new_registry(StaticTranslators(), BASH_NAME).static_definitions()[0].tool
+    got = Registry(StaticTranslators(), BASH_NAME).static_definitions()[0].tool
     want = Tool(
         Type=ToolType.FUNCTION,
         Name=BASH_NAME,
@@ -87,7 +87,7 @@ def test_registry_owns_canonical_bash_definition() -> None:
 
 
 def test_registry_owns_canonical_skill_use_definition() -> None:
-    got = new_registry(StaticTranslators(), SKILL_USE_NAME).static_definitions()[0].tool
+    got = Registry(StaticTranslators(), SKILL_USE_NAME).static_definitions()[0].tool
     want = Tool(
         Type=ToolType.FUNCTION,
         Name=SKILL_USE_NAME,
@@ -104,7 +104,7 @@ def test_registry_owns_canonical_skill_use_definition() -> None:
 
 
 def test_registry_static_definitions_returns_independent_values() -> None:
-    registry = new_registry(StaticTranslators(), BASH_NAME)
+    registry = Registry(StaticTranslators(), BASH_NAME)
     definitions = registry.static_definitions()
     definitions[0].tool.Name = "changed"
     definitions[0].tool.Parameters["changed"] = True
@@ -114,7 +114,7 @@ def test_registry_static_definitions_returns_independent_values() -> None:
 
 
 def test_registry_registers_lists_and_unregisters_skills() -> None:
-    registry = new_registry(StaticTranslators())
+    registry = Registry(StaticTranslators())
     first = Skill(name="go-review", description="Review Go code", path="/skills/go/SKILL.md")
     second = Skill(name="documents", description="Edit documents", path="/skills/docs/SKILL.md")
     first_id = registry.register_skill(first)
@@ -133,7 +133,7 @@ def test_registry_registers_lists_and_unregisters_skills() -> None:
 
 
 def test_registry_rejects_invalid_and_duplicate_skills() -> None:
-    registry = new_registry(StaticTranslators())
+    registry = Registry(StaticTranslators())
     with pytest.raises(ValueError, match=r"^skill path must be set$"):
         registry.register_skill(Skill())
     with pytest.raises(ValueError, match=r"^skill name must be set$"):

@@ -8,7 +8,7 @@
   status and operations are inconsistent.
 - `CallStatus` is persisted and encodes byte-identically to Go with
   `gojson.encode`.
-- `new_registry(StaticTranslators(bash=..., view_image=...), *enabled)`
+- `Registry(StaticTranslators(bash=..., view_image=...), *enabled)`
   advertises and resolves only the enabled static tools. Skills register
   under UUIDs and are unique by path and by name.
 - `discover_skills(directory)` reads `<directory>/*/SKILL.md` frontmatter.
@@ -21,9 +21,9 @@ text because they are shown to the model.
 from unreal_agent.tool.output import error_status, parse_max_output_length
 from unreal_agent.tool.registry import (
     NIL_REGISTRATION_ID,
+    Registry,
     StaticTranslators,
     discover_skills,
-    new_registry,
 )
 from unreal_agent.tool.skill_use import SkillUseTranslator
 from unreal_agent.tool.static import BASH_NAME, SKILL_USE_NAME, VIEW_IMAGE_NAME
@@ -32,7 +32,6 @@ from unreal_agent.tool.tool import (
     Context,
     Definition,
     RegistrationID,
-    Registry,
     ResultTranslator,
     Skill,
     TranslationError,
@@ -57,6 +56,5 @@ __all__ = [
     "Translator",
     "discover_skills",
     "error_status",
-    "new_registry",
     "parse_max_output_length",
 ]

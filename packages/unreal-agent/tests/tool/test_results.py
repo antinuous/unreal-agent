@@ -13,10 +13,10 @@ from unreal_agent.tool import (
     SKILL_USE_NAME,
     VIEW_IMAGE_NAME,
     CallStatus,
+    Registry,
     StaticTranslators,
     TranslationError,
     Translator,
-    new_registry,
 )
 
 from tests.tool._helpers import RecordingContext
@@ -29,7 +29,7 @@ def text(value: str) -> ToolResult:
 
 
 def skill_use() -> Translator:
-    translator = new_registry(StaticTranslators(), SKILL_USE_NAME).resolve(SKILL_USE_NAME)
+    translator = Registry(StaticTranslators(), SKILL_USE_NAME).resolve(SKILL_USE_NAME)
     assert translator is not None
     return translator
 
@@ -46,7 +46,7 @@ def skill_operation(status: Status, state: SkillUseState) -> Operation:
 
 @pytest.mark.parametrize("name", [BASH_NAME, VIEW_IMAGE_NAME])
 def test_unconfigured_static_tools_report_errors_without_label(name: str) -> None:
-    translator = new_registry(StaticTranslators(), name).resolve(name)
+    translator = Registry(StaticTranslators(), name).resolve(name)
     assert translator is not None
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments="{}"))

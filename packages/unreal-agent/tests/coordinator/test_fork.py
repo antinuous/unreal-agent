@@ -10,7 +10,7 @@ from unreal_agent.operation import Status
 from unreal_agent.session import Turn, TurnID, TurnType
 from unreal_agent.sessionstore import BEFORE_FIRST, ModelResponse, Store, StoreError, ToolCallStatus
 from unreal_agent.sessionstore.localfile import Store as LocalFileStore
-from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, StaticTranslators, new_registry
+from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     SLURP_IDLE_TIMEOUT_NS,
@@ -79,7 +79,7 @@ async def test_coordinator_fork_stops_when_child_is_idle(
     child.dependencies.sessions = cast(Store, store)
     child.dependencies.restored = restored
     spec = value_spec(b'{"value":1}')
-    registry = new_registry(
+    registry = Registry(
         StaticTranslators(bash=SubmittingTranslator([spec]), view_image=TestTranslator()),
         BASH_NAME,
         VIEW_IMAGE_NAME,

@@ -9,7 +9,7 @@ from unreal_agent.inbox import ControlMode
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, Reasoning, Response, ToolCall, ToolResult
 from unreal_agent.operation import Status
-from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, StaticTranslators, new_registry
+from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     SECOND,
@@ -205,7 +205,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
     run = new_stop_test_run(2)
     store = await persist_test_run(run)
     translator = SubmissionTranslator([value_spec(b"1")])
-    run.dependencies.tools = new_registry(
+    run.dependencies.tools = Registry(
         StaticTranslators(bash=translator, view_image=OperationStatusTranslator()),
         BASH_NAME,
         VIEW_IMAGE_NAME,
@@ -289,7 +289,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
     err = await run.error()
     assert isinstance(err, asyncio.CancelledError), f"Run error = {err!r}"
     resumed = new_stop_test_run(0)
-    resumed.dependencies.tools = new_registry(
+    resumed.dependencies.tools = Registry(
         StaticTranslators(bash=translator, view_image=OperationStatusTranslator()),
         BASH_NAME,
         VIEW_IMAGE_NAME,

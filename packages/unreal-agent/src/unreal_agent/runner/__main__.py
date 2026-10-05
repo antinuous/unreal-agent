@@ -16,7 +16,7 @@ from unreal_agent.runner.providers import default_providers
 from unreal_agent.runner.request import Request, decode_request
 from unreal_agent.runner.run import run_main
 from unreal_agent.runner.streams import Reader
-from unreal_agent.tool import new_registry
+from unreal_agent.tool import Registry
 
 __all__ = ["main", "parse_request"]
 
@@ -28,9 +28,7 @@ def parse_request(input: Reader) -> tuple[Request, ToolFactory]:
     parsed = decode_request(input)
 
     async def new_tools(config: ToolConfig) -> Tools:
-        return Tools(
-            registry=new_registry(config.translators, *parsed.enabled_tools(*config.names))
-        )
+        return Tools(registry=Registry(config.translators, *parsed.enabled_tools(*config.names)))
 
     return parsed, new_tools
 

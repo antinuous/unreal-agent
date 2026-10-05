@@ -17,12 +17,12 @@ from unreal_agent.llm import ToolCall
 from unreal_agent.tool import (
     SKILL_USE_NAME,
     CallStatus,
+    Registry,
     Skill,
     StaticTranslators,
     Translator,
     bash,
     discover_skills,
-    new_registry,
     viewimage,
 )
 from unreal_agent.tool._glob import BadPatternError, match
@@ -33,7 +33,7 @@ _CASES: Final = json.loads((Path(__file__).parent / "testdata" / "argument_cases
 
 
 def translators() -> dict[str, Translator]:
-    registry = new_registry(StaticTranslators(), SKILL_USE_NAME)
+    registry = Registry(StaticTranslators(), SKILL_USE_NAME)
     registry.register_skill(
         Skill(name="review", description="Review code.", path="/skills/review/SKILL.md")
     )

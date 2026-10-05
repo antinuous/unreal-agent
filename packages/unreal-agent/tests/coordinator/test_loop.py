@@ -45,8 +45,8 @@ from unreal_agent.tool import (
     BASH_NAME,
     VIEW_IMAGE_NAME,
     CallStatus,
+    Registry,
     StaticTranslators,
-    new_registry,
 )
 
 from tests.coordinator._helpers import (
@@ -103,7 +103,7 @@ def loop_state_text_result(call_id: str, value: str) -> LLMItem:
 
 
 async def test_coordinator_restores_session() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     input = external_event("input-1", "hello")
     turn = Turn(ID="turn-1", Type=TurnType.REGULAR)
     call = ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}")
@@ -224,7 +224,7 @@ async def test_coordinator_restores_paginated_fork_history() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         builder,
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
 
     await current._restore()
@@ -249,7 +249,7 @@ async def test_coordinator_returns_session_history_error() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
 
     with pytest.raises(CoordinatorError) as caught:
@@ -267,7 +267,7 @@ async def test_coordinator_rejects_session_history_without_progress() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
 
     with pytest.raises(CoordinatorError) as caught:
@@ -278,7 +278,7 @@ async def test_coordinator_rejects_session_history_without_progress() -> None:
 
 
 async def test_coordinator_keeps_unreplayable_tool_status_in_local_state() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     turn = Turn(ID="turn-1", Type=TurnType.REGULAR)
     call = ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}")
     status = ToolCallStatus(
@@ -315,9 +315,7 @@ async def test_coordinator_keeps_unreplayable_tool_status_in_local_state() -> No
 
 
 async def test_coordinator_restores_completed_tool_call_from_status_snapshots() -> None:
-    registry = new_registry(
-        StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME
-    )
+    registry = Registry(StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME)
     call = ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}")
     initial = Operation(ID="operation-1", Type="test", Version=1, Status=Status.READY)
     completed = replace(initial, Status=Status.COMPLETED)
@@ -360,9 +358,7 @@ async def test_coordinator_restores_completed_tool_call_from_status_snapshots() 
 
 
 async def test_coordinator_overlays_resumed_operations_after_history_snapshots() -> None:
-    registry = new_registry(
-        StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME
-    )
+    registry = Registry(StaticTranslators(view_image=OperationStatusTranslator()), VIEW_IMAGE_NAME)
     call = ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}")
     first = Operation(ID="operation-1", Type="test", Version=1, Status=Status.READY)
     second = Operation(ID="operation-2", Type="test", Version=1, Status=Status.READY)
@@ -400,7 +396,7 @@ async def test_coordinator_overlays_resumed_operations_after_history_snapshots()
 
 
 def test_coordinator_tracks_tool_calls() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     current = new_test_coordinator(
         empty_fake_store(), new_test_inbox(), FakeOperationManager(), new_builder(), registry
     )
@@ -476,7 +472,7 @@ def test_coordinator_tool_call_operations_are_terminal() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     assert current._tool_call_operations_are_terminal("missing-turn", "missing-call"), (
         "tool call without operations was not recognized as terminal"
@@ -504,7 +500,7 @@ def test_coordinator_tool_call_operations_are_terminal() -> None:
 
 
 def test_coordinator_adds_tool_result_from_tracked_tool_call() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     builder = new_builder()
     current = new_test_coordinator(
         empty_fake_store(), new_test_inbox(), FakeOperationManager(), builder, registry
@@ -533,7 +529,7 @@ def test_coordinator_accepts_orphaned_tool_status() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     status = ToolCallStatus(
         TurnID="turn-1", CallID="missing-call", Status=CallStatus(WaitingFor=["operation-1"])
@@ -544,7 +540,7 @@ def test_coordinator_accepts_orphaned_tool_status() -> None:
 
 
 def test_coordinator_returns_tool_result_translation_error() -> None:
-    registry = new_registry(
+    registry = Registry(
         StaticTranslators(view_image=FailingResultTranslator(RuntimeError("translation failed"))),
         VIEW_IMAGE_NAME,
     )
@@ -577,7 +573,7 @@ def test_coordinator_skips_tool_result_without_available_translator() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     call = ToolCall(CallID="call-1", Name="unavailable-tool")
     current._add_tool_calls_to_local_state(
@@ -594,7 +590,7 @@ def test_coordinator_skips_tool_result_without_available_translator() -> None:
 
 
 def test_coordinator_skips_tool_result_with_untracked_operation() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     current = new_test_coordinator(
         empty_fake_store(), new_test_inbox(), FakeOperationManager(), new_builder(), registry
     )
@@ -624,7 +620,7 @@ async def test_coordinator_keeps_control_input_without_context_projection() -> N
     store = loop_state_store(stored_item(1, ItemKind.INPUT, input))
     builder = new_builder()
     current = new_test_coordinator(
-        store, new_test_inbox(), FakeOperationManager(), builder, new_registry(StaticTranslators())
+        store, new_test_inbox(), FakeOperationManager(), builder, Registry(StaticTranslators())
     )
 
     await current._restore()
@@ -663,7 +659,7 @@ async def test_coordinator_rejects_invalid_session_item_data(item: Item, want: s
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     with pytest.raises(CoordinatorError) as caught:
         await current._restore()
@@ -677,7 +673,7 @@ async def test_coordinator_run_returns_context_cancellation() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     task = asyncio.create_task(current.run())
     await wait()
@@ -761,7 +757,7 @@ async def test_coordinator_run_calls_model_after_persisted_external_input() -> N
     adapter = FakeAdapter(respond)
     builder = new_builder()
     current = new_test_coordinator(
-        store, inputs, operations, builder, new_registry(StaticTranslators()), adapter
+        store, inputs, operations, builder, Registry(StaticTranslators()), adapter
     )
     task = loop_run_start(current)
 
@@ -819,7 +815,7 @@ async def test_coordinator_run_slurps_queued_inputs_before_calling_model() -> No
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -849,7 +845,7 @@ async def test_coordinator_run_does_not_call_model_when_request_build_fails() ->
         inputs,
         FakeOperationManager(),
         as_builder(FailingBuilder(new_builder(), RuntimeError("context unavailable"))),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -883,7 +879,7 @@ async def test_coordinator_run_does_not_call_model_when_turn_store_fails() -> No
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -921,7 +917,7 @@ async def test_coordinator_run_persists_model_response_for_originating_turn() ->
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -990,7 +986,7 @@ async def test_coordinator_run_persists_tool_call_before_dispatch() -> None:
         inputs,
         operations,
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
         adapter,
     )
     task = loop_run_start(current)
@@ -1049,7 +1045,7 @@ async def test_coordinator_run_starts_corrective_turn_for_validation_error() -> 
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(), BASH_NAME),
+        Registry(StaticTranslators(), BASH_NAME),
         adapter,
     )
     task = loop_run_start(current)
@@ -1117,7 +1113,7 @@ async def test_coordinator_run_starts_continuation_turn_for_completed_tool_call(
         inputs,
         operations,
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
         adapter,
     )
     task = loop_run_start(current)
@@ -1167,7 +1163,7 @@ async def test_coordinator_run_starts_continuation_turn_for_completed_tool_call(
 
 
 async def test_coordinator_run_batches_completed_tool_calls_into_one_turn() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     operation_value = Operation(ID="operation-1", Type=TYPE_SHELL, Version=1, Status=Status.READY)
     calls = [
         ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}"),
@@ -1267,7 +1263,7 @@ async def test_coordinator_run_steers_active_model_request() -> None:
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -1311,7 +1307,7 @@ async def test_coordinator_run_handles_operation_update_while_model_is_running()
     inputs = new_test_inbox()
     operations = FakeOperationManager()
     current = new_test_coordinator(
-        store, inputs, operations, new_builder(), new_registry(StaticTranslators()), adapter
+        store, inputs, operations, new_builder(), Registry(StaticTranslators()), adapter
     )
     task = loop_run_start(current)
 
@@ -1380,7 +1376,7 @@ async def test_coordinator_run_drops_successful_response_from_superseded_turn() 
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
         adapter,
     )
     task = loop_run_start(current)
@@ -1444,7 +1440,7 @@ async def test_coordinator_run_returns_current_model_error() -> None:
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
         adapter,
     )
     task = loop_run_start(current)
@@ -1489,7 +1485,7 @@ async def test_coordinator_handles_model_response_before_scheduling_tool_calls()
         new_test_inbox(),
         operations,
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
     )
 
     await current._handle_model_response(response)
@@ -1512,7 +1508,7 @@ async def test_coordinator_does_not_schedule_tool_calls_when_model_response_stor
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
     )
     response = ModelResponse(
         TurnID="turn-1",
@@ -1555,7 +1551,7 @@ async def test_coordinator_handles_model_response_without_tool_calls() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     response = ModelResponse(
         TurnID="turn-1",
@@ -1583,7 +1579,7 @@ async def test_coordinator_run_schedules_tool_calls_without_status_before_dispat
     first_spec = replace(value_spec(b'{"value":1}'), MaxOutputLength=3)
     second_spec = replace(value_spec(b'{"value":2}'), MaxOutputLength=7)
     translator = SubmittingTranslator([first_spec, second_spec])
-    registry = new_registry(StaticTranslators(bash=translator), BASH_NAME)
+    registry = Registry(StaticTranslators(bash=translator), BASH_NAME)
     handled = ToolCall(CallID="call-handled", Name=BASH_NAME, Arguments="{}")
     missing = ToolCall(CallID="call-missing", Name=BASH_NAME, Arguments="{}")
     store = empty_fake_store()
@@ -1698,7 +1694,7 @@ async def test_coordinator_run_starts_corrective_turn_for_recovered_validation_e
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(), BASH_NAME),
+        Registry(StaticTranslators(), BASH_NAME),
         adapter,
     )
     task = loop_run_start(current)
@@ -1736,7 +1732,7 @@ async def test_coordinator_run_rejects_external_input_without_text_payload() -> 
         inputs,
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
 
     err = await loop_run_returned(current)
@@ -1756,7 +1752,7 @@ async def test_coordinator_run_stores_operation_updates_without_redispatch() -> 
     operations.close()
     adapter = FakeAdapter()
     current = new_test_coordinator(
-        store, inputs, operations, new_builder(), new_registry(StaticTranslators()), adapter
+        store, inputs, operations, new_builder(), Registry(StaticTranslators()), adapter
     )
 
     err = await loop_run_returned(current)
@@ -1781,7 +1777,7 @@ async def test_coordinator_run_stores_operation_updates_without_redispatch() -> 
 
 
 async def test_coordinator_reconciles_tool_calls_from_persisted_operation_updates() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     store = empty_fake_store()
     builder = new_builder()
     current = new_test_coordinator(
@@ -1848,9 +1844,7 @@ async def test_coordinator_reconciles_tool_calls_from_persisted_operation_update
 
 
 async def test_coordinator_run_returns_reconciliation_error() -> None:
-    registry = new_registry(
-        StaticTranslators(view_image=TerminalResultTranslator()), VIEW_IMAGE_NAME
-    )
+    registry = Registry(StaticTranslators(view_image=TerminalResultTranslator()), VIEW_IMAGE_NAME)
     value = Operation(ID="operation-1", Type=TYPE_SHELL, Version=1, Status=Status.READY)
     call = ToolCall(CallID="call-1", Name=VIEW_IMAGE_NAME, Arguments="{}")
     status = ToolCallStatus(
@@ -1891,7 +1885,7 @@ async def test_coordinator_run_returns_reconciliation_error() -> None:
 
 
 async def test_coordinator_does_not_complete_tool_call_before_operation_is_stored() -> None:
-    registry = new_registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=TestTranslator()), VIEW_IMAGE_NAME)
     store = empty_fake_store()
     store.save_operation_error = RuntimeError("disk unavailable")
     builder = new_builder()
@@ -1945,7 +1939,7 @@ async def test_coordinator_run_dispatches_restored_non_terminal_operations() -> 
     operations = FakeOperationManager()
     adapter = FakeAdapter()
     current = new_test_coordinator(
-        store, inputs, operations, new_builder(), new_registry(StaticTranslators()), adapter
+        store, inputs, operations, new_builder(), Registry(StaticTranslators()), adapter
     )
 
     err = await loop_run_returned(current)
@@ -1968,7 +1962,7 @@ async def test_coordinator_run_returns_operation_dispatch_error() -> None:
     operations = FakeOperationManager()
     operations.add_error = lambda _: RuntimeError("dispatch failed")
     current = new_test_coordinator(
-        store, new_test_inbox(), operations, new_builder(), new_registry(StaticTranslators())
+        store, new_test_inbox(), operations, new_builder(), Registry(StaticTranslators())
     )
 
     err = await loop_run_returned(current)
@@ -1994,7 +1988,7 @@ async def test_coordinator_run_returns_unsupported_recovered_operation() -> None
 
     operations.add_error = add_error
     current = new_test_coordinator(
-        store, inputs, operations, new_builder(), new_registry(StaticTranslators())
+        store, inputs, operations, new_builder(), Registry(StaticTranslators())
     )
 
     err = await loop_run_returned(current)
@@ -2010,7 +2004,7 @@ async def test_coordinator_clones_operation_data_before_dispatch() -> None:
         new_test_inbox(),
         operations,
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     value = current._add_operation_to_local_state(
         Operation(
@@ -2040,7 +2034,7 @@ async def test_coordinator_run_returns_input_store_error_after_updating_local_st
     event = external_event("input-1", "hello")
     await submit_test_input(inputs, event)
     current = new_test_coordinator(
-        store, inputs, FakeOperationManager(), new_builder(), new_registry(StaticTranslators())
+        store, inputs, FakeOperationManager(), new_builder(), Registry(StaticTranslators())
     )
 
     err = await loop_run_returned(current)
@@ -2059,7 +2053,7 @@ async def test_coordinator_run_returns_operation_store_error_after_updating_loca
     update = Operation(ID="operation-1", Type=TYPE_SHELL, Version=1, Status=Status.AWAITING)
     operations.send(update)
     current = new_test_coordinator(
-        store, inputs, operations, new_builder(), new_registry(StaticTranslators())
+        store, inputs, operations, new_builder(), Registry(StaticTranslators())
     )
 
     err = await loop_run_returned(current)
@@ -2079,7 +2073,7 @@ async def test_coordinator_stores_every_session_item_kind() -> None:
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     event = external_event("input-1", "hello")
     turn = Turn(ID="turn-1", Type=TurnType.REGULAR)
@@ -2183,7 +2177,7 @@ async def test_coordinator_returns_session_item_store_errors(
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     configure(store, current)
 

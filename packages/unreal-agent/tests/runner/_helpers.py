@@ -45,7 +45,7 @@ from unreal_agent.runner.run import LLM_API_KEY_ENVIRONMENT
 from unreal_agent.session import ID as SessionID
 from unreal_agent.sessionstore import BEFORE_FIRST, Item, ItemKind
 from unreal_agent.sessionstore.localfile import Store
-from unreal_agent.tool import new_registry
+from unreal_agent.tool import Registry
 
 MAX_INT64: Final = 2**63 - 1
 
@@ -72,9 +72,7 @@ def parse_test_request(input: Reader) -> tuple[Request, ToolFactory]:
     parsed = decode_request(input)
 
     async def new_tools(config: ToolConfig) -> Tools:
-        return Tools(
-            registry=new_registry(config.translators, *parsed.enabled_tools(*config.names))
-        )
+        return Tools(registry=Registry(config.translators, *parsed.enabled_tools(*config.names)))
 
     return parsed, new_tools
 

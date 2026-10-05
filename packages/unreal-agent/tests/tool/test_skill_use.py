@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from unreal_agent.llm import ToolCall
 from unreal_agent.operation import LocalOperationManager, Operation, Status
-from unreal_agent.tool import SKILL_USE_NAME, Skill, StaticTranslators, new_registry
+from unreal_agent.tool import SKILL_USE_NAME, Registry, Skill, StaticTranslators
 
 from tests.tool._helpers import RecordingContext
 
@@ -27,7 +27,7 @@ async def test_skill_use_loads_registered_skill_by_name(
     want = "---\nname: review\ndescription: Review code.\n---\n\nRead all instructions.\n"
     path.write_text(want)
     path.chmod(0o600)
-    registry = new_registry(StaticTranslators(), SKILL_USE_NAME)
+    registry = Registry(StaticTranslators(), SKILL_USE_NAME)
     registry.register_skill(Skill(name="review", description="Review code.", path=str(path)))
     translator = registry.resolve(SKILL_USE_NAME)
     assert translator is not None
@@ -67,7 +67,7 @@ async def test_skill_use_loads_registered_skill_by_name(
     ],
 )
 def test_skill_use_rejects_invalid_selection(call: ToolCall, want_error: str) -> None:
-    registry = new_registry(StaticTranslators(), SKILL_USE_NAME)
+    registry = Registry(StaticTranslators(), SKILL_USE_NAME)
     translator = registry.resolve(SKILL_USE_NAME)
     assert translator is not None
     status = translator.translate(RecordingContext(), call)

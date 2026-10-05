@@ -11,7 +11,7 @@ import pytest
 from unreal_agent.llm import Response
 from unreal_agent.runner import Reader, Request, ToolConfig, ToolFactory, Tools, decode_request
 from unreal_agent.runner.run import run_main
-from unreal_agent.tool import new_registry
+from unreal_agent.tool import Registry
 
 from tests.runner._helpers import (
     SECRET_ENVIRONMENT,
@@ -59,7 +59,7 @@ async def test_run_finishes_cleanup_when_cancelled_during_cleanup(
                 tools_closed = True
 
             return Tools(
-                registry=new_registry(config.translators, *parsed.enabled_tools(*config.names)),
+                registry=Registry(config.translators, *parsed.enabled_tools(*config.names)),
                 close=close,
             )
 

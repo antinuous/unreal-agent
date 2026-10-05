@@ -25,9 +25,9 @@ from unreal_agent.operation import (
 from unreal_agent.tool import (
     VIEW_IMAGE_NAME,
     CallStatus,
+    Registry,
     StaticTranslators,
     TranslationError,
-    new_registry,
     viewimage,
 )
 
@@ -336,7 +336,7 @@ async def test_view_image_reads_workspace_file_and_returns_resized_data_url(
     translator = viewimage.ViewImageTranslator(
         viewimage.Config(directory=str(tmp_path), limits=ViewImageConfig(MaxWidth=6, MaxHeight=6))
     )
-    registry = new_registry(StaticTranslators(view_image=translator), VIEW_IMAGE_NAME)
+    registry = Registry(StaticTranslators(view_image=translator), VIEW_IMAGE_NAME)
     definitions = registry.static_definitions()
     assert len(definitions) == 1
     assert definitions[0].tool.Name == VIEW_IMAGE_NAME

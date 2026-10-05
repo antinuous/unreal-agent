@@ -12,7 +12,7 @@ from unreal_agent.llm import (
 from unreal_agent.operation import Operation, Status
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import ItemKind, ModelResponse, ToolCallStatus
-from unreal_agent.tool import BASH_NAME, CallStatus, StaticTranslators, new_registry
+from unreal_agent.tool import BASH_NAME, CallStatus, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     FakeOperationManager,
@@ -78,7 +78,7 @@ async def test_coordinator_rejects_restore_when_recorded_call_requires_unavailab
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(bash=SubmittingTranslator())),
+        Registry(StaticTranslators(bash=SubmittingTranslator())),
     )
     error: Exception | None = None
     try:
@@ -100,7 +100,7 @@ async def test_coordinator_schedules_available_call_alongside_unavailable_call()
         new_test_inbox(),
         FakeOperationManager(),
         new_builder(),
-        new_registry(StaticTranslators(bash=translator), BASH_NAME),
+        Registry(StaticTranslators(bash=translator), BASH_NAME),
     )
     valid = ToolCall(CallID="valid", Name=BASH_NAME, Arguments="{}")
     statuses = await current._handle_model_response(
@@ -172,7 +172,7 @@ async def test_coordinator_restores_unavailable_tool_call(recorded: bool) -> Non
         new_test_inbox(),
         FakeOperationManager(),
         builder,
-        new_registry(StaticTranslators()),
+        Registry(StaticTranslators()),
     )
     await current._restore()
     want_new_statuses = 0 if recorded else 1
