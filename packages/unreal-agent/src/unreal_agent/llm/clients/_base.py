@@ -2,10 +2,10 @@ from collections.abc import Callable, Mapping, Sequence
 from types import TracebackType
 from typing import Self
 
+from unreal_agent._go import go_trim_space
 from unreal_agent.llm.adapter import RequestOptions
 from unreal_agent.llm.model import Request, Response
 from unreal_agent.llm.responsesapi import CacheKeyPlacement, Config, Exchange, ResponsesAdapter
-from unreal_agent.llm.responsesapi._wire import trim_space_text
 from unreal_agent.llm.responsesapi.adapter import check_config
 from unreal_agent.primitives import RemoteClient
 
@@ -59,11 +59,11 @@ class ResponsesClient:
 
 
 def require(value: str, message: str) -> str:
-    value = trim_space_text(value)
+    value = go_trim_space(value)
     if not value:
         raise ValueError(message)
     return value
 
 
 def base_url(value: str) -> str:
-    return trim_space_text(value).rstrip("/")
+    return go_trim_space(value).rstrip("/")

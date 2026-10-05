@@ -7,8 +7,8 @@ from typing import Final
 
 import httpx
 
+from unreal_agent._go import go_trim_space
 from unreal_agent.gojson import Timestamp
-from unreal_agent.llm.responsesapi._wire import trim_space_text
 from unreal_agent.llm.responsesapi.errors import APIError
 from unreal_agent.primitives import RemoteRetryPolicy
 
@@ -99,7 +99,7 @@ def _backoff(initial: int, maximum: int, failed_attempts: int) -> int:
 
 
 def retry_after_header(value: str, now: Timestamp) -> int:
-    value = trim_space_text(value)
+    value = go_trim_space(value)
     if value.isascii() and value.isdigit():
         seconds = int(value)
         if seconds > 2**64 - 1 or seconds > _MAX_DURATION // SECOND:

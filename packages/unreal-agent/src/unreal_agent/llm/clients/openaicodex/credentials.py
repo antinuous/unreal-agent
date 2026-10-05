@@ -10,9 +10,10 @@ from typing import Final
 import msgspec
 
 from unreal_agent._filepath import go_join
+from unreal_agent._go import go_trim_space
 from unreal_agent.gojson import Int64, JSONError
 from unreal_agent.llm.clients.openaicodex.config import Config
-from unreal_agent.llm.responsesapi._wire import decode_object, trim_space_text
+from unreal_agent.llm.responsesapi._wire import decode_object
 from unreal_agent.primitives._errors import describe
 
 __all__ = ["Credentials", "environment_config"]
@@ -31,7 +32,7 @@ def environment_config(getenv: Callable[[str], str | None] = os.getenv) -> Confi
     """Select a credential source without reading files or consulting API keys."""
 
     def env(key: str) -> str:
-        return trim_space_text(getenv(key) or "")
+        return go_trim_space(getenv(key) or "")
 
     config = Config(
         access_token=env("OPENAI_CODEX_ACCESS_TOKEN"),
@@ -58,7 +59,7 @@ def environment_config(getenv: Callable[[str], str | None] = os.getenv) -> Confi
 
 
 def credentials(config: Config) -> Credentials:
-    token, account_id = trim_space_text(config.access_token), trim_space_text(config.account_id)
+    token, account_id = go_trim_space(config.access_token), go_trim_space(config.account_id)
     if config.auth_file:
         if token or account_id:
             raise ValueError("codex AuthFile cannot be combined with AccessToken or AccountID")
@@ -142,7 +143,7 @@ def _read_auth_file(path: str) -> tuple[str, str]:
     if auth.auth_mode and auth.auth_mode != "chatgpt":
         raise ValueError("codex auth file is not a ChatGPT subscription login")
     tokens = auth.tokens or _Tokens()
-    return trim_space_text(tokens.access_token or ""), trim_space_text(tokens.account_id or "")
+    return go_trim_space(tokens.access_token or ""), go_trim_space(tokens.account_id or "")
 
 
 class _AuthClaims(msgspec.Struct):

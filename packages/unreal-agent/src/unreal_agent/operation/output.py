@@ -10,6 +10,8 @@ produces.
 import re
 from typing import Final
 
+from unreal_agent._go import go_bytes
+
 __all__ = ["DEFAULT_MAX_OUTPUT_LENGTH", "MAX_OUTPUT_LENGTH", "bound_output", "utf8_len"]
 
 DEFAULT_MAX_OUTPUT_LENGTH: Final = 40_000
@@ -69,12 +71,4 @@ def _sanitize(text: str) -> str:
 
 
 def _to_bytes(text: str | bytes) -> bytes:
-    if isinstance(text, bytes):
-        return text
-    try:
-        return text.encode("utf-8")
-    except UnicodeEncodeError:
-        try:
-            return text.encode("utf-8", "surrogateescape")
-        except UnicodeEncodeError:
-            return text.encode("utf-8", "surrogatepass")
+    return text if isinstance(text, bytes) else go_bytes(text)

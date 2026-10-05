@@ -8,11 +8,11 @@ from typing import Final
 
 import httpx
 
-from unreal_agent._go import go_quote
+from unreal_agent._go import go_quote, go_trim_space
 from unreal_agent.gojson import Timestamp
 from unreal_agent.llm.adapter import RequestOptions
 from unreal_agent.llm.model import Request, Response
-from unreal_agent.llm.responsesapi._wire import trim_space, trim_space_text
+from unreal_agent.llm.responsesapi._wire import trim_space
 from unreal_agent.llm.responsesapi.errors import APIError, StreamEndedError, TransportError
 from unreal_agent.llm.responsesapi.request import request_body
 from unreal_agent.llm.responsesapi.response import decode_response
@@ -107,7 +107,7 @@ class _Attempt:
 
 def check_config(config: Config) -> int:
     """Validate the configuration and return the attempt limit. Raises ValueError."""
-    if not trim_space_text(config.endpoint):
+    if not go_trim_space(config.endpoint):
         raise ValueError("responses API endpoint must be set")
     max_attempts = DEFAULT_MAX_ATTEMPTS if config.max_attempts is None else config.max_attempts
     if max_attempts <= 0:

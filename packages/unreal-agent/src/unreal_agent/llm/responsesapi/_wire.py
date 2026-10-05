@@ -3,6 +3,7 @@
 import codecs
 from typing import Final
 
+from unreal_agent._go import go_bytes
 from unreal_agent.gojson import JSONError, compact, decode, validate
 
 _ASCII_SPACE: Final = b" \t\n\v\f\r"
@@ -98,11 +99,6 @@ def trim_space(data: bytes) -> bytes:
             return data
 
 
-def trim_space_text(text: str) -> str:
-    """Go's `strings.TrimSpace`."""
-    return text.strip(_UNICODE_SPACE)
-
-
 def decode_object[T](data: bytes, kind: type[T]) -> T:
     """Decode a JSON object into a struct. JSON null leaves the zero value, as in Go."""
     if trim_space(data) == b"null":
@@ -140,11 +136,5 @@ def coerce_utf8(text: str) -> str:
     try:
         text.encode("utf-8")
     except UnicodeEncodeError:
-        pass
-    else:
-        return text
-    try:
-        data = text.encode("utf-8", "surrogateescape")
-    except UnicodeEncodeError:
-        data = text.encode("utf-8", "surrogatepass")
-    return data.decode("utf-8", "unreal_agent.replace_byte")
+        return go_bytes(text).decode("utf-8", "unreal_agent.replace_byte")
+    return text

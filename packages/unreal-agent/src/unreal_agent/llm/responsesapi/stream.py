@@ -5,13 +5,13 @@ from typing import Final
 
 import msgspec
 
+from unreal_agent._go import go_trim_space
 from unreal_agent.gojson import Int64, JSONError, Raw, encode
 from unreal_agent.llm.responsesapi._wire import (
     decode_object,
     reformat,
     status_text,
     trim_space,
-    trim_space_text,
 )
 from unreal_agent.llm.responsesapi.errors import APIError, StreamEndedError
 from unreal_agent.primitives._errors import UnexpectedEOFError
@@ -66,7 +66,7 @@ def provider_error(status_code: int, body: bytes) -> APIError:
                 param=error.param or "",
                 type=error.type or "",
             )
-    message = trim_space_text(body.decode("utf-8", "replace"))
+    message = go_trim_space(body.decode("utf-8", "replace"))
     if not message:
         message = status_text(status_code)
     return APIError(status_code=status_code, message=message)

@@ -4,13 +4,13 @@ import re
 from typing import Final
 from urllib.parse import urlsplit
 
+from unreal_agent._go import go_trim_space
 from unreal_agent.llm.adapter import RequestOptions
 from unreal_agent.llm.clients._base import ResponsesClient
 from unreal_agent.llm.clients.openaicodex.config import Config
 from unreal_agent.llm.clients.openaicodex.credentials import credentials
 from unreal_agent.llm.model import Request, Response
 from unreal_agent.llm.responsesapi import APIError, CacheKeyPlacement
-from unreal_agent.llm.responsesapi._wire import trim_space_text
 from unreal_agent.primitives import RemoteClient, new_remote_http_client
 from unreal_agent.primitives.primitive_event import cancel_requested
 
@@ -68,7 +68,7 @@ def _remote_without_redirects() -> RemoteClient:
 
 
 def validate_base_url(value: str) -> str:
-    value = trim_space_text(value).rstrip("/")
+    value = go_trim_space(value).rstrip("/")
     if not value or value == BASE_URL:
         return BASE_URL
     try:
