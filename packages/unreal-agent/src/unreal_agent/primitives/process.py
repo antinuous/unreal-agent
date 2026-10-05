@@ -10,12 +10,12 @@ from enum import IntEnum, IntFlag
 from typing import Final, Protocol
 
 from unreal_agent._filepath import go_clean
+from unreal_agent._go import go_quote
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
     FileClosedError,
     PrimitiveError,
     describe,
-    go_quote,
     has_errno,
     is_error,
     join,

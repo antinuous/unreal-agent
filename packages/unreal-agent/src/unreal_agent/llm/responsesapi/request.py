@@ -9,6 +9,7 @@ replayed in its own member order.
 from collections.abc import Mapping, Sequence
 from typing import Any, Final, cast
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import JSONError, Raw, encode, validate
 from unreal_agent.llm.model import (
     Item,
@@ -25,7 +26,6 @@ from unreal_agent.llm.model import (
     ToolType,
 )
 from unreal_agent.llm.responsesapi._wire import coerce_utf8, reformat_checked
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = ["request_body"]
 

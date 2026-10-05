@@ -13,6 +13,7 @@ from typing import Any, Final
 
 import httpx
 
+from unreal_agent._go import go_quote
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
     DeadlineExceededError,
@@ -20,7 +21,6 @@ from unreal_agent.primitives._errors import (
     UnexpectedEOFError,
     causes,
     describe,
-    go_quote,
     has_errno,
     join,
     wrap,

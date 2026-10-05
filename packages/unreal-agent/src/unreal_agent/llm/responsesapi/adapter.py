@@ -8,6 +8,7 @@ from typing import Final
 
 import httpx
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Timestamp
 from unreal_agent.llm.adapter import RequestOptions
 from unreal_agent.llm.model import Request, Response
@@ -38,7 +39,6 @@ from unreal_agent.primitives import (
     sse_data,
 )
 from unreal_agent.primitives import timer as _timer
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = [
     "DEFAULT_MAX_ATTEMPTS",

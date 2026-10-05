@@ -4,6 +4,7 @@ from typing import Annotated, Final, Protocol
 import msgspec
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import (
     Int64,
     JSONError,
@@ -32,7 +33,6 @@ from unreal_agent.operation.output import (
     bound_output,
     utf8_len,
 )
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = [
     "TYPE_REMOTE_JOB",

@@ -5,6 +5,7 @@ import stat
 from pathlib import Path
 
 import pytest
+from unreal_agent._go import go_quote
 from unreal_agent.primitives import (
     IO_READ_CHUNK_SIZE,
     CorrelationID,
@@ -17,7 +18,6 @@ from unreal_agent.primitives import (
     SourceID,
     read_file,
 )
-from unreal_agent.primitives._errors import go_quote
 from unreal_agent.primitives.channel import Channel
 from unreal_agent.primitives.file import file_type
 

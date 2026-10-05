@@ -93,27 +93,4 @@ def is_only_context_cancellation(error: BaseException) -> bool:
     return False
 
 
-def go_quote(text: str) -> str:
-    """Approximate Go's `%q` verb for strings."""
-    out = ['"']
-    for character in text:
-        code = ord(character)
-        if character in '"\\':
-            out.append("\\" + character)
-        elif character == "\n":
-            out.append("\\n")
-        elif character == "\r":
-            out.append("\\r")
-        elif character == "\t":
-            out.append("\\t")
-        elif code < 0x20 or code == 0x7F:
-            out.append(f"\\x{code:02x}")
-        elif 0xD800 <= code <= 0xDFFF:
-            out.append("\\ufffd")
-        else:
-            out.append(character)
-    out.append('"')
-    return "".join(out)
-
-
 EAGAIN_CODES = frozenset({errno_codes.EAGAIN, errno_codes.EWOULDBLOCK})

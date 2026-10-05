@@ -4,13 +4,8 @@ import stat
 from dataclasses import dataclass
 from typing import Final, Protocol
 
-from unreal_agent.primitives._errors import (
-    PrimitiveError,
-    UnexpectedEOFError,
-    go_quote,
-    join,
-    wrap,
-)
+from unreal_agent._go import go_quote
+from unreal_agent.primitives._errors import PrimitiveError, UnexpectedEOFError, join, wrap
 from unreal_agent.primitives._fileio import File
 from unreal_agent.primitives.primitive_event import (
     NO_CORRELATION,

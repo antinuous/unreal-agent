@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Final
 
+from unreal_agent._go import go_quote
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
     PrimitiveError,
-    go_quote,
     is_only_context_cancellation,
     join,
     wrap,

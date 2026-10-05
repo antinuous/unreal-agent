@@ -11,6 +11,7 @@ from typing import Any, cast
 import pytest
 from msgspec.structs import replace
 from PIL import Image
+from unreal_agent._go import go_quote
 from unreal_agent.operation import (
     MAX_VIEW_IMAGE_SOURCE_BYTES,
     LocalOperationManager,
@@ -47,7 +48,7 @@ from unreal_agent.primitives import (
     SourceID,
     compute,
 )
-from unreal_agent.primitives._errors import ContextCanceledError, go_quote
+from unreal_agent.primitives._errors import ContextCanceledError
 
 from tests.operation._helpers import Panic
 

@@ -11,6 +11,7 @@ import msgspec
 from msgspec.structs import replace
 from PIL import Image, UnidentifiedImageError
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Int64, JSONError, OmitZero, Raw, Struct, decode, encode
 from unreal_agent.operation.operation import (
     Operation,
@@ -34,7 +35,7 @@ from unreal_agent.primitives import (
     PrimitiveFailureResult,
     SourceID,
 )
-from unreal_agent.primitives._errors import ContextCanceledError, go_quote
+from unreal_agent.primitives._errors import ContextCanceledError
 
 __all__ = [
     "DEFAULT_MAX_VIEW_IMAGE_SOURCE_PIXELS",

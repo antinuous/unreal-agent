@@ -7,6 +7,7 @@ import msgspec
 from msgspec.structs import replace
 
 from unreal_agent._filepath import go_join
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Int64, JSONError, Raw, Struct, decode, encode
 from unreal_agent.operation.operation import (
     ID,
@@ -36,7 +37,6 @@ from unreal_agent.primitives import (
     ProcessStartRequest,
     SourceID,
 )
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = [
     "SHELL_ERR_FILENAME",

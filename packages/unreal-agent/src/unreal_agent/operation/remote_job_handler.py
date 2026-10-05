@@ -3,9 +3,9 @@ import contextlib
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 
+from unreal_agent._go import go_quote
 from unreal_agent.operation.operation import ID, Operation, OperationError, Status, unsupported
 from unreal_agent.operation.remote_job import RemoteJobHandler, decode_remote_job_state
-from unreal_agent.primitives._errors import go_quote
 
 
 @dataclass(slots=True)

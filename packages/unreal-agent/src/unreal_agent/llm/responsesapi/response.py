@@ -10,6 +10,7 @@ from typing import Final
 
 import msgspec
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import Int64, JSONError, Raw
 from unreal_agent.llm.model import (
     Failure,
@@ -24,7 +25,6 @@ from unreal_agent.llm.model import (
     Usage,
 )
 from unreal_agent.llm.responsesapi._wire import decode_object
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = ["decode_response"]
 

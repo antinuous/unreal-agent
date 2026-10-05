@@ -2,6 +2,7 @@ from typing import Final
 
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote
 from unreal_agent.gojson import JSONError, Raw, Struct, decode, encode, is_valid_json
 from unreal_agent.operation.operation import (
     Operation,
@@ -12,7 +13,6 @@ from unreal_agent.operation.operation import (
     unsupported,
 )
 from unreal_agent.primitives import PrimitiveEvent
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = [
     "TYPE_VALUE",

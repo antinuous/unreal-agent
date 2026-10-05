@@ -6,6 +6,7 @@ from typing import Any, Final, Self
 
 from msgspec.structs import replace
 
+from unreal_agent._go import go_quote
 from unreal_agent.operation.image import TYPE_VIEW_IMAGE, ViewImage, fail_view_image
 from unreal_agent.operation.operation import (
     ID,
@@ -46,7 +47,6 @@ from unreal_agent.primitives import (
     read_file,
     start_process,
 )
-from unreal_agent.primitives._errors import go_quote
 
 __all__ = ["ClosedError", "LocalOperationManager"]
 
