@@ -70,6 +70,9 @@ class Struct(msgspec.Struct, kw_only=True):
     Every field must have a default so decoding tolerates absent members the
     way Go does. Annotate a field with `OmitZero` or `OmitEmpty` to mirror the
     corresponding Go struct tag.
+
+    Define `__gojson_validate__(self) -> None` to reject a value before it is
+    encoded, like a Go MarshalJSON method that validates first.
     """
 
 
@@ -417,6 +420,9 @@ class _Encoder:
                 raise JSONError(f"unsupported type {type(value).__name__}")
 
     def write_struct(self, value: msgspec.Struct) -> None:
+        validate = getattr(value, "__gojson_validate__", None)
+        if validate is not None:
+            validate()
         out = self.out
         out += b"{"
         first = True
