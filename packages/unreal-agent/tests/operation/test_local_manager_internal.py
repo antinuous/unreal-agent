@@ -1,6 +1,6 @@
 import asyncio
 import threading
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
@@ -378,7 +378,7 @@ class _BlockingRemoteJobHandler:
     async def cancel_remote_job(self, id: str, reason: str) -> None:
         pass
 
-    async def remote_job_updates(self) -> AsyncIterator[Operation]:
+    async def remote_job_updates(self) -> AsyncGenerator[Operation]:
         while True:
             try:
                 yield await self.updates.get()

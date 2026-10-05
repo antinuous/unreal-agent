@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 
@@ -83,8 +84,9 @@ class RemoteJobHandlers:
     @staticmethod
     async def _forward(index: int, handler: RemoteJobHandler, deliver: _Deliver) -> None:
         try:
-            async for operation in handler.remote_job_updates():
-                await deliver(RemoteJobHandlerUpdate(index, operation))
+            async with contextlib.aclosing(handler.remote_job_updates()) as updates:
+                async for operation in updates:
+                    await deliver(RemoteJobHandlerUpdate(index, operation))
         except Exception:
             # A failed update stream stops the handler like a closed Go channel.
             pass

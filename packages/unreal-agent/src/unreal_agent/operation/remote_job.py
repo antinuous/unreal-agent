@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from typing import Annotated, Final, Protocol
 
 import msgspec
@@ -75,7 +75,7 @@ class RemoteJobHandler(Protocol):
 
     async def cancel_remote_job(self, id: ID, reason: str, /) -> None: ...
 
-    def remote_job_updates(self) -> AsyncIterator[Operation]: ...
+    def remote_job_updates(self) -> AsyncGenerator[Operation]: ...
 
 
 class RemoteJobState(Struct):

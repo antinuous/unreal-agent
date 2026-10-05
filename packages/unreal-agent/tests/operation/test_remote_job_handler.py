@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass, field
 from typing import cast
 
@@ -54,7 +54,7 @@ class FakeRemoteJobHandler:
             raise self.cancel_error
         await self.cancellations.put(Cancellation(id, reason))
 
-    async def remote_job_updates(self) -> AsyncIterator[Operation]:
+    async def remote_job_updates(self) -> AsyncGenerator[Operation]:
         while True:
             try:
                 yield await self.updates.get()
@@ -323,3 +323,40 @@ async def test_local_operation_manager_adds_remote_job_once(new_manager: NewMana
     await receive(handler.adds)
     await manager.add(current)
     assert handler.adds.empty(), "duplicate add"
+
+
+async def test_remote_job_handlers_close_update_stream_when_stopped() -> None:
+    from unreal_agent.operation.remote_job_handler import (
+        RemoteJobHandlers,
+        RemoteJobHandlerUpdate,
+    )
+
+    closed = asyncio.Event()
+    delivering = asyncio.Event()
+
+    async def updates() -> AsyncGenerator[Operation]:
+        try:
+            yield new_remote_job_operation("operation-1")
+            await asyncio.Event().wait()
+        finally:
+            await asyncio.sleep(0)
+            closed.set()
+
+    # Holding the iterator keeps garbage collection from closing it instead.
+    iterator = updates()
+
+    class Handler(FakeRemoteJobHandler):
+        def remote_job_updates(self) -> AsyncGenerator[Operation]:
+            return iterator
+
+    async def deliver(update: RemoteJobHandlerUpdate) -> None:
+        if update.operation is not None:
+            delivering.set()
+            await asyncio.Event().wait()
+
+    handlers = RemoteJobHandlers([Handler()])
+    handlers.start(deliver)
+    await delivering.wait()
+    handlers.stop()
+    await handlers.wait()
+    assert closed.is_set()
