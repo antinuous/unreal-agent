@@ -519,6 +519,8 @@ async def test_run_main_uses_default_session_directory(
         pytest.param(" /sessions ", "/state", "/home/user", "/sessions", id="absolute override"),
         pytest.param("sessions", "/state", "", None, id="relative override"),
         pytest.param("/sessions", "", "", "/sessions", id="override without environment"),
+        pytest.param("//sessions/", "", "", "/sessions", id="override cleaned like go"),
+        pytest.param("//a/../sessions", "", "", "/sessions", id="override dot-dot cleaned"),
     ],
 )
 def test_resolve_session_directory(
@@ -546,3 +548,9 @@ def test_resolve_session_directory_rejects_missing_state_location(
         resolve_session_directory(
             "", environment({"XDG_STATE_HOME": "relative/state", "HOME": user_home})
         )
+
+
+def test_resolve_workspace_cleans_like_go(tmp_path: Path) -> None:
+    from unreal_agent.runner.run import _resolve_workspace
+
+    assert _resolve_workspace(" /" + str(tmp_path) + "//x/.. ") == str(tmp_path)

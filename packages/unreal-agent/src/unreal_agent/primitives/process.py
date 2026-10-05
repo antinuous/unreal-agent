@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, IntFlag
 from typing import Final, Protocol
 
+from unreal_agent._filepath import go_clean
 from unreal_agent.primitives._errors import (
     ContextCanceledError,
     FileClosedError,
@@ -1108,7 +1109,7 @@ def validate_process_start_request(request: ProcessStartRequest) -> PrimitiveErr
     if (
         request.stdout_path
         and request.stderr_path
-        and os.path.normpath(request.stdout_path) == os.path.normpath(request.stderr_path)
+        and go_clean(request.stdout_path) == go_clean(request.stderr_path)
     ):
         return PrimitiveError("start process: stdout and stderr capture paths must differ")
     return None

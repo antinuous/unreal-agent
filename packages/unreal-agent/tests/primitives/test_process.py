@@ -302,6 +302,22 @@ async def test_process_rejects_invalid_capture_configuration(tmp_path: Path) -> 
         assert result(event, PrimitiveFailureResult).error
 
 
+@pytest.mark.parametrize("stderr_path", ["/{path}", "{dir}//./capture", "{dir}/x/../capture"])
+async def test_process_compares_capture_paths_after_go_clean(
+    tmp_path: Path, stderr_path: str
+) -> None:
+    path = tmp_path / "capture"
+    request = ProcessStartRequest(
+        path="/bin/true",
+        stdout_path=str(path),
+        stderr_path=stderr_path.format(path=path, dir=tmp_path),
+    )
+    event = single_event(await collect_events(start(request).events), PrimitiveEventType.FAILED)
+    assert result(event, PrimitiveFailureResult).error == (
+        "start process: stdout and stderr capture paths must differ"
+    )
+
+
 async def test_process_rejects_aliased_capture_paths_before_truncating(tmp_path: Path) -> None:
     stdout_path, stderr_path = tmp_path / "stdout", tmp_path / "stderr"
     stdout_path.write_bytes(b"preserved")

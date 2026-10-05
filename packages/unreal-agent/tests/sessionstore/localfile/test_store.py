@@ -1141,3 +1141,9 @@ async def test_list_sessions_reports_cancellation_and_directory_errors(tmp_path:
     directory.rmdir()
     with pytest.raises(FileNotFoundError):
         await store.list_sessions()
+
+
+def test_store_cleans_directory_like_go(tmp_path: Path) -> None:
+    store = Store("/" + str(tmp_path) + "//sessions/./")
+    assert store.directory == str(tmp_path / "sessions")
+    assert store.session_path("s") == str(tmp_path / "sessions" / "s.session.jsonl")

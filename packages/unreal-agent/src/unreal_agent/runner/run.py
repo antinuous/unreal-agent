@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, Final
 
 from unreal_agent import gojson
+from unreal_agent._filepath import go_abs
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, Dependencies
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind, Settings
@@ -392,7 +393,7 @@ async def _run(
 
 
 def _resolve_workspace(configured: str) -> str:
-    workspace = os.path.abspath(go_trim_space(configured))
+    workspace = go_abs(go_trim_space(configured))
     try:
         info = os.stat(workspace)
     except OSError as error:
@@ -473,7 +474,7 @@ def _select_provider(
 def resolve_session_directory(configured: str, getenv: Getenv) -> str:
     """Raises RunnerError when no absolute state location is available."""
     if configured := go_trim_space(configured):
-        return os.path.abspath(configured)
+        return go_abs(configured)
     state_home = getenv("XDG_STATE_HOME")
     if not os.path.isabs(state_home):
         user_home = getenv("HOME") or os.environ.get("HOME", "")

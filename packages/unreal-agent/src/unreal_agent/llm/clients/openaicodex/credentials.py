@@ -9,6 +9,7 @@ from typing import Final
 
 import msgspec
 
+from unreal_agent._filepath import go_join
 from unreal_agent.gojson import Int64, JSONError
 from unreal_agent.llm.clients.openaicodex.config import Config
 from unreal_agent.llm.responsesapi._wire import decode_object, trim_space_text
@@ -51,8 +52,8 @@ def environment_config(getenv: Callable[[str], str | None] = os.getenv) -> Confi
             user_home = os.environ.get("HOME", "")
             if not user_home:
                 raise ValueError("find Codex home: $HOME is not defined")
-        home = os.path.normpath(os.path.join(user_home, ".codex"))
-    config.auth_file = os.path.normpath(os.path.join(home, "auth.json"))
+        home = go_join(user_home, ".codex")
+    config.auth_file = go_join(home, "auth.json")
     return config
 
 

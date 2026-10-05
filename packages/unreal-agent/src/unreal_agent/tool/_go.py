@@ -8,6 +8,8 @@ quoting, trimming, and replacement match Go's rune decoding.
 import re
 from typing import Final
 
+from unreal_agent._filepath import go_clean, go_join
+
 __all__ = [
     "decode_rune",
     "go_bytes",
@@ -147,33 +149,3 @@ def go_quote_rune(data: bytes) -> str:
     if rune == RUNE_ERROR and size == 1:
         return f"'\\x{data[0]:x}'"
     return "'" + _escaped_rune(rune, "'") + "'"
-
-
-def go_clean(path: str) -> str:
-    """filepath.Clean for slash-separated paths."""
-    if not path:
-        return "."
-    rooted = path.startswith("/")
-    parts: list[str] = []
-    for part in path.split("/"):
-        if part in ("", "."):
-            continue
-        if part == "..":
-            if parts and parts[-1] != "..":
-                parts.pop()
-            elif not rooted:
-                parts.append("..")
-            continue
-        parts.append(part)
-    cleaned = "/".join(parts)
-    if rooted:
-        return "/" + cleaned
-    return cleaned or "."
-
-
-def go_join(*elements: str) -> str:
-    """filepath.Join for slash-separated paths."""
-    present = [element for element in elements if element]
-    if not present:
-        return ""
-    return go_clean("/".join(present))

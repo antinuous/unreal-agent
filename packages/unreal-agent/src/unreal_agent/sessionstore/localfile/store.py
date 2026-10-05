@@ -12,6 +12,7 @@ from typing import Any, Final
 
 from msgspec.structs import replace
 
+from unreal_agent._filepath import go_abs, go_join
 from unreal_agent.gojson import Timestamp
 from unreal_agent.inbox import Input
 from unreal_agent.operation import Operation
@@ -76,7 +77,7 @@ class Store:
         text = os.fspath(directory)
         if text.strip() == "":
             raise StoreError("session store directory is empty")
-        absolute = os.path.abspath(text)
+        absolute = go_abs(text)
         try:
             _make_directories(absolute)
         except OSError as error:
@@ -198,7 +199,7 @@ class Store:
         return _copy_snapshot(state.head.snapshot)
 
     def session_path(self, id: SessionID) -> str:
-        return os.path.join(self._directory, id + SESSION_FILE_SUFFIX)
+        return go_join(self._directory, id + SESSION_FILE_SUFFIX)
 
     async def _write(self, id: SessionID, apply: _Apply) -> None:
         validate_session_id(id)

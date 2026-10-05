@@ -1,5 +1,4 @@
 import os
-import posixpath
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
@@ -7,6 +6,7 @@ from typing import Final
 import msgspec
 from msgspec.structs import replace
 
+from unreal_agent._filepath import go_join
 from unreal_agent.gojson import Int64, JSONError, Raw, Struct, decode, encode
 from unreal_agent.operation.operation import (
     ID,
@@ -497,23 +497,15 @@ def _go_base(path: str) -> str:
     return trimmed[trimmed.rfind("/") + 1 :]
 
 
-def _go_join(*elements: str) -> str:
-    joined = "/".join(element for element in elements if element)
-    if not joined:
-        return ""
-    cleaned = posixpath.normpath(joined)
-    return "/" + cleaned.lstrip("/") if cleaned.startswith("//") else cleaned
-
-
 def _new_shell_paths(base_directory: str, operation_id: ID) -> _ShellPaths:
     name = operation_id
     if name in ("", ".", "..") or os.path.isabs(name) or _go_base(name) != name:
         raise OperationError(f"operation ID {go_quote(operation_id)} is not a path component")
-    directory = _go_join(base_directory, name)
+    directory = go_join(base_directory, name)
     return _ShellPaths(
         directory=directory,
-        out=_go_join(directory, SHELL_OUT_FILENAME),
-        err=_go_join(directory, SHELL_ERR_FILENAME),
+        out=go_join(directory, SHELL_OUT_FILENAME),
+        err=go_join(directory, SHELL_ERR_FILENAME),
     )
 
 
