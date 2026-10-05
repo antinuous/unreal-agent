@@ -250,9 +250,6 @@ class FailingItemWriter:
         pass
 
 
-# --- Fake time ---------------------------------------------------------------------
-
-
 async def wait() -> None:
     """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
@@ -289,9 +286,6 @@ def without_threads() -> Iterator[None]:
         mock.patch("unreal_agent.primitives.file.run_blocking", _inline_blocking),
     ):
         yield
-
-
-# --- Log fuzz helpers --------------------------------------------------------------
 
 
 def log_json(value: Any) -> gojson.Raw:
@@ -404,9 +398,6 @@ def with_log_fuzz_seeds[F: Callable[..., Any]](test: F) -> F:
     for actions, text, tokens in LOG_FUZZ_SEEDS:
         test = example(actions, text, tokens, tokens // 3, tokens // 5, tokens, tokens // 2)(test)
     return test
-
-
-# --- HTTP test server --------------------------------------------------------------
 
 
 @dataclass(slots=True)

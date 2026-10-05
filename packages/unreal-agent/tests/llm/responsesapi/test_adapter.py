@@ -78,9 +78,6 @@ def fake_wall_clock(monkeypatch: pytest.MonkeyPatch) -> Callable[[], Timestamp]:
     return now
 
 
-# --- Transport helpers ----------------------------------------------------------
-
-
 class Stream(httpx.AsyncByteStream):
     """A response body: chunks, then an optional error or a wait for cancellation."""
 
@@ -198,9 +195,6 @@ def assert_response_error(
 async def settle() -> None:
     for _ in range(200):
         await asyncio.sleep(0)
-
-
-# --- adapter ------------------------------------------------------------------
 
 
 async def test_adapter_remote_requests_use_uuid_correlation_ids() -> None:
@@ -503,9 +497,6 @@ async def test_headerless_http_error_preserves_details() -> None:
     assert traced[-1].response_body == body
 
 
-# --- stream -------------------------------------------------------------------
-
-
 async def test_responses_streaming_returns_terminal_response() -> None:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Accept"] == "text/event-stream"
@@ -768,9 +759,6 @@ async def test_responses_preserves_terminal_after_disconnect(max_attempts: int) 
     assert response == decode_response(COMPLETED_RESPONSE)
 
 
-# --- retry --------------------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     ("limit", "attempts"),
     [
@@ -862,9 +850,6 @@ async def test_adapter_does_not_retry_missing_required_parameter() -> None:
     assert isinstance(error, APIError)
     assert error.code == "missing_required_parameter"
     assert attempts == 1
-
-
-# --- retry timing -------------------------------------------------------------
 
 
 @dataclass
@@ -1099,9 +1084,6 @@ async def test_exchange_backoff_cancellation(
     assert len(transport.calls) == 2, "retried after cancellation or deadline"
 
 
-# --- exchange retry -----------------------------------------------------------
-
-
 @pytest.mark.parametrize("kind", ["error", "response.failed"])
 @pytest.mark.parametrize("code", ["rate_limit_exceeded", "server_error"])
 async def test_exchange_restarts_failed_generation(kind: str, code: str) -> None:
@@ -1223,9 +1205,6 @@ async def test_exchange_incomplete_responses_are_not_retried(reason: str, stop: 
     )
     assert response.Stop == stop
     assert calls == 1
-
-
-# --- transport retry ----------------------------------------------------------
 
 
 async def test_exchange_retries_header_timeout() -> None:

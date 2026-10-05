@@ -49,8 +49,6 @@ COMPLETED = (
     b"\n\n"
 )
 
-# --- Local HTTP/1.1 test server -------------------------------------------------
-
 
 @dataclass
 class ServerRequest:
@@ -171,9 +169,6 @@ def hello(model: str) -> Request:
         Model=Model(ID=model),
         Input=[Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="hello"))],
     )
-
-
-# --- openai, openrouter, fireworks ----------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -319,9 +314,6 @@ async def test_fireworks_client_calls_responses_api() -> None:
     )
 
 
-# --- ollama ---------------------------------------------------------------------
-
-
 async def test_ollama_client_uses_responses_without_authentication() -> None:
     def handler(request: ServerRequest, writer: ResponseWriter) -> None:
         assert (request.method, request.path) == ("POST", "/v1/responses")
@@ -405,9 +397,6 @@ async def test_ollama_live_tool_round_trip() -> None:
             isinstance(item.Data, Message) and secret in item.Data.Text
             for item in (response.Output or [])
         ), "model did not return the tool result"
-
-
-# --- openaicodex ----------------------------------------------------------------
 
 
 async def test_codex_client_uses_subscription_protocol() -> None:
@@ -581,8 +570,6 @@ def test_codex_client_configuration_validation() -> None:
         with pytest.raises(ValueError, match="must be"):
             openaicodex.Client(config)
 
-
-# --- providers stream ---------------------------------------------------------
 
 TOOL_CALL = (
     b'{"type":"function_call","id":"fc-1","call_id":"call-1","name":"Bash",'

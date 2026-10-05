@@ -170,9 +170,6 @@ def turn_item(sequence: int, turn: Turn) -> Item:
     return Item(Sequence=sequence, RecordedAt=STATE_UPDATED_AT, Kind=ItemKind.TURN, Data=turn)
 
 
-# State transitions.
-
-
 def test_stored_state_lifecycle() -> None:
     state = new_stored_state("session-1", STATE_CREATED_AT)
     input = Input(ID="input-1", Kind=InputKind.EXTERNAL, Payload=Raw(b'{"message":"hello"}'))
@@ -652,9 +649,6 @@ def test_fork_stored_state_scopes_delayed_statuses_to_owning_branch() -> None:
     decode_log(encode_initial_log(grandchild.head.snapshot.session, grandchild.items))
 
 
-# Log encoding and decoding.
-
-
 @pytest.mark.parametrize(
     ("state", "want"),
     [
@@ -1001,9 +995,6 @@ def test_turn_types_survive_reopen(outcome: str) -> None:
         reopened.append_model_response(response, STATE_UPDATED_AT)
 
 
-# Golden fixtures.
-
-
 def test_store_loads_golden_log() -> None:
     store = Store(TESTDATA)
     got, committed_size = store._read_state("golden-session")
@@ -1250,9 +1241,6 @@ def test_soft_stop_session_re_encodes_byte_identical() -> None:
     assert encode_record(RecordType.ITEM, record) == item_line
 
 
-# Store internals.
-
-
 async def test_store_caches_write_state_for_created_and_loaded_sessions(tmp_path: Path) -> None:
     store = Store(tmp_path)
     await store.create("session-1")
@@ -1401,9 +1389,6 @@ async def test_compaction_history_reopens_and_forks(tmp_path: Path, outcome: str
     )
     await store.append_model_response("child", valid_response("child-turn"))
     await store.resume("child")
-
-
-# Listing internals.
 
 
 @pytest.mark.parametrize(

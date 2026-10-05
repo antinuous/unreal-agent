@@ -80,9 +80,6 @@ SLURP_IDLE_TIMEOUT_NS = MILLISECOND
 TOOL_CALL_RUN_GRACE_PERIOD_NS = SECOND
 
 
-# --- Fake time -------------------------------------------------------------------
-
-
 async def wait() -> None:
     """Go's `fake_time.Wait`: run the loop until no callback is ready or due."""
     loop = asyncio.get_running_loop()
@@ -114,9 +111,6 @@ async def advance(duration: int) -> None:
     await wait()
 
 
-# --- Errors ----------------------------------------------------------------------
-
-
 def chain(error: BaseException | None) -> list[BaseException]:
     """The error with every cause, context, and group member, like Go's errors.Is walk."""
     seen: list[BaseException] = []
@@ -140,9 +134,6 @@ def caused_by(error: BaseException | None, target: BaseException | type[BaseExce
         elif value is target:
             return True
     return False
-
-
-# --- Values ----------------------------------------------------------------------
 
 
 def clone[T](value: T, kind: type[T]) -> T:
@@ -203,9 +194,6 @@ def with_preamble(*items: LLMItem) -> list[LLMItem]:
 
 def value_spec(value: bytes = b"1") -> Spec:
     return new_value_spec(gojson.Raw(value))
-
-
-# --- Translators -----------------------------------------------------------------
 
 
 class TestTranslator:
@@ -284,9 +272,6 @@ class SubmittingResultErrorTranslator(SubmittingTranslator):
 
     def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
         raise self.error
-
-
-# --- Fake store --------------------------------------------------------------------
 
 
 @dataclass(slots=True)
@@ -395,9 +380,6 @@ def empty_fake_store() -> FakeStore:
 
 def as_store(store: object) -> Store:
     return cast(Store, store)
-
-
-# --- In-memory session store -------------------------------------------------------
 
 
 class MemoryStore:
@@ -534,9 +516,6 @@ class FailingStore:
         await self.store.append_tool_call_status(id, status)
 
 
-# --- Fake operation manager and model ----------------------------------------------
-
-
 class QueueIterator[T]:
     def __init__(self, queue: asyncio.Queue[T]) -> None:
         self._queue = queue
@@ -630,9 +609,6 @@ async def ignoring_cancellation[T](future: asyncio.Future[T]) -> T:
                 return future.result()
 
 
-# --- Coordinator construction --------------------------------------------------------
-
-
 def new_test_inbox() -> Inbox:
     return Inbox()
 
@@ -721,9 +697,6 @@ def assert_stop_result(request: Request, call_id: str, want: str) -> None:
             if result.CallID == call_id and result.Output[0].Value == want:
                 return
     raise AssertionError(f"request lacks result {want!r} for {call_id!r}")
-
-
-# --- Running coordinators --------------------------------------------------------------
 
 
 @dataclass(eq=False)
@@ -856,9 +829,6 @@ def stop_test_adapter(run: StopTestRun, *, ignore_cancellation: bool = False) ->
     return FakeAdapter(respond)
 
 
-# --- Heartbeats --------------------------------------------------------------------------
-
-
 class HeartbeatTestRun(StopTestRun):
     def __init__(self, *args: Any) -> None:
         super().__init__(*args)
@@ -908,9 +878,6 @@ async def advance_heartbeat_time(duration: int) -> None:
     await advance(duration)
 
 
-# --- Tool grace ------------------------------------------------------------------------
-
-
 def new_tool_grace_test_run() -> StopTestRun:
     run = new_stop_test_run(0)
     translator = SubmissionTranslator([value_spec()])
@@ -942,9 +909,6 @@ async def update_tool_grace_call(run: StopTestRun, call_id: str, terminal: Statu
             await sleep_ns(2 * SLURP_IDLE_TIMEOUT_NS)
             return
     raise AssertionError(f"tool call {call_id!r} was not scheduled")
-
-
-# --- Persistence -------------------------------------------------------------------------
 
 
 async def persist_test_run(run: StopTestRun) -> MemoryStore:

@@ -50,8 +50,6 @@ from unreal_agent.primitives.remote import (
 
 IO_READ_CHUNK_SIZE = 32 * 1024
 
-# --- Local HTTP/1.1 test server -------------------------------------------------
-
 
 @dataclass
 class ServerRequest:
@@ -197,9 +195,6 @@ def redirect(writer: ResponseWriter, location: str, status: int) -> None:
     writer.write(f'<a href="{location}">{_phrase(status)}</a>.\n'.encode())
 
 
-# --- Mock transport bodies ------------------------------------------------------
-
-
 class Body(httpx.AsyncByteStream):
     def __init__(
         self,
@@ -245,9 +240,6 @@ def mock_http_client(
 
 def body_client(body: Body, headers: dict[str, str] | None = None) -> httpx.AsyncClient:
     return mock_http_client(lambda _: httpx.Response(200, headers=headers or {}, stream=body))
-
-
-# --- Event helpers --------------------------------------------------------------
 
 
 async def collect(events: Channel[PrimitiveEvent]) -> list[PrimitiveEvent]:
@@ -331,9 +323,6 @@ async def with_cancel_requested[T](function: Callable[[], Awaitable[T]]) -> T:
     with contextlib.suppress(asyncio.CancelledError):
         await task
     return result[0]
-
-
-# --- Tests ----------------------------------------------------------------------
 
 
 def test_default_remote_request_retries_transient_status_codes() -> None:
