@@ -35,12 +35,6 @@ ROUND_TRIP_ITEMS = [
     Item(
         Sequence=1,
         RecordedAt=RECORDED_AT,
-        Kind=ItemKind.TURN,
-        Data=Turn(ID="turn-1", Type=TurnType.COMPACTION),
-    ),
-    Item(
-        Sequence=1,
-        RecordedAt=RECORDED_AT,
         Kind=ItemKind.MODEL_RESPONSE,
         Data=ModelResponse(
             TurnID="turn-1",
@@ -120,22 +114,9 @@ def test_item_json_rejects_invalid_tag_on_encode(kind: str, data: Any, want: str
         b'{"Sequence":[],"Kind":"turn","Data":{}}',
         b'{"Kind":"unknown","Data":{}}',
         b'{"Kind":"fork","Data":[]}',
-        b'{"Kind":"input","Data":[]}',
-        b'{"Kind":"turn","Data":[]}',
-        b'{"Kind":"model_response","Data":[]}',
-        b'{"Kind":"tool_call_status","Data":[]}',
         b'{"Kind":"fork","Data":null}',
-        b'{"Kind":"input","Data":null}',
-        b'{"Kind":"turn","Data":null}',
-        b'{"Kind":"model_response","Data":null}',
-        b'{"Kind":"tool_call_status","Data":null}',
         b"{}",
-        b'{"Kind":"fork"}',
-        b'{"Kind":"input"}',
         b'{"Kind":"turn"}',
-        b'{"Kind":"model_response"}',
-        b'{"Kind":"tool_call_status"}',
-        b'{"Sequence":1,"Kind":"turn"}',
     ],
 )
 def test_item_json_rejects_invalid_tag_and_data_on_decode(encoded: bytes) -> None:

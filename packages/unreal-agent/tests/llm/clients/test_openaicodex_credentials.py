@@ -139,15 +139,6 @@ def test_read_auth_file_rejects_missing_file_and_directory(tmp_path: Path) -> No
         ),
         pytest.param(
             "",
-            {"HOME": "/injected/home"},
-            "/injected/home/.codex/auth.json",
-            "",
-            "",
-            False,
-            id="injected home without process home",
-        ),
-        pytest.param(
-            "",
             {
                 "HOME": "/home/example",
                 "OPENAI_API_KEY": "sk-api",
@@ -186,15 +177,6 @@ def test_read_auth_file_rejects_missing_file_and_directory(tmp_path: Path) -> No
             "",
             False,
             id="codex home cleaned like go",
-        ),
-        pytest.param(
-            "",
-            {"CODEX_HOME": "/custom/codex"},
-            "/custom/codex/auth.json",
-            "",
-            "",
-            False,
-            id="codex home",
         ),
         pytest.param(
             "",

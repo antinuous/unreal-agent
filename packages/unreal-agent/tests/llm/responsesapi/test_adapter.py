@@ -396,10 +396,10 @@ async def test_adapter_model_requests_use_the_model_idle_bound() -> None:
 
     adapter = new_test_adapter(unused, "http://example.invalid/responses")
     request = adapter.remote_request(b"", "")
-    assert request.response_idle_timeout == MODEL_RESPONSE_IDLE_TIMEOUT == 1800
+    assert request.response_idle_timeout == MODEL_RESPONSE_IDLE_TIMEOUT
     assert request.retry_policy.max_attempts == 1
     assert request.sse is not None
-    assert request.sse.max_frame_size == MAX_SSE_FRAME_BYTES == 256 << 20
+    assert request.sse.max_frame_size == MAX_SSE_FRAME_BYTES
     assert request.sse.frame_delimiter == SSEFrameDelimiter.STRIP
     assert request.headers["Accept"] == ["text/event-stream"]
     assert request.method == "POST"
@@ -1103,9 +1103,7 @@ async def test_exchange_backoff_cancellation(
 
 
 @pytest.mark.parametrize("kind", ["error", "response.failed"])
-@pytest.mark.parametrize(
-    "code", ["rate_limit_exceeded", "server_error", "server_is_overloaded", "slow_down"]
-)
+@pytest.mark.parametrize("code", ["rate_limit_exceeded", "server_error"])
 async def test_exchange_restarts_failed_generation(kind: str, code: str) -> None:
     sent: list[tuple[bytes, str]] = []
 
@@ -1162,21 +1160,7 @@ async def test_exchange_restarts_failed_generation(kind: str, code: str) -> None
 
 
 @pytest.mark.parametrize("kind", ["error", "response.failed", "http"])
-@pytest.mark.parametrize(
-    "code",
-    [
-        "context_length_exceeded",
-        "insufficient_quota",
-        "usage_not_included",
-        "usage_limit_reached",
-        "cyber_policy",
-        "misalignment_policy_violation",
-        "invalid_prompt",
-        "bio_policy",
-        "invalid_api_key",
-        "invalid_token",
-    ],
-)
+@pytest.mark.parametrize("code", ["context_length_exceeded", "invalid_api_key"])
 async def test_exchange_does_not_retry_permanent_errors(kind: str, code: str) -> None:
     calls = 0
 

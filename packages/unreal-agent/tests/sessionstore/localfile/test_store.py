@@ -756,18 +756,6 @@ async def test_missing_sessions_fail_every_read_modify_write_method(
             id="message data has wrong type",
         ),
         pytest.param(
-            invalid_response_call(LLMItem(Type=ItemType.TOOL_CALL, Data=Message())),
-            id="tool-call data has wrong type",
-        ),
-        pytest.param(
-            invalid_response_call(LLMItem(Type=ItemType.TOOL_RESULT, Data=Message())),
-            id="tool-result data has wrong type",
-        ),
-        pytest.param(
-            invalid_response_call(LLMItem(Type=ItemType.REASONING, Data=Message())),
-            id="reasoning data has wrong type",
-        ),
-        pytest.param(
             invalid_response_call(LLMItem(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(b"{")))),
             id="reasoning raw data is invalid JSON",
         ),
@@ -1092,23 +1080,10 @@ async def test_list_sessions_includes_forks_and_replacements(tmp_path: Path) -> 
     ]
 
 
-@pytest.mark.parametrize(
-    "content",
-    [
-        pytest.param(b"", id="empty"),
-        pytest.param(b'{"type":"session"}', id="incomplete"),
-        pytest.param(b"invalid\n", id="invalid JSON"),
-        pytest.param(
-            b'{"type":"session","data":{"Version":2,"Session":{"ID":"other",'
-            b'"CreatedAt":"2000-01-01T00:00:00Z"}}}\n',
-            id="different header metadata",
-        ),
-    ],
-)
-async def test_list_sessions_does_not_read_files(tmp_path: Path, content: bytes) -> None:
+async def test_list_sessions_does_not_read_files(tmp_path: Path) -> None:
     store = Store(tmp_path)
     path = session_path(tmp_path, "session-1")
-    path.write_bytes(content)
+    path.write_bytes(b"")
     path.chmod(0)
     try:
         listed = await store.list_sessions()

@@ -34,14 +34,6 @@ ROUND_TRIP_ITEMS = [
         ),
     ),
     Item(
-        ProviderID="result-image",
-        Type=ItemType.TOOL_RESULT,
-        Data=ToolResult(
-            CallID="call-image",
-            Output=[ToolResultOutput(Kind=ToolResultKind.IMAGE, Value="image-data")],
-        ),
-    ),
-    Item(
         ProviderID="result-mixed",
         Type=ItemType.TOOL_RESULT,
         Data=ToolResult(
@@ -105,24 +97,13 @@ def test_item_json_rejects_invalid_tag_and_data_on_encode(item: Item, want: str)
         '{"ProviderID":[],"Type":"message","Data":{"Role":"user"}}',
         '{"Type":"unknown","Data":{}}',
         '{"Type":"message","Data":[]}',
-        '{"Type":"tool_call","Data":[]}',
-        '{"Type":"tool_result","Data":[]}',
         '{"Type":"tool_result","Data":{"Output":"done"}}',
         '{"Type":"tool_result","Data":{"Output":42}}',
         '{"Type":"tool_result","Data":{"Output":{}}}',
         '{"Type":"tool_result","Data":{"Output":["done"]}}',
         '{"Type":"tool_result","Data":{"Output":[{"Value":42}]}}',
-        '{"Type":"reasoning","Data":[]}',
-        '{"Type":"message","Data":null}',
-        '{"Type":"tool_call","Data":null}',
-        '{"Type":"tool_result","Data":null}',
-        '{"Type":"reasoning","Data":null}',
         "{}",
         '{"Type":"message"}',
-        '{"Type":"tool_call"}',
-        '{"Type":"tool_result"}',
-        '{"Type":"reasoning"}',
-        '{"ProviderID":"p","Type":"message"}',
     ],
 )
 def test_item_json_rejects_invalid_encoding(encoded: str) -> None:

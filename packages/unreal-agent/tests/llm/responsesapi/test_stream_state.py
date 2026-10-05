@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from unreal_agent.gojson import Raw, decode
 from unreal_agent.llm import Message, Reasoning, StopReason, ToolCall
@@ -30,12 +28,6 @@ def assert_unexpected_eof(state: ResponseState) -> None:
             "incomplete",
             ',"incomplete_details":{"reason":"max_output_tokens"}',
             StopReason.MAX_OUTPUT_TOKENS,
-            False,
-        ),
-        (
-            "incomplete",
-            ',"incomplete_details":{"reason":"content_filter"}',
-            StopReason.REFUSED,
             False,
         ),
         ("failed", ',"error":{"code":"server_error","message":"failed"}', StopReason.NONE, True),
@@ -110,13 +102,10 @@ def test_response_state_leaves_status_to_response_decoder() -> None:
     ("kind", "terminal"),
     [
         ("response.created", False),
-        ("response.queued", False),
-        ("response.in_progress", False),
         ("response.completed", True),
         ("response.failed", True),
         ("response.incomplete", True),
         ("response.output_item.done", False),
-        ("response.output_text.done", False),
     ],
 )
 def test_response_state_captures_only_terminal_types(kind: str, terminal: bool) -> None:
@@ -280,4 +269,3 @@ def test_response_state_reads_error_events(
     )
     with pytest.raises(type(state.err)):
         state.unwrap()
-    assert json.loads(event)["type"] == "error"

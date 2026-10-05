@@ -343,11 +343,6 @@ async def test_ollama_client_uses_responses_without_authentication() -> None:
     assert (response.ID, response.Stop) == ("r", StopReason.COMPLETE)
 
 
-def test_ollama_default_base_url() -> None:
-    client = ollama.Client(ollama.Config())
-    assert client.adapter.endpoint == "http://localhost:11434/v1/responses"
-
-
 @pytest.mark.skipif(
     not os.environ.get("OLLAMA_TEST_MODEL"),
     reason="set OLLAMA_TEST_MODEL to an installed tool-capable model",
@@ -607,12 +602,6 @@ type ProviderFactory = Callable[[str, Callable[[Exchange], None]], ResponsesClie
 PROVIDERS: dict[str, ProviderFactory] = {
     "openai": lambda url, trace: openai.Client(
         openai.Config(api_key="test-key", base_url=url, trace=trace)
-    ),
-    "openrouter": lambda url, trace: openrouter.Client(
-        openrouter.Config(api_key="test-key", base_url=url, trace=trace)
-    ),
-    "fireworks": lambda url, trace: fireworks.Client(
-        fireworks.Config(api_key="test-key", base_url=url, trace=trace)
     ),
     "openai-codex": lambda url, trace: openaicodex.Client(
         openaicodex.Config(

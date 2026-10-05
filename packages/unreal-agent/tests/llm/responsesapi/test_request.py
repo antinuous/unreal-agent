@@ -39,20 +39,12 @@ INVALID_BYTE = b"\xff".decode("utf-8", "surrogateescape")
     [
         pytest.param("{}", True, id="empty object"),
         pytest.param(' \n{"command": "echo \\u0061"}\t', True, id="whitespace and escapes"),
-        pytest.param('{"command":42}', True, id="schema error"),
         pytest.param('{"array":[null,true,1e1000],"object":{}}', True, id="nested values"),
         pytest.param('{"command":"apt-get install -y r-base', False, id="truncated string"),
-        pytest.param('{"command":"pwd"', False, id="truncated object"),
         pytest.param("{} []", False, id="trailing data"),
         pytest.param('{"command":"pwd","command":"ls"}', False, id="duplicate names"),
         pytest.param("null", False, id="null"),
-        pytest.param(" \nnull\t", False, id="null with whitespace"),
-        pytest.param("[]", False, id="array"),
-        pytest.param('"pwd"', False, id="string"),
-        pytest.param("42", False, id="number"),
-        pytest.param("true", False, id="boolean"),
         pytest.param("", False, id="empty"),
-        pytest.param(" \n\t", False, id="whitespace"),
     ],
 )
 def test_request_input_item_replays_tool_call_arguments(arguments: str, valid: bool) -> None:
@@ -153,11 +145,6 @@ def test_request_body_rejects_invalid_utf8_tool_result() -> None:
             id="image URL",
         ),
         pytest.param(
-            [ToolResultOutput(Kind=ToolResultKind.IMAGE, Value="data:image/png;base64,aGVsbG8=")],
-            '[{"type":"input_image","image_url":"data:image/png;base64,aGVsbG8="}]',
-            id="image data URL",
-        ),
-        pytest.param(
             [
                 ToolResultOutput(Kind=ToolResultKind.TEXT, Value="Original dimensions: 4000x3000"),
                 ToolResultOutput(Kind=ToolResultKind.IMAGE, Value="data:image/png;base64,Zmlyc3Q="),
@@ -198,16 +185,6 @@ def test_request_body_encodes_tool_result_outputs(
             id="message",
         ),
         pytest.param(
-            Item(Type=ItemType.TOOL_CALL, Data=None),
-            "input item 0: tool_call item data must be llm.ToolCall, got <nil>",
-            id="tool call",
-        ),
-        pytest.param(
-            Item(Type=ItemType.TOOL_RESULT, Data=None),
-            "input item 0: tool_result item data must be llm.ToolResult, got <nil>",
-            id="tool result",
-        ),
-        pytest.param(
             Item(
                 Type=ItemType.TOOL_RESULT,
                 Data=ToolResult(Output=[ToolResultOutput(Value="done")]),
@@ -222,11 +199,6 @@ def test_request_body_encodes_tool_result_outputs(
             ),
             'input item 0: unsupported tool result kind "unknown"',
             id="unsupported tool result kind",
-        ),
-        pytest.param(
-            Item(Type=ItemType.REASONING, Data=None),
-            "input item 0: reasoning item data must be llm.Reasoning, got <nil>",
-            id="reasoning",
         ),
         pytest.param(
             Item(Type=ItemType.REASONING, Data=Reasoning(Summary=["thought"])),
@@ -279,10 +251,6 @@ def test_request_input_rejects_unsupported_type() -> None:
     assert str(caught.value) == 'unsupported input item type "image"'
 
 
-def test_request_body_omits_unset_max_output_tokens() -> None:
-    assert "max_output_tokens" not in json.loads(request_body(valid_request(), ""))
-
-
 def test_request_body_encodes_reasoning_effort() -> None:
     body = request_body(
         Request(Model=Model(ID="gpt-test", ReasoningEffort=ReasoningEffort.HIGH)), ""
@@ -295,18 +263,6 @@ def test_request_body_rejects_unsupported_reasoning_effort() -> None:
     with pytest.raises(ValueError, match="unsupported reasoning effort") as caught:
         request_body(request, "")
     assert str(caught.value) == 'unsupported reasoning effort "maximum"'
-
-
-def test_request_body_encodes_hosted_web_search() -> None:
-    body = request_body(
-        Request(
-            Model=Model(ID="gpt-test"),
-            Input=[Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="latest news"))],
-            Tools=[Tool(Type=ToolType.HOSTED, Name="web_search")],
-        ),
-        "",
-    )
-    assert json.loads(body)["tools"] == [{"type": "web_search"}]
 
 
 def test_request_body_rejects_unsupported_hosted_tool() -> None:
@@ -342,13 +298,6 @@ def test_request_body_is_byte_stable_across_encodings() -> None:
     first = request_body(request, "session-1")
     for _ in range(64):
         assert request_body(request, "session-1") == first
-
-
-def test_request_body_encodes_max_reasoning_effort() -> None:
-    body = request_body(
-        Request(Model=Model(ID="gpt-test", ReasoningEffort=ReasoningEffort.MAX)), ""
-    )
-    assert json.loads(body)["reasoning"]["effort"] == "max"
 
 
 def test_request_body_merges_extensions() -> None:

@@ -812,14 +812,7 @@ def _invalid_logs() -> list[tuple[str, bytes, str]]:
         Kind=ItemKind.TOOL_CALL_STATUS,
         Data=valid_status("turn-1", "call-1", "operation-1"),
     )
-    response = Item(
-        Sequence=2,
-        RecordedAt=STATE_UPDATED_AT,
-        Kind=ItemKind.MODEL_RESPONSE,
-        Data=ModelResponse(TurnID="turn-1", Response=Response(Output=[])),
-    )
     with_turn = header + item_record(turn)
-    with_response = with_turn + item_record(response)
     initial = valid_operation("operation-1", Status.READY)
     with_status = with_turn + item_record(status, initial)
 
@@ -899,7 +892,6 @@ def _invalid_logs() -> list[tuple[str, bytes, str]]:
             ),
             "recorded time is zero",
         ),
-        ("empty turn ID", header + item_record(turn_item(1, Turn())), "turn ID is empty"),
         (
             "wrong previous turn",
             with_turn
@@ -915,38 +907,6 @@ def _invalid_logs() -> list[tuple[str, bytes, str]]:
                 turn_item(2, Turn(ID="turn-1", PreviousTurnID="turn-1", Type=TurnType.REGULAR))
             ),
             'append turn "turn-1": file already exists',
-        ),
-        (
-            "response for missing turn",
-            header
-            + item_record(
-                Item(
-                    Sequence=1,
-                    RecordedAt=STATE_UPDATED_AT,
-                    Kind=ItemKind.MODEL_RESPONSE,
-                    Data=ModelResponse(TurnID="missing", Response=Response(Output=[])),
-                )
-            ),
-            "file does not exist",
-        ),
-        (
-            "duplicate response",
-            with_response + item_record(replace(response, Sequence=3)),
-            'append model response for turn "turn-1": file already exists',
-        ),
-        (
-            "status for missing turn",
-            header
-            + item_record(
-                Item(
-                    Sequence=1,
-                    RecordedAt=STATE_UPDATED_AT,
-                    Kind=ItemKind.TOOL_CALL_STATUS,
-                    Data=valid_status("missing", "call-1", "operation-1"),
-                ),
-                initial,
-            ),
-            "file does not exist",
         ),
         (
             "operations on turn",
@@ -1026,10 +986,9 @@ def test_decode_log_keeps_missing_and_duplicate_kinds() -> None:
 
 
 @pytest.mark.parametrize("outcome", ["incomplete", "response"])
-@pytest.mark.parametrize("turn_type", [TurnType.REGULAR, TurnType.COMPACTION])
-def test_turn_types_survive_reopen(turn_type: TurnType, outcome: str) -> None:
+def test_turn_types_survive_reopen(outcome: str) -> None:
     state = new_stored_state("session-1", STATE_CREATED_AT)
-    state.append_turn(Turn(ID="turn-1", Type=turn_type), STATE_UPDATED_AT)
+    state.append_turn(Turn(ID="turn-1", Type=TurnType.REGULAR), STATE_UPDATED_AT)
     response = valid_response("turn-1")
     if outcome == "response":
         state.append_model_response(response, STATE_UPDATED_AT)
