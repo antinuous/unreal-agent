@@ -1,10 +1,9 @@
 **
-!go.mod
-!go.sum
-!cmd/
-!cmd/**
-!harness/
-!harness/**
-!internal/
-!internal/**
+!pyproject.toml
+!uv.lock
+!packages/unreal-agent/pyproject.toml
+!benchmarks/harbor/pyproject.toml
+!packages/unreal-agent/src/
+!packages/unreal-agent/src/**
+**/__pycache__
 !LICENSE
