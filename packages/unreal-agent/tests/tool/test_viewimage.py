@@ -94,7 +94,9 @@ def default_limits(**overrides: int) -> ViewImageConfig:
 def test_translator_submits_image_operation(
     path: str, limits: ViewImageConfig, want_path: str, want_limits: ViewImageConfig
 ) -> None:
-    translator = viewimage.new(viewimage.Config(directory="/workspace", limits=limits))
+    translator = viewimage.ViewImageTranslator(
+        viewimage.Config(directory="/workspace", limits=limits)
+    )
     ctx = RecordingContext()
     status = translator.translate(
         ctx, ToolCall(Name=VIEW_IMAGE_NAME, Arguments=encode({"path": path}).decode())
@@ -128,7 +130,7 @@ def test_translator_submits_image_operation(
     ],
 )
 def test_translator_rejects_invalid_arguments(arguments: str) -> None:
-    translator = viewimage.new(viewimage.Config())
+    translator = viewimage.ViewImageTranslator(viewimage.Config())
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments=arguments))
     assert status.Error
@@ -143,7 +145,7 @@ def test_translator_rejects_invalid_arguments(arguments: str) -> None:
 
 def test_translator_rejects_invalid_limits() -> None:
     ctx = RecordingContext()
-    translator = viewimage.new(viewimage.Config(limits=ViewImageConfig(MaxSize=-1)))
+    translator = viewimage.ViewImageTranslator(viewimage.Config(limits=ViewImageConfig(MaxSize=-1)))
     status = translator.translate(ctx, ToolCall(Arguments='{"path":"image.png"}'))
     assert status.Error
     assert ctx.specs == []
@@ -209,7 +211,9 @@ def test_translator_formats_conditional_image_metadata(
             ScaleRatio=ratio,
         ),
     )
-    result = viewimage.new(viewimage.Config()).translate_result("call", CallStatus(), [current])
+    result = viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
+        "call", CallStatus(), [current]
+    )
     want = ToolResult(
         CallID="call",
         Output=[
@@ -268,7 +272,7 @@ def test_translator_formats_conditional_image_metadata(
 def test_translator_formats_failures_and_pending_operations(
     status: Status, result: ViewImageResult | None, want: str
 ) -> None:
-    got = viewimage.new(viewimage.Config()).translate_result(
+    got = viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
         "call", CallStatus(), [image_operation(status, result)]
     )
     assert got == ToolResult(
@@ -319,7 +323,9 @@ def test_translator_rejects_invalid_operation_results(
     status: CallStatus, operations: list[Operation]
 ) -> None:
     with pytest.raises(TranslationError):
-        viewimage.new(viewimage.Config()).translate_result("call", status, operations)
+        viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
+            "call", status, operations
+        )
 
 
 async def test_view_image_reads_workspace_file_and_returns_resized_data_url(
@@ -327,7 +333,7 @@ async def test_view_image_reads_workspace_file_and_returns_resized_data_url(
 ) -> None:
     Image.new("RGBA", (12, 8)).save(tmp_path / "image.bmp", format="BMP")
     (tmp_path / "image.bmp").chmod(0o600)
-    translator = viewimage.new(
+    translator = viewimage.ViewImageTranslator(
         viewimage.Config(directory=str(tmp_path), limits=ViewImageConfig(MaxWidth=6, MaxHeight=6))
     )
     registry = new_registry(StaticTranslators(view_image=translator), VIEW_IMAGE_NAME)

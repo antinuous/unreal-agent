@@ -5,7 +5,10 @@ Python strings that came from Go-style byte strings carry invalid UTF-8 as
 quoting, trimming, and replacement match Go's rune decoding.
 """
 
+import json
 import re
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Final
 
 __all__ = [
@@ -14,7 +17,9 @@ __all__ = [
     "go_quote",
     "go_quote_rune",
     "go_trim_space",
+    "go_type_name",
     "is_truncated_rune",
+    "json_quote",
     "to_valid_utf8",
 ]
 
@@ -145,3 +150,17 @@ def go_quote_rune(data: bytes) -> str:
     if rune == RUNE_ERROR and size == 1:
         return f"'\\x{data[0]:x}'"
     return "'" + _escaped_rune(rune, "'") + "'"
+
+
+_NO_TYPE_NAMES: Final[Mapping[type, str]] = MappingProxyType({})
+
+
+def go_type_name(value: object, names: Mapping[type, str] = _NO_TYPE_NAMES) -> str:
+    """Go's `%T` text: `<nil>` for None, else the Go name in `names` or the class name."""
+    if value is None:
+        return "<nil>"
+    return names.get(type(value), type(value).__qualname__)
+
+
+def json_quote(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)

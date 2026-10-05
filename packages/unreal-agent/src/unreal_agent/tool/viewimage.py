@@ -28,7 +28,6 @@ __all__ = [
     "DEFAULT_MAX_WIDTH",
     "Config",
     "ViewImageTranslator",
-    "new",
 ]
 
 DEFAULT_MAX_SIZE: Final = 5_000_000 - 1_000
@@ -45,6 +44,8 @@ class Config:
 
 
 class ViewImageTranslator:
+    """Zero MaxSize, MaxWidth, and MaxHeight limits take the package defaults."""
+
     __slots__ = ("_directory", "_limits")
 
     def __init__(self, config: Config) -> None:
@@ -147,11 +148,6 @@ class ViewImageTranslator:
         if details:
             output.append(ToolResultOutput(Kind=ToolResultKind.TEXT, Value="; ".join(details)))
         return ToolResult(CallID=call_id, Output=output)
-
-
-def new(config: Config) -> ViewImageTranslator:
-    """Zero MaxSize, MaxWidth, and MaxHeight limits take the package defaults."""
-    return ViewImageTranslator(config)
 
 
 def _image_metadata(result: ViewImageResult, *, failed: bool) -> list[str]:

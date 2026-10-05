@@ -9,7 +9,7 @@ replayed in its own member order.
 from collections.abc import Mapping, Sequence
 from typing import Any, Final, cast
 
-from unreal_agent._go import go_quote
+from unreal_agent._go import go_quote, go_type_name
 from unreal_agent.gojson import JSONError, Raw, encode, validate
 from unreal_agent.llm.model import (
     Item,
@@ -237,12 +237,7 @@ _GO_NAMES: Final[dict[type, str]] = {
 def _data[T](source: Item, kind: type[T], label: str) -> T:
     data = source.Data
     if type(data) is not kind:
-        raise ValueError(f"{label} item data must be {_GO_NAMES[kind]}, got {_go_type(data)}")
+        raise ValueError(
+            f"{label} item data must be {_GO_NAMES[kind]}, got {go_type_name(data, _GO_NAMES)}"
+        )
     return cast(T, data)
-
-
-def _go_type(value: object) -> str:
-    if value is None:
-        return "<nil>"
-    name = _GO_NAMES.get(type(value))
-    return name if name is not None else type(value).__qualname__

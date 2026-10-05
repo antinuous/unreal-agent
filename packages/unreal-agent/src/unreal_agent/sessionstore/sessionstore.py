@@ -7,7 +7,7 @@ from uuid import UUID
 from msgspec import Meta
 from msgspec import field as struct_field
 
-from unreal_agent._go import go_quote
+from unreal_agent._go import go_quote, go_type_name
 from unreal_agent.gojson import JSONError, OmitEmpty, Raw, Struct, Timestamp, decode
 from unreal_agent.inbox import ID as InputID
 from unreal_agent.inbox import Input
@@ -132,7 +132,9 @@ class Item(Struct, kw_only=True):
             raise ValueError(f"unsupported item kind {go_quote(self.Kind)}")
         kind, label, go_name = entry
         if type(self.Data) is not kind:
-            raise ValueError(f"{label} data must be {go_name}, got {_go_type(self.Data)}")
+            raise ValueError(
+                f"{label} data must be {go_name}, got {go_type_name(self.Data, _GO_TYPE_NAMES)}"
+            )
         if isinstance(self.Data, Input):
             try:
                 self.Data.validate()
@@ -160,12 +162,6 @@ def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
     except (JSONError, ValueError) as error:
         raise ValueError(f"decode {label} data: {error}") from error
     return value
-
-
-def _go_type(value: object) -> str:
-    if value is None:
-        return "<nil>"
-    return _GO_TYPE_NAMES.get(type(value), type(value).__qualname__)
 
 
 type ObserverID = UUID

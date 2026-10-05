@@ -53,12 +53,8 @@ def new_skill_use_spec(path: str) -> Spec:
     return Spec(Type=TYPE_SKILL_USE, Version=VERSION_SKILL_USE, State=Raw(encode(state)))
 
 
-def decode_skill_use(current: Operation) -> SkillUseState:
-    return skill_use_operation_state(current)
-
-
 def advance_skill_use(current: Operation, event: PrimitiveEvent | None) -> Step:
-    state = skill_use_operation_state(current)
+    state = decode_skill_use(current)
     operation_id = go_quote(current.ID)
     match current.Status:
         case Status.READY:
@@ -93,7 +89,7 @@ def advance_skill_use(current: Operation, event: PrimitiveEvent | None) -> Step:
             )
 
 
-def skill_use_operation_state(current: Operation) -> SkillUseState:
+def decode_skill_use(current: Operation) -> SkillUseState:
     operation_id = go_quote(current.ID)
     if current.Type != TYPE_SKILL_USE:
         raise unsupported(

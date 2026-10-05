@@ -7,7 +7,7 @@ joins with `os.Getwd`, which prefers a `$PWD` that names the working directory.
 
 import os
 
-__all__ = ["go_abs", "go_clean", "go_getwd", "go_join"]
+__all__ = ["go_abs", "go_base", "go_clean", "go_getwd", "go_join"]
 
 
 def go_clean(path: str) -> str:
@@ -57,3 +57,13 @@ def go_abs(path: str) -> str:
     if path.startswith("/"):
         return go_clean(path)
     return go_join(go_getwd(), path)
+
+
+def go_base(path: str) -> str:
+    """filepath.Base."""
+    if not path:
+        return "."
+    trimmed = path.rstrip("/")
+    if not trimmed:
+        return "/"
+    return trimmed[trimmed.rfind("/") + 1 :]

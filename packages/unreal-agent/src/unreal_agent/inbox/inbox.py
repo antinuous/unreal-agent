@@ -1,7 +1,7 @@
-import json
 from enum import StrEnum
 from typing import Annotated, Protocol
 
+from unreal_agent._go import json_quote
 from unreal_agent.gojson import JSONError, OmitZero, Raw, Struct, decode, is_valid_json
 from unreal_agent.llm import ReasoningEffort
 
@@ -72,15 +72,15 @@ class Input(Struct):
                 self.decode_control_message()
             case _:
                 raise ValueError(
-                    f"input {_quote(self.ID)} has unsupported kind {_quote(self.Kind)}"
+                    f"input {json_quote(self.ID)} has unsupported kind {json_quote(self.Kind)}"
                 )
         if len(self.Payload) != 0 and not is_valid_json(bytes(self.Payload)):
-            raise ValueError(f"input {_quote(self.ID)} payload is not valid JSON")
+            raise ValueError(f"input {json_quote(self.ID)} payload is not valid JSON")
 
     def decode_control_message(self) -> ControlMessage:
         """Decode a control payload, rejecting unknown members. Raises ValueError."""
         if self.Kind != InputKind.CONTROL:
-            raise ValueError(f"control message input has kind {_quote(self.Kind)}")
+            raise ValueError(f"control message input has kind {json_quote(self.Kind)}")
         try:
             envelope = decode(bytes(self.Payload), _ControlEnvelope | None) or _ControlEnvelope()
         except JSONError as error:
@@ -88,7 +88,7 @@ class Input(Struct):
         mode = envelope.Mode or ""
         reason = envelope.Reason or ""
         if mode != ControlMode.UPDATE_SETTINGS and len(envelope.Parameters) != 0:
-            raise ValueError(f"control mode {_quote(mode)} does not accept parameters")
+            raise ValueError(f"control mode {json_quote(mode)} does not accept parameters")
         match mode:
             case ControlMode.STOP_HARD | ControlMode.STOP_WHEN_IDLE:
                 return ControlMessage(Mode=ControlMode(mode), Reason=reason)
@@ -106,19 +106,15 @@ class Input(Struct):
                     raise ValueError(f"decode settings parameters: {error}") from error
                 effort = parameters.ReasoningEffort or ""
                 if not ReasoningEffort.is_valid(effort):
-                    raise ValueError(f"unsupported reasoning effort {_quote(effort)}")
+                    raise ValueError(f"unsupported reasoning effort {json_quote(effort)}")
                 return ControlMessage(
                     Mode=ControlMode.UPDATE_SETTINGS,
                     Reason=reason,
                     Parameters=Settings(ReasoningEffort=ReasoningEffort(effort)),
                 )
             case _:
-                raise ValueError(f"unsupported control mode {_quote(mode)}")
+                raise ValueError(f"unsupported control mode {json_quote(mode)}")
 
 
 class Writer(Protocol):
     async def submit(self, input: Input) -> None: ...
-
-
-def _quote(value: str) -> str:
-    return json.dumps(value, ensure_ascii=False)

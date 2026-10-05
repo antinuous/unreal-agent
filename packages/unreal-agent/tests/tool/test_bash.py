@@ -18,7 +18,7 @@ from tests.tool._helpers import RecordingContext
 
 def test_translator_submits_shell_operation() -> None:
     config = bash.Config(shell="/bin/bash", directory="/workspace", base_directory="/operations")
-    translator = bash.new(config)
+    translator = bash.BashTranslator(config)
     ctx = RecordingContext()
     status = translator.translate(
         ctx,
@@ -178,7 +178,7 @@ def test_translator_submits_shell_operation() -> None:
 def test_translator_translates_shell_operation_results(
     status: Status, state: ShellState, want: str
 ) -> None:
-    result = bash.new(bash.Config()).translate_result(
+    result = bash.BashTranslator(bash.Config()).translate_result(
         "call-1",
         CallStatus(),
         [
@@ -199,7 +199,7 @@ def test_translator_translates_shell_operation_results(
 
 
 def test_translator_translates_validation_error_without_operations() -> None:
-    translator = bash.new(bash.Config())
+    translator = bash.BashTranslator(bash.Config())
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(CallID="call-1", Arguments='{"command":42}'))
     assert status.Error
@@ -226,7 +226,7 @@ def test_translator_rejects_invalid_operation_counts(
     status: CallStatus, count: int, want: str
 ) -> None:
     with pytest.raises(TranslationError, match=want):
-        bash.new(bash.Config()).translate_result(
+        bash.BashTranslator(bash.Config()).translate_result(
             "call-1", status, [Operation() for _ in range(count)]
         )
 
@@ -288,11 +288,11 @@ def test_translator_rejects_invalid_shell_operation_results(
     operation: Operation, want: str
 ) -> None:
     with pytest.raises(TranslationError, match=want):
-        bash.new(bash.Config()).translate_result("call-1", CallStatus(), [operation])
+        bash.BashTranslator(bash.Config()).translate_result("call-1", CallStatus(), [operation])
 
 
 def test_translator_accepts_empty_command() -> None:
-    translator = bash.new(bash.Config(shell="/bin/bash", base_directory="/operations"))
+    translator = bash.BashTranslator(bash.Config(shell="/bin/bash", base_directory="/operations"))
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments='{"command":""}'))
     assert status.Error == ""
@@ -347,7 +347,7 @@ def test_translator_accepts_empty_command() -> None:
     ],
 )
 def test_translator_rejects_invalid_arguments(arguments: str, want: str) -> None:
-    translator = bash.new(bash.Config(shell="/bin/bash", base_directory="/operations"))
+    translator = bash.BashTranslator(bash.Config(shell="/bin/bash", base_directory="/operations"))
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments=arguments))
     assert want in status.Error
@@ -359,7 +359,7 @@ def test_translator_rejects_invalid_arguments(arguments: str, want: str) -> None
     "command", ["cat <<'EOF'\ncaf\\x00e9\nEOF\n", "printf 'a\\000b'", "printf '%s' '\\u0000'"]
 )
 def test_translator_preserves_escaped_nul_commands(command: str) -> None:
-    translator = bash.new(bash.Config(shell="/bin/bash", base_directory="/operations"))
+    translator = bash.BashTranslator(bash.Config(shell="/bin/bash", base_directory="/operations"))
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments=encode({"command": command}).decode()))
     assert status.Error == ""
@@ -369,7 +369,7 @@ def test_translator_preserves_escaped_nul_commands(command: str) -> None:
 
 
 def test_translator_returns_shell_configuration_error() -> None:
-    translator = bash.new(bash.Config(shell="bash", base_directory="/operations"))
+    translator = bash.BashTranslator(bash.Config(shell="bash", base_directory="/operations"))
     ctx = RecordingContext()
     status = translator.translate(ctx, ToolCall(Arguments='{"command":"pwd"}'))
     assert status.Error == "build Bash operation: shell path must be absolute"

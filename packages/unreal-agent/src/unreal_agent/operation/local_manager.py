@@ -7,7 +7,7 @@ from typing import Any, Final, Self
 from msgspec.structs import replace
 
 from unreal_agent._go import go_quote
-from unreal_agent.operation.image import TYPE_VIEW_IMAGE, ViewImage, fail_view_image
+from unreal_agent.operation.image import TYPE_VIEW_IMAGE, ViewImage
 from unreal_agent.operation.operation import (
     ID,
     Operation,
@@ -27,8 +27,8 @@ from unreal_agent.operation.shell import TYPE_SHELL, Shell
 from unreal_agent.operation.skill_use import (
     TYPE_SKILL_USE,
     advance_skill_use,
+    decode_skill_use,
     fail_skill_use,
-    skill_use_operation_state,
 )
 from unreal_agent.operation.value import TYPE_VALUE, advance_value
 from unreal_agent.primitives import (
@@ -412,12 +412,12 @@ def fail_operation(current: Operation, error: BaseException | str) -> Operation:
     failed: Operation | None = None
     try:
         if current.Type == TYPE_SKILL_USE:
-            state = skill_use_operation_state(current)
+            state = decode_skill_use(current)
             failed = fail_skill_use(current, state, error).operation
         elif current.Type == TYPE_SHELL:
             failed = Shell(current).fail(error).operation
         elif current.Type == TYPE_VIEW_IMAGE:
-            failed = fail_view_image(current, error).operation
+            failed = ViewImage(current).fail(error).operation
         elif current.Type == TYPE_REMOTE_JOB:
             failed = fail_remote_job(current, error).operation
     except OperationError:

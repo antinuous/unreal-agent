@@ -116,10 +116,6 @@ def decode_view_image_state(current: Operation) -> ViewImageState:
     return state
 
 
-def fail_view_image(current: Operation, cause: BaseException | str) -> Step:
-    return ViewImage(current).fail(cause)
-
-
 def _validate_view_image_state(state: ViewImageState) -> None:
     if not state.Path:
         raise OperationError("image path must be set")

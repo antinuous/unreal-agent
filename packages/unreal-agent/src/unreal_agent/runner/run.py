@@ -291,10 +291,10 @@ async def _run(
         getenv=getenv,
         names=names,
         translators=StaticTranslators(
-            bash=bash.new(
+            bash=bash.BashTranslator(
                 bash.Config(shell=shell, directory=workspace, base_directory=operation_directory)
             ),
-            view_image=viewimage.new(viewimage.Config(directory=workspace)),
+            view_image=viewimage.ViewImageTranslator(viewimage.Config(directory=workspace)),
         ),
     )
     configured = await new_tools(tool_config)

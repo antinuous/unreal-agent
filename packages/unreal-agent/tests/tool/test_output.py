@@ -21,7 +21,7 @@ _TRUNCATION_MARKER: Final = re.compile(r"\.\.\.[0-9]+ bytes truncated\.\.\.")
 
 
 def new_bash() -> Translator:
-    return bash.new(bash.Config(shell="/bin/sh", base_directory="/operations"))
+    return bash.BashTranslator(bash.Config(shell="/bin/sh", base_directory="/operations"))
 
 
 def test_output_length_maximum_matches_tool_schemas() -> None:

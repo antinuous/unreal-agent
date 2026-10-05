@@ -495,7 +495,7 @@ def test_request_body_replays_rejected_tool_call_from_history() -> None:
     response = restored.Data.Response
     call = (response.Output or [])[0].Data
     assert isinstance(call, ToolCall)
-    translator = bash.new(bash.Config())
+    translator = bash.BashTranslator(bash.Config())
     tool_context = _ReplayToolContext()
     status = translator.translate(tool_context, call)
     assert "decode Bash arguments:" in status.Error

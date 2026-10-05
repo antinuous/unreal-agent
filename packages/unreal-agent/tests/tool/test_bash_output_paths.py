@@ -87,7 +87,9 @@ async def test_capture_paths_survive_failure_and_cancellation(
     assert step.operation.Status == terminal
     assert state.Result is None
 
-    result = bash.new(bash.Config()).translate_result("call", CallStatus(), [step.operation])
+    result = bash.BashTranslator(bash.Config()).translate_result(
+        "call", CallStatus(), [step.operation]
+    )
     assert result.Output[0].Value.endswith("Error: " + state.TerminalError)
     for filename, recorded, exists in (
         (SHELL_OUT_FILENAME, state.OutPath, creates >= 2),
@@ -124,7 +126,7 @@ async def test_truncated_output_can_be_read_from_capture_files(
     base.mkdir(mode=0o700)
     monkeypatch.setenv("OUT", stdout)
     monkeypatch.setenv("ERR", stderr)
-    translator = bash.new(bash.Config(shell="/bin/sh", base_directory=str(base)))
+    translator = bash.BashTranslator(bash.Config(shell="/bin/sh", base_directory=str(base)))
     submitted = RecordingContext()
     arguments: dict[str, object] = {"command": "printf '%s' \"$OUT\"; printf '%s' \"$ERR\" >&2"}
     if limit:
@@ -156,7 +158,7 @@ async def test_truncated_output_can_be_read_from_capture_files(
     assert completed is not None
 
     # A resumed translator must use the operation's capture directory.
-    translator = bash.new(bash.Config(base_directory=str(tmp_path / "other")))
+    translator = bash.BashTranslator(bash.Config(base_directory=str(tmp_path / "other")))
     result = translator.translate_result("call-1", status, [completed])
     state = decode_shell_state(completed)
     assert state.Result is not None

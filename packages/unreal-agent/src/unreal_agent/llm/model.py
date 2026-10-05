@@ -1,9 +1,9 @@
-import json
 from enum import StrEnum
 from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from msgspec import field
 
+from unreal_agent._go import go_type_name, json_quote
 from unreal_agent.gojson import Int64, JSONError, OmitZero, Raw, Struct, decode
 
 __all__ = [
@@ -151,10 +151,10 @@ class Item(Struct, kw_only=True):
         """Raise ValueError when Data does not match Type."""
         entry = _DATA_TYPES.get(self.Type)
         if entry is None:
-            raise ValueError(f"unsupported item type {_quote(self.Type)}")
+            raise ValueError(f"unsupported item type {json_quote(self.Type)}")
         kind, label, go_name = entry
         if type(self.Data) is not kind:
-            raise ValueError(f"{label} data must be {go_name}, got {_type_name(self.Data)}")
+            raise ValueError(f"{label} data must be {go_name}, got {go_type_name(self.Data)}")
 
     def __gojson_validate__(self) -> None:
         try:
@@ -168,7 +168,7 @@ def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
         raise ValueError(f"{kind} data must not be null")
     entry = _DATA_TYPES.get(kind)
     if entry is None:
-        raise ValueError(f"unsupported item type {_quote(kind)}")
+        raise ValueError(f"unsupported item type {json_quote(kind)}")
     data_type, label, _ = entry
     try:
         return cast(ItemData, decode(encoded, data_type))
@@ -228,11 +228,3 @@ class Response(Struct):
     Output: Annotated[list[Item] | None, OmitZero] = None
     Usage: _Usage = field(default_factory=Usage)
     Failure: _Failure | None = None
-
-
-def _quote(value: str) -> str:
-    return json.dumps(value, ensure_ascii=False)
-
-
-def _type_name(value: object) -> str:
-    return "<nil>" if value is None else type(value).__qualname__

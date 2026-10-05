@@ -9,7 +9,7 @@ from typing import Any, Final, NamedTuple, cast
 from msgspec.structs import replace
 
 from unreal_agent import gojson
-from unreal_agent._go import go_quote
+from unreal_agent._go import go_quote, go_type_name
 from unreal_agent.coordinator.coordinator import CoordinatorError, Dependencies
 from unreal_agent.inbox import ClosedError as InboxClosedError
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind
@@ -886,13 +886,9 @@ def _statuses_require_model_response(statuses: Sequence[ToolCallStatus]) -> bool
 
 
 def _wrong_data(label: str, data: object, want: type) -> CoordinatorError:
-    return CoordinatorError(f"{label} data is {_go_type(data)}, want {_GO_TYPE_NAMES[want]}")
-
-
-def _go_type(value: object) -> str:
-    if value is None:
-        return "<nil>"
-    return _GO_TYPE_NAMES.get(type(value), type(value).__qualname__)
+    return CoordinatorError(
+        f"{label} data is {go_type_name(data, _GO_TYPE_NAMES)}, want {_GO_TYPE_NAMES[want]}"
+    )
 
 
 def _cancelling() -> bool:

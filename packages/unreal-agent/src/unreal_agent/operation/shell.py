@@ -6,7 +6,7 @@ from typing import Final
 import msgspec
 from msgspec.structs import replace
 
-from unreal_agent._filepath import go_join
+from unreal_agent._filepath import go_base, go_join
 from unreal_agent._go import go_quote
 from unreal_agent.gojson import Int64, JSONError, Raw, Struct, decode, encode
 from unreal_agent.operation.operation import (
@@ -488,18 +488,9 @@ class Shell:
         return self._checkpoint()
 
 
-def _go_base(path: str) -> str:
-    if not path:
-        return "."
-    trimmed = path.rstrip("/")
-    if not trimmed:
-        return "/"
-    return trimmed[trimmed.rfind("/") + 1 :]
-
-
 def _new_shell_paths(base_directory: str, operation_id: ID) -> _ShellPaths:
     name = operation_id
-    if name in ("", ".", "..") or os.path.isabs(name) or _go_base(name) != name:
+    if name in ("", ".", "..") or os.path.isabs(name) or go_base(name) != name:
         raise OperationError(f"operation ID {go_quote(operation_id)} is not a path component")
     directory = go_join(base_directory, name)
     return _ShellPaths(

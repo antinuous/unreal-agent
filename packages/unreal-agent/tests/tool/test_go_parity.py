@@ -40,10 +40,10 @@ def translators() -> dict[str, Translator]:
     skill_use = registry.resolve(SKILL_USE_NAME)
     assert skill_use is not None
     return {
-        "bash": bash.new(
+        "bash": bash.BashTranslator(
             bash.Config(shell="/bin/sh", directory="/workspace", base_directory="/operations")
         ),
-        "view_image": viewimage.new(viewimage.Config(directory="/workspace")),
+        "view_image": viewimage.ViewImageTranslator(viewimage.Config(directory="/workspace")),
         "skill_use": skill_use,
     }
 

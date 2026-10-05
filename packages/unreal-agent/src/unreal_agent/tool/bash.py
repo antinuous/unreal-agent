@@ -19,7 +19,7 @@ from unreal_agent.tool._jsonv2 import GoJSONError, decode_optional_string, decod
 from unreal_agent.tool.output import error_status, parse_max_output_length
 from unreal_agent.tool.tool import CallStatus, Context, TranslationError
 
-__all__ = ["BashTranslator", "Config", "new"]
+__all__ = ["BashTranslator", "Config"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,10 +78,6 @@ class BashTranslator:
             Command=command, Shell=self._config.shell, Directory=self._config.directory
         )
         return new_shell_spec(shell_input, self._config.base_directory, limit)
-
-
-def new(config: Config) -> BashTranslator:
-    return BashTranslator(config)
 
 
 def _translate_operation_result(call_id: str, current: Operation) -> str:
