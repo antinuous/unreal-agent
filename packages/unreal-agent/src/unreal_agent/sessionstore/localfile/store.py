@@ -336,6 +336,11 @@ async def _complete[T](function: Callable[[], T]) -> tuple[T, asyncio.CancelledE
     Returns the result and the cancellation to raise once the caller has
     published the write's effects.
     """
+    task = asyncio.current_task()
+    if task is not None and task.cancelling():
+        # Deliver a cancellation requested while the task was running (for
+        # example by an observer) before the write starts, as Go checks ctx.
+        await asyncio.sleep(0)
     future = asyncio.ensure_future(asyncio.to_thread(function))
     cancelled: asyncio.CancelledError | None = None
     while True:

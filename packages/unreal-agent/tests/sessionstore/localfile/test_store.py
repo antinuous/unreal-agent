@@ -878,6 +878,31 @@ async def test_cancelled_write_finishes_and_notifies_before_cancelling(
     await create_turn(store, "session-1", "turn-2", "turn-1")
 
 
+async def test_write_after_cancellation_from_observer_is_not_persisted(tmp_path: Path) -> None:
+    store = Store(tmp_path)
+    await store.create("session-1")
+    observed: list[Item] = []
+
+    def cancel_writer(_: str, item: Item) -> None:
+        observed.append(item)
+        if task is not None:
+            task.cancel()
+
+    task: asyncio.Task[None] | None = None
+    store.add_observer(cancel_writer)
+
+    async def append_turns() -> None:
+        await create_turn(store, "session-1", "turn-1", "")
+        await create_turn(store, "session-1", "turn-2", "turn-1")
+
+    task = asyncio.create_task(append_turns())
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert [item.Kind for item in observed] == [ItemKind.TURN]
+    await assert_stored_item_kinds(Store(tmp_path), "session-1", ItemKind.TURN)
+
+
 async def test_fork_rejects_self(tmp_path: Path) -> None:
     store = Store(tmp_path)
     await create_session_with_turn(store, "session-1", "turn-1", "")
