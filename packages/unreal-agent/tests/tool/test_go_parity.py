@@ -252,22 +252,26 @@ def expected_discovery(root: str) -> tuple[list[Skill], list[str]]:
 
     skills = [
         Skill("hidden", "Hidden dir.", path(".hidden")),
-        Skill("a:b", "c: d", path("colon")),
         Skill("crlf", "Windows lines.", path("crlf")),
-        Skill("bad\udcff", "Bad bytes\udcc3.", path("invalid-utf8")),
         Skill("after", "After.", path("long-after")),
-        Skill("edge", "Edge.", path("long-edge")),
-        Skill("spaced", "Tabs\x1c", path("spaces")),
+        Skill("a:b", "dup", path("zz-dup")),
     ]
     errors = [
+        f"parse skill {quoted('colon')}: decode YAML frontmatter: "
+        "yaml: line 2: mapping values are not allowed in this context",
         f"read skill {quoted('dir-skill')}: read {path('dir-skill')}: is a directory",
         f"parse skill {quoted('empty')}: missing opening YAML frontmatter delimiter",
+        f"parse skill {quoted('invalid-utf8')}: decode YAML frontmatter: "
+        "yaml: invalid leading UTF-8 octet",
         f'skill {quoted("link-crlf")}: duplicate name "crlf"',
         f"parse skill {quoted('long-before')}: read YAML frontmatter: "
         "bufio.Scanner: token too long",
+        f"parse skill {quoted('long-edge')}: decode YAML frontmatter: "
+        "yaml: line 4: could not find expected ':'",
         f"parse skill {quoted('long-first')}: missing opening YAML frontmatter delimiter",
+        f"parse skill {quoted('spaces')}: decode YAML frontmatter: "
+        "yaml: control characters are not allowed",
         f"parse skill {quoted('unclosed')}: missing closing YAML frontmatter delimiter",
-        f'skill {quoted("zz-dup")}: duplicate name "a:b"',
     ]
     return skills, errors
 

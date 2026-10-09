@@ -8,6 +8,7 @@ dependencies = [
     "httpx[http2]>=0.28",
     "msgspec>=0.22",
     "pillow>=12.3",
+    "pyyaml>=6.0.3",
 ]
 
 [project.scripts]

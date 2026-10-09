@@ -26,10 +26,10 @@ from unreal_agent.tool import (
     SKILL_USE_NAME,
     CallStatus,
     Registry,
-    Skill,
     SkillUseResult,
     SkillUseTranslator,
     StaticTranslators,
+    discover_skills,
 )
 
 from tests.tool._helpers import RecordingContext
@@ -47,15 +47,22 @@ async def receive_terminal(manager: LocalOperationManager, operation_id: str) ->
     pytest.fail("updates closed before the skill-use operation finished")
 
 
-async def test_skill_use_loads_registered_skill_by_name(
+async def test_skill_use_loads_discovered_skill_by_name(
     tmp_path: Path, new_manager: Callable[[], LocalOperationManager]
 ) -> None:
-    path = tmp_path / "SKILL.md"
-    want = "---\nname: review\ndescription: Review code.\n---\n\nRead all instructions.\n"
+    path = tmp_path / "review" / "SKILL.md"
+    path.parent.mkdir(mode=0o700)
+    want = (
+        '---\nname: "review" # stable name\ndescription: >-\n  Review code\n  carefully.\n---\n'
+        "\nRead all instructions.\n"
+    )
     path.write_text(want)
     path.chmod(0o600)
+    skills, errors = discover_skills(str(tmp_path))
+    assert errors == []
+    assert len(skills) == 1
     registry = Registry(StaticTranslators(), SKILL_USE_NAME)
-    registry.register_skill(Skill(name="review", description="Review code.", path=str(path)))
+    registry.register_skill(skills[0])
     translator = registry.resolve(SKILL_USE_NAME)
     assert translator is not None
     ctx = RecordingContext()
