@@ -6,18 +6,27 @@ from typing import Final
 
 import pytest
 from msgspec.structs import replace
-from unreal_agent.gojson import encode
+from unreal_agent.gojson import Raw, encode
 from unreal_agent.operation import (
+    TYPE_REMOTE_JOB,
+    TYPE_SHELL,
+    TYPE_SKILL_USE,
+    TYPE_VALUE,
+    TYPE_VIEW_IMAGE,
+    VERSION_REMOTE_JOB,
+    VERSION_SHELL,
+    VERSION_SKILL_USE,
+    VERSION_VALUE,
+    VERSION_VIEW_IMAGE,
     ClosedError,
     LocalOperationManager,
     Manager,
     Operation,
-    OperationError,
     ShellInput,
     ShellPhase,
     ShellState,
     Status,
-    UnsupportedError,
+    new_value_spec,
 )
 
 from tests.operation._helpers import (
@@ -339,33 +348,68 @@ async def test_local_operation_manager_rejects_invalid_operations(
     tmp_path: Path, new_manager: NewManager
 ) -> None:
     manager = new_manager()
-    valid = new_shell_operation("local-valid", ShellInput(Shell=TEST_SHELL_PATH), str(tmp_path), 1)
+    valid = new_shell_operation("local-valid", ShellInput(Shell=TEST_SHELL_PATH), str(tmp_path), 64)
     tests = [
-        (
-            "unsupported type",
-            Operation(ID="local-unsupported", Type="unknown", Status=Status.READY),
-            'does not support type "unknown"',
-        ),
-        (
-            "unsupported version",
-            replace(valid, ID="local-version", Version=valid.Version + 1),
-            "unsupported version",
-        ),
-        (
-            "terminal",
-            replace(valid, ID="local-terminal", Status=Status.COMPLETED),
-            "terminal status",
-        ),
+        Operation(ID="local-unsupported", Type="unknown", Status=Status.READY),
+        replace(valid, ID="local-version", Version=valid.Version + 1),
     ]
-    for name, current, want in tests:
-        with pytest.raises(OperationError, match=want) as error:
-            await manager.add(current)
-        if name != "terminal":
-            assert isinstance(error.value, UnsupportedError)
+    for current in tests:
+        await manager.add(current)
+        update = await receive_terminal_operation(manager.updates(), current.ID)
+        assert update == replace(current, Status=Status.UNSUPPORTED)
 
     await manager.add(valid)
     await manager.add(valid)
     await manager.cancel("unknown", "test")
+
+
+@pytest.mark.parametrize(
+    ("operation_type", "version"),
+    [
+        (TYPE_SHELL, VERSION_SHELL),
+        (TYPE_VIEW_IMAGE, VERSION_VIEW_IMAGE),
+        (TYPE_REMOTE_JOB, VERSION_REMOTE_JOB),
+        (TYPE_SKILL_USE, VERSION_SKILL_USE),
+        (TYPE_VALUE, VERSION_VALUE),
+    ],
+)
+async def test_local_operation_manager_rejects_undecodable_state(
+    new_manager: NewManager, operation_type: str, version: int
+) -> None:
+    manager = new_manager()
+    current = Operation(
+        ID="invalid-state",
+        Type=operation_type,
+        Version=version,
+        Status=Status.READY,
+        MaxOutputLength=64,
+        State=Raw(b"{"),
+        Idempotency=Raw(b'{"attempt":1}'),
+    )
+    await manager.add(current)
+    update = await receive_terminal_operation(manager.updates(), current.ID)
+    assert update == replace(current, Status=Status.UNSUPPORTED), (
+        "want original checkpoint marked unsupported"
+    )
+
+
+async def test_local_operation_manager_does_not_retry_rejected_operation(
+    new_manager: NewManager,
+) -> None:
+    manager = new_manager()
+    current = Operation(ID="rejected", Type="unknown", Version=1, Status=Status.READY)
+    await manager.add(current)
+    update = await receive_terminal_operation(manager.updates(), current.ID)
+    assert update.Status == Status.UNSUPPORTED
+    await manager.add(current)
+    spec = new_value_spec(b'"barrier"')
+    barrier = Operation(
+        ID="barrier", Type=spec.Type, Version=spec.Version, State=spec.State, Status=Status.READY
+    )
+    await manager.add(barrier)
+    async with asyncio.timeout(15):
+        update = await anext(manager.updates())
+    assert (update.ID, update.Status) == (barrier.ID, Status.COMPLETED)
 
 
 async def test_local_operation_manager_closes_updates_on_close(

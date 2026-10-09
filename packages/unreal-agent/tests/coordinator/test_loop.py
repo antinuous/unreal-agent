@@ -6,7 +6,6 @@ from typing import cast
 import pytest
 from msgspec.structs import replace
 from unreal_agent import gojson
-from unreal_agent._go import go_quote
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, CoordinatorError
 from unreal_agent.coordinator.loop import (
@@ -28,7 +27,7 @@ from unreal_agent.llm import (
     ToolResultKind,
     ToolResultOutput,
 )
-from unreal_agent.operation import TYPE_SHELL, Operation, Status, UnsupportedError
+from unreal_agent.operation import TYPE_SHELL, Operation, Status
 from unreal_agent.session import Session, Turn, TurnType
 from unreal_agent.sessionstore import (
     BEFORE_FIRST,
@@ -1955,32 +1954,6 @@ async def test_coordinator_run_returns_operation_dispatch_error() -> None:
     err = await loop_run_returned(current)
     assert err is not None, f"Run error = {err!r}"
     assert str(err) == 'dispatch operation "operation-1": dispatch failed', f"Run error = {err!r}"
-
-
-async def test_coordinator_run_returns_unsupported_recovered_operation() -> None:
-    store = empty_fake_store()
-    store.resume.operations = [
-        Operation(ID="unsupported", Type="remote", Version=1, Status=Status.READY),
-        Operation(ID="supported", Type=TYPE_SHELL, Version=1, Status=Status.READY),
-    ]
-    inputs = loop_run_closed_inbox()
-    operations = FakeOperationManager()
-
-    def add_error(value: Operation) -> Exception | None:
-        if value.ID == "unsupported":
-            return UnsupportedError(
-                f"manager does not support {go_quote(value.Type)}: unsupported operation"
-            )
-        return None
-
-    operations.add_error = add_error
-    current = new_test_coordinator(
-        store, inputs, operations, new_builder(), Registry(StaticTranslators())
-    )
-
-    err = await loop_run_returned(current)
-    assert caused_by(err, UnsupportedError), f"Run error = {err!r}, want unsupported operation"
-    assert "unsupported" in current._state.operations, "unsupported operation was not retained"
 
 
 async def test_coordinator_clones_operation_data_before_dispatch() -> None:

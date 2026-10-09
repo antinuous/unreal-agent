@@ -15,6 +15,7 @@ from unreal_agent.operation.operation import (
     PrimitiveDispatch,
     Status,
     Step,
+    UnsupportedError,
     unsupported,
 )
 from unreal_agent.operation.remote_job import TYPE_REMOTE_JOB, RemoteJobHandler, fail_remote_job
@@ -71,14 +72,14 @@ class ClosedError(Exception):
 @dataclass(slots=True)
 class _AddRequest:
     operation: Operation
-    result: asyncio.Future[None]
+    taken: asyncio.Future[None]
 
 
 @dataclass(slots=True)
 class _CancelRequest:
     id: ID
     reason: str
-    result: asyncio.Future[None]
+    taken: asyncio.Future[None]
 
 
 @dataclass(slots=True)
@@ -193,9 +194,11 @@ class _Actor:
                     case _Close():
                         return
                     case _AddRequest():
-                        await self._add(message)
+                        if _take(message.taken):
+                            await self._add(message.operation)
                     case _CancelRequest():
-                        await self._cancel(message)
+                        if _take(message.taken):
+                            await self._cancel(message.id, message.reason)
                     case RemoteJobHandlerUpdate():
                         await self._remote_job_update(message)
                     case PrimitiveEvent():
@@ -221,51 +224,39 @@ class _Actor:
                 _reject(message)
             self.updates.shutdown(immediate=True)
 
-    async def _add(self, request: _AddRequest) -> None:
-        current = request.operation
+    async def _add(self, current: Operation) -> None:
         if current.ID in self.accepted:
-            _resolve(request.result)
             return
+        self.accepted.add(current.ID)
         running = _RunningOperation(operation=current)
         if current.Type == TYPE_REMOTE_JOB:
             try:
                 running.remote_job_handler_index = await self.remote_jobs.add(current)
             except Exception as error:
-                _resolve(request.result, error)
+                self.fail_local_operation(running, error)
                 return
-            self.accepted.add(current.ID)
             self.operations[current.ID] = running
-            _resolve(request.result)
             return
         try:
             running.initialize()
             step = running.handle(None)
         except Exception as error:
-            running.cancel()
-            _resolve(request.result, error)
+            self.fail_local_operation(running, error)
             return
-        self.accepted.add(current.ID)
         self.operations[current.ID] = running
         self.active_primitives += self.accept_local_step(running, step)
-        _resolve(request.result)
 
-    async def _cancel(self, request: _CancelRequest) -> None:
-        running = self.operations.get(request.id)
+    async def _cancel(self, id: ID, reason: str) -> None:
+        running = self.operations.get(id)
         if running is None:
-            _resolve(request.result)
             return
         if running.remote_job_handler_index >= 0:
             try:
-                await self.remote_jobs.cancel(
-                    running.remote_job_handler_index, request.id, request.reason
-                )
+                await self.remote_jobs.cancel(running.remote_job_handler_index, id, reason)
             except Exception as error:
-                _resolve(request.result, error)
-                return
-            _resolve(request.result)
+                self.fail_local_operation(running, _unknown_remote_outcome(error))
             return
         running.cancel()
-        _resolve(request.result)
 
     async def _remote_job_update(self, update: RemoteJobHandlerUpdate) -> None:
         index = update.handler_index
@@ -360,7 +351,7 @@ class _Actor:
                     running.remote_job_handler_index, running.operation.ID, str(cause)
                 )
             except Exception as error:
-                cause = OperationError(f"{cause}\ncancel rejected remote job: {error}")
+                cause = OperationError(f"{cause}\n{_unknown_remote_outcome(error)}")
         self.fail_local_operation(running, cause)
 
     async def drain_local_primitives(self, active: int) -> None:
@@ -370,25 +361,35 @@ class _Actor:
                 if message.type in _LOCAL_COMPLETED_EVENTS:
                     active -= 1
             elif isinstance(message, _AddRequest | _CancelRequest):
-                _reject(message)
+                message.taken.cancel()
 
     def _append_update(self, operation: Operation) -> None:
         self.updates.put_nowait(replace(operation))
 
 
-def _resolve(result: asyncio.Future[None], error: BaseException | None = None) -> None:
-    if result.done():
-        return
-    if error is None:
-        result.set_result(None)
-    else:
-        result.set_exception(error)
+def _take(taken: asyncio.Future[None]) -> bool:
+    if taken.done():
+        return False
+    taken.set_result(None)
+    return True
+
+
+def _unknown_remote_outcome(error: BaseException) -> OperationError:
+    return OperationError(f"remote job outcome is unknown because cancellation failed: {error}")
+
+
+def _is_unsupported(error: BaseException | None) -> bool:
+    while error is not None:
+        if isinstance(error, UnsupportedError):
+            return True
+        error = error.__cause__
+    return False
 
 
 def _reject(message: _Message) -> None:
     match message:
         case _AddRequest() | _CancelRequest():
-            _resolve(message.result, ClosedError())
+            message.taken.cancel()
         case _Delivery():
             if not message.taken.done():
                 message.taken.set_result(None)
@@ -405,7 +406,13 @@ def advance_local_operation(current: Operation, event: PrimitiveEvent | None) ->
 
 
 def fail_operation(current: Operation, error: BaseException | str) -> Operation:
-    """Return `current` failed with `error`, recording the error in its state when possible."""
+    """Return `current` failed with `error`, recording the error in its state when possible.
+
+    An unsupported error, or a state that cannot record the error, leaves the
+    checkpoint unchanged with `Status.UNSUPPORTED`.
+    """
+    if isinstance(error, BaseException) and _is_unsupported(error):
+        return replace(current, Status=Status.UNSUPPORTED)
     failed: Operation | None = None
     try:
         if current.Type == TYPE_SKILL_USE:
@@ -419,7 +426,7 @@ def fail_operation(current: Operation, error: BaseException | str) -> Operation:
             failed = fail_remote_job(current, error).operation
     except OperationError:
         failed = None
-    return failed if failed is not None else replace(current, Status=Status.FAILED)
+    return failed if failed is not None else replace(current, Status=Status.UNSUPPORTED)
 
 
 def start_local_primitive(dispatch: PrimitiveDispatch, events: EventSink) -> asyncio.Task[None]:
@@ -475,9 +482,9 @@ class LocalOperationManager:
     """Runs operations on local primitives and routes remote jobs to their handlers.
 
     Construct inside a running event loop. One actor task owns all state; `add`
-    and `cancel` are request/response calls into it. `close` (or leaving the
-    async context) cancels every operation, waits for every started primitive
-    to finish, and then ends `updates()`.
+    and `cancel` return once it takes the request, and their failures arrive
+    as updates. `close` (or leaving the async context) cancels every operation,
+    waits for every started primitive to finish, and then ends `updates()`.
     """
 
     __slots__ = ("_actor", "_task")
@@ -524,10 +531,12 @@ class LocalOperationManager:
     ) -> None:
         if self._actor.closing or self._task.done():
             raise ClosedError
-        result: asyncio.Future[None] = asyncio.get_running_loop().create_future()
-        self._actor.mailbox.post(build(result))
-        await asyncio.wait((result, self._task), return_when=asyncio.FIRST_COMPLETED)
-        if not result.done():
-            result.cancel()
+        taken: asyncio.Future[None] = asyncio.get_running_loop().create_future()
+        self._actor.mailbox.post(build(taken))
+        try:
+            await asyncio.wait((taken, self._task), return_when=asyncio.FIRST_COMPLETED)
+        finally:
+            if not taken.done():
+                taken.cancel()
+        if taken.cancelled():
             raise ClosedError
-        await result

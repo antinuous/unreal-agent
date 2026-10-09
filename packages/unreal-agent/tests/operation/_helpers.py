@@ -107,4 +107,6 @@ def shell_operation_with_state(operation_id: str, state: ShellState) -> Operatio
     )
 
 
-TERMINAL_STATUSES: Final = frozenset({Status.COMPLETED, Status.FAILED, Status.CANCELED})
+TERMINAL_STATUSES: Final = frozenset(
+    {Status.COMPLETED, Status.FAILED, Status.CANCELED, Status.UNSUPPORTED}
+)

@@ -1,11 +1,13 @@
+import asyncio
 from typing import cast
 
 import pytest
 from msgspec.structs import replace
+from unreal_agent.coordinator import CoordinatorError
 from unreal_agent.inbox import ControlMode, Settings
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, Message, Model, Request, Response, Role
-from unreal_agent.operation import LocalOperationManager, Status, UnsupportedError
+from unreal_agent.operation import LocalOperationManager, Status
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind, ModelResponse, ToolCallStatus
 from unreal_agent.tool import CallStatus, Registry, StaticTranslators
@@ -14,7 +16,6 @@ from tests.coordinator._helpers import (
     FakeAdapter,
     MemoryStore,
     assert_stop_result,
-    caused_by,
     external_event,
     fake_time,
     new_stop_test_run,
@@ -193,24 +194,34 @@ async def test_coordinator_resumes_unanswered_input(stage: str) -> None:
 @pytest.mark.parametrize(
     "mode",
     [
-        pytest.param(ControlMode.STOP_HARD, id=str(ControlMode.STOP_HARD)),
-        pytest.param(ControlMode.STOP_WHEN_IDLE, id=str(ControlMode.STOP_WHEN_IDLE)),
+        pytest.param(None, id="resume"),
+        pytest.param(ControlMode.STOP_HARD, id="hard"),
+        pytest.param(ControlMode.STOP_WHEN_IDLE, id="when_idle"),
     ],
 )
 @fake_time
-async def test_coordinator_stop_rejects_unsupported_operation(mode: ControlMode) -> None:
+async def test_coordinator_run_rejects_unsupported_operation(mode: ControlMode | None) -> None:
     run = new_stop_test_run(1)
+    store = await persist_test_run(run)
+    await store.append_input("session-1", external_event("pending", "check progress"))
+    await restore_test_run(run, store)
     manager = LocalOperationManager()
     try:
         run.dependencies.operations = manager
-        await submit_test_input(run.inputs, stop_input("stop", mode))
-        await run.start()
-        err = run.finished_error()
-        assert caused_by(err, UnsupportedError), f"Run error = {err!r}, want unsupported operation"
-        assert len(run.store.saved_operations) == 0, (
-            "unsupported operation changed state or started a model request"
+        if mode is not None:
+            await submit_test_input(run.inputs, stop_input("stop", mode))
+        with pytest.raises(CoordinatorError) as error:
+            async with asyncio.timeout(15):
+                await run.current.run()
+        want = 'store operation "operation-0": operation "operation-0" has unsupported status ""'
+        assert want in str(error.value), "want unsupported status rejected by store"
+        after = await store.resume("session-1")
+        assert after.operations == run.dependencies.restored.operations, (
+            "unsupported operation changed the checkpoint"
         )
-        assert len(run.calls) == 0, "unsupported operation changed state or started a model request"
+        history = await store.items("session-1", BEFORE_FIRST, 100)
+        turns = sum(1 for item in history.items if item.Kind == ItemKind.TURN)
+        assert turns == 1, "unsupported operation started a model turn with an unanswered input"
     finally:
         await manager.aclose()
 

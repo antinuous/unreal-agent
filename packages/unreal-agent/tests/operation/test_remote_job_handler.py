@@ -10,7 +10,6 @@ from unreal_agent.operation import (
     TYPE_SHELL,
     LocalOperationManager,
     Operation,
-    OperationError,
     RemoteJobPlan,
     Status,
     UnsupportedError,
@@ -128,14 +127,17 @@ async def test_local_operation_manager_rejects_invalid_remote_job_updates(
 
 async def test_local_operation_manager_rejects_unsupported_plan(new_manager: NewManager) -> None:
     manager = new_manager()
-    with pytest.raises(UnsupportedError):
-        await manager.add(new_remote_job_operation("unsupported"))
+    await manager.add(new_remote_job_operation("unsupported"))
+    assert (await receive_update(manager)).Status == Status.UNSUPPORTED
 
 
 async def test_local_operation_manager_rejects_ambiguous_plan(new_manager: NewManager) -> None:
     manager = new_manager(FakeRemoteJobHandler(), FakeRemoteJobHandler())
-    with pytest.raises(OperationError, match="multiple handlers"):
-        await manager.add(new_remote_job_operation("ambiguous"))
+    await manager.add(new_remote_job_operation("ambiguous"))
+    update = await receive_update(manager)
+    state = decode_remote_job_state(update)
+    assert update.Status == Status.FAILED
+    assert "multiple handlers" in state.TerminalError
 
 
 async def test_local_operation_manager_propagates_remote_add_error(
@@ -143,9 +145,11 @@ async def test_local_operation_manager_propagates_remote_add_error(
 ) -> None:
     handler = FakeRemoteJobHandler(add_error=RuntimeError("cannot add"))
     manager = new_manager(handler)
-    with pytest.raises(RuntimeError) as error:
-        await manager.add(new_remote_job_operation("add-error"))
-    assert error.value is handler.add_error
+    await manager.add(new_remote_job_operation("add-error"))
+    update = await receive_update(manager)
+    state = decode_remote_job_state(update)
+    assert update.Status == Status.FAILED
+    assert state.TerminalError == str(handler.add_error)
 
 
 async def test_local_operation_manager_skips_missing_handlers(new_manager: NewManager) -> None:
@@ -155,17 +159,28 @@ async def test_local_operation_manager_skips_missing_handlers(new_manager: NewMa
     assert cast(Operation, await receive(handler.adds)).ID == "after-missing-handler"
 
 
+@pytest.mark.parametrize(
+    "cause",
+    [
+        pytest.param(RuntimeError("cannot cancel"), id="cannot cancel"),
+        pytest.param(UnsupportedError(), id="unsupported operation"),
+    ],
+)
 async def test_local_operation_manager_propagates_remote_cancellation_error(
-    new_manager: NewManager,
+    new_manager: NewManager, cause: Exception
 ) -> None:
-    handler = FakeRemoteJobHandler(cancel_error=RuntimeError("cannot cancel"))
+    handler = FakeRemoteJobHandler(cancel_error=cause)
     manager = new_manager(handler)
     current = new_remote_job_operation("cancel-error")
     await manager.add(current)
     await receive(handler.adds)
-    with pytest.raises(RuntimeError) as error:
-        await manager.cancel(current.ID, "requested")
-    assert error.value is handler.cancel_error
+    await manager.cancel(current.ID, "requested")
+    update = await receive_update(manager)
+    state = decode_remote_job_state(update)
+    want = f"remote job outcome is unknown because cancellation failed: {cause}"
+    assert update.Status == Status.FAILED
+    assert state.TerminalError == want
+    await manager.cancel(current.ID, "repeat")
 
 
 async def test_local_operation_manager_fails_jobs_when_remote_handler_stops(
@@ -182,8 +197,12 @@ async def test_local_operation_manager_fails_jobs_when_remote_handler_stops(
     state = decode_remote_job_state(failed)
     assert failed.Status == Status.FAILED
     assert "remote job handler 0 stopped" in state.TerminalError
-    with pytest.raises(OperationError, match="remote job handler 0 stopped"):
-        await manager.add(new_remote_job_operation("handler-already-stopped"))
+    later = new_remote_job_operation("handler-already-stopped")
+    await manager.add(later)
+    update = await receive_update(manager)
+    state = decode_remote_job_state(update)
+    assert (update.ID, update.Status) == (later.ID, Status.FAILED)
+    assert "remote job handler 0 stopped" in state.TerminalError
     assert handler.adds.empty(), "stopped handler accepted an operation"
 
 
@@ -301,7 +320,7 @@ async def test_local_operation_manager_rejects_remote_job_status_regression(
 async def test_local_operation_manager_reports_remote_cancellation_failure_after_invalid_update(
     new_manager: NewManager,
 ) -> None:
-    handler = FakeRemoteJobHandler(cancel_error=RuntimeError("cannot cancel"))
+    handler = FakeRemoteJobHandler(cancel_error=UnsupportedError())
     manager = new_manager(handler)
     current = new_remote_job_operation("invalid-cancel-error")
     await manager.add(current)
@@ -312,7 +331,8 @@ async def test_local_operation_manager_reports_remote_cancellation_failure_after
     state = decode_remote_job_state(failed)
     assert failed.Status == Status.FAILED
     assert "validate remote job handler update" in state.TerminalError
-    assert "cannot cancel" in state.TerminalError
+    assert "outcome is unknown" in state.TerminalError
+    assert str(handler.cancel_error) in state.TerminalError
 
 
 async def test_local_operation_manager_adds_remote_job_once(new_manager: NewManager) -> None:
@@ -322,6 +342,8 @@ async def test_local_operation_manager_adds_remote_job_once(new_manager: NewMana
     await manager.add(current)
     await receive(handler.adds)
     await manager.add(current)
+    await manager.cancel(current.ID, "barrier")
+    await receive(handler.cancellations)
     assert handler.adds.empty(), "duplicate add"
 
 

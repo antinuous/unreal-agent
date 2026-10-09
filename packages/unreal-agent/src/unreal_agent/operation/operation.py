@@ -48,6 +48,7 @@ class Status(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELED = "canceled"
+    UNSUPPORTED = ""
 
 
 _Status = Status
@@ -87,10 +88,7 @@ class Step:
 
 class Manager(Protocol):
     async def add(self, operation: Operation, /) -> None:
-        """Start an operation at most once for each ID during the manager's lifetime.
-
-        Raises `UnsupportedError` when the operation type or version cannot be handled.
-        """
+        """Start an operation at most once for each ID during the manager's lifetime."""
         ...
 
     async def cancel(self, id: ID, reason: str, /) -> None: ...

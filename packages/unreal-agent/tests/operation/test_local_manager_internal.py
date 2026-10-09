@@ -10,7 +10,6 @@ from unreal_agent.gojson import Raw, encode
 from unreal_agent.operation import (
     TYPE_SHELL,
     VERSION_SHELL,
-    ClosedError,
     LocalOperationManager,
     Operation,
     OperationError,
@@ -389,7 +388,7 @@ class _BlockingRemoteJobHandler:
         self.updates.shutdown()
 
 
-async def test_local_operation_manager_request_returns_when_actor_stops_mid_request() -> None:
+async def test_local_operation_manager_add_returns_once_actor_takes_request() -> None:
     handler = _BlockingRemoteJobHandler()
     manager = LocalOperationManager(handler)
     spec = new_remote_job_spec(RemoteJobPlan(Type="test", Version=1, Data=Raw(b"{}")))
@@ -401,13 +400,11 @@ async def test_local_operation_manager_request_returns_when_actor_stops_mid_requ
         MaxOutputLength=spec.MaxOutputLength,
         State=spec.State,
     )
-    adding = asyncio.create_task(manager.add(operation))
     async with asyncio.timeout(5):
+        await manager.add(operation)
         await handler.adding.wait()
     manager._task.cancel()
     async with asyncio.timeout(5):
-        with pytest.raises(ClosedError):
-            await adding
         with pytest.raises(asyncio.CancelledError):
             await manager.wait_closed()
 
@@ -428,5 +425,4 @@ async def test_local_operation_manager_ends_updates_when_cancelled_during_drain(
             await task
         with pytest.raises(asyncio.QueueShutDown):
             await actor.updates.get()
-        with pytest.raises(ClosedError):
-            await result
+        assert result.cancelled(), "late request was taken"
