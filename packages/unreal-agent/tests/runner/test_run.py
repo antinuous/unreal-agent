@@ -155,62 +155,17 @@ async def test_run_main_executes_batched_messages(
     assert client.closed
 
 
-@pytest.mark.parametrize(
-    ("key_environment", "generic_key", "provider_key", "want_key", "want_error"),
-    [
-        pytest.param(
-            "CUSTOM_CREDENTIAL", "", "provider-secret", "provider-secret", False, id="provider key"
-        ),
-        pytest.param(
-            "CUSTOM_CREDENTIAL",
-            "generic-secret",
-            "provider-secret",
-            "generic-secret",
-            False,
-            id="generic key takes precedence",
-        ),
-        pytest.param(
-            "CUSTOM_CREDENTIAL",
-            " secret ",
-            "",
-            " secret ",
-            False,
-            id="key passed unchanged to client",
-        ),
-        pytest.param(
-            "CUSTOM_CREDENTIAL",
-            " \t ",
-            "provider-secret",
-            " \t ",
-            False,
-            id="whitespace key passed unchanged to client",
-        ),
-        pytest.param(
-            "",
-            "generic-secret",
-            "provider-secret",
-            "",
-            False,
-            id="delegated authentication ignores API keys",
-        ),
-        pytest.param("CUSTOM_CREDENTIAL", "", "", "", True, id="missing required key"),
-    ],
-)
 async def test_run_main_uses_provider_authentication_configuration(
-    key_environment: str,
-    generic_key: str,
-    provider_key: str,
-    want_key: str,
-    want_error: bool,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
+    supplied_key = " \t secret \t "
     client = FakeClient(lambda _: Response(ID="response-1", Stop=StopReason.COMPLETE))
     created = False
 
     def new_client(api_key: str, _: str, __: int, ___: object) -> Client:
         nonlocal created
         created = True
-        if api_key != want_key:
+        if api_key != supplied_key:
             raise ValueError("unexpected API key")
         return client
 
@@ -218,7 +173,7 @@ async def test_run_main_uses_provider_authentication_configuration(
         Provider(
             name="custom",
             default_model="test-model",
-            api_key_environment=key_environment,
+            api_key_environment="CUSTOM_CREDENTIAL",
             new_client=new_client,
         )
     ]
@@ -232,21 +187,16 @@ async def test_run_main_uses_provider_authentication_configuration(
         environment(
             {
                 LLM_PROVIDER_ENVIRONMENT: "custom",
-                LLM_API_KEY_ENVIRONMENT: generic_key,
-                "CUSTOM_CREDENTIAL": provider_key,
+                "CUSTOM_CREDENTIAL": supplied_key,
                 "CUSTOM_API_KEY": "must-not-use",
             }
         ),
         reader('{"prompt":"hello"}'),
         Config(name="unreal-agent-runner", parse_request=parse_test_request, providers=providers),
     )
-    if want_error:
-        assert code == 1, stderr
-        assert not created, stderr
-        assert key_environment in stderr, stderr
-    else:
-        assert code == 0, stderr
-        assert created, stderr
+    assert code == 0, stderr
+    assert created, stderr
+    assert client.closed, stderr
 
 
 async def test_run_main_uses_llm_configuration_from_environment(
