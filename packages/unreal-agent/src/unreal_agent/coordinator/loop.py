@@ -281,79 +281,65 @@ class Coordinator:
 
     async def _run(self) -> None:
         statuses = await self._schedule_tool_calls()
-        await self._reconcile_tool_calls()
         await self._dispatch_operations_to_manager()
-        if _statuses_require_model_response(statuses) or self._pending_inputs() > 0:
-            await self._request_model_response()
+        self._state.call_model = _statuses_require_model_response(statuses)
 
         while True:
-            if not self._is_waiting_for_only_tool_calls():
-                self._cancel_heartbeat()
-            elif self._heartbeat is None and self._dependencies.tool_heartbeat_interval > 0:
-                self._heartbeat = Timer(self._dependencies.tool_heartbeat_interval, self._wake.set)
-
-            if not await self._handle_next_event():
-                continue
-
             call_model = await self._process_events()
             if self._stop.request.Mode == ControlMode.STOP_HARD:
                 if await self._handle_stop():
                     return
-                continue
-            if call_model:
+            elif call_model:
                 await self._request_model_response()
                 self._clear_tool_grace()
             if self._stop.request.Mode == ControlMode.STOP_WHEN_IDLE and self._is_idle():
                 return
 
-    async def _handle_next_event(self) -> bool:
-        """Wait for one event and handle it.
+            if not self._is_waiting_for_only_tool_calls():
+                self._cancel_heartbeat()
+            elif self._heartbeat is None and self._dependencies.tool_heartbeat_interval > 0:
+                self._heartbeat = Timer(self._dependencies.tool_heartbeat_interval, self._wake.set)
 
-        Returns False for a dropped model result, which skips event processing.
-        """
+            await self._handle_next_event()
+
+    async def _handle_next_event(self) -> None:
         inputs, updates = self._sources()
         inputs.arm()
         updates.arm()
         while True:
             for offset in range(5):
                 index = (self._next_source + offset) % 5
-                handled = await self._try_event(index, inputs, updates)
-                if handled is not None:
+                if await self._try_event(index, inputs, updates):
                     self._next_source = (index + 1) % 5
-                    return handled
+                    return
             self._wake.clear()
             await self._wake.wait()
 
     async def _try_event(
         self, index: int, inputs: Source[Input], updates: Source[Operation]
-    ) -> bool | None:
+    ) -> bool:
         match index:
             case 0 if inputs.ready:
                 received = inputs.take()
                 if isinstance(received, Closed):
                     raise _closed_input_error("inbox output")
                 await self._process_inputs([received])
-                return True
             case 1 if updates.ready:
                 update = updates.take()
                 if isinstance(update, Closed):
                     raise _closed_input_error("operation updates")
                 await self._process_operations([update])
-                return True
             case 2 if self._heartbeat is not None and self._heartbeat.consume():
                 await self._post_heartbeat()
-                return True
             case 3 if self._state.grace is not None and self._state.grace.consume():
                 self._clear_tool_grace()
-                return True
             case 4 if self._model_results:
                 result = self._model_results.popleft()
-                if self._cancel_model is None or result.turn_id != self._state.current_turn_id:
-                    return False
-                await self._process_model_response(result)
-                return True
+                if self._cancel_model is not None and result.turn_id == self._state.current_turn_id:
+                    await self._process_model_response(result)
             case _:
-                return None
+                return False
+        return True
 
     def _sources(self) -> tuple[Source[Input], Source[Operation]]:
         assert self._inputs is not None

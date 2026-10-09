@@ -1608,7 +1608,8 @@ async def test_coordinator_run_schedules_tool_calls_without_status_before_dispat
         raise AssertionError("unreachable")
 
     adapter = FakeAdapter(respond)
-    current = new_test_coordinator(store, inputs, operations, new_builder(), registry, adapter)
+    builder = new_builder()
+    current = new_test_coordinator(store, inputs, operations, builder, registry, adapter)
 
     err = await loop_run_returned(current)
     assert err is not None, f"Run error = {err!r}, want closed inbox error"
@@ -1646,7 +1647,10 @@ async def test_coordinator_run_schedules_tool_calls_without_status_before_dispat
     assert len(store.appended_statuses) == 1, (
         f"rescheduled call: calls={translator.calls!r} statuses={store.appended_statuses!r}"
     )
-    assert_stop_result(await loop_run_receive(requests), handled.CallID, "already handled")
+    # The closed inbox ends the run before the started model task gets a step,
+    # so check the turn and the request the builder assembled for it.
+    assert len(store.appended_turns) == 1, "recovered tool error did not start a model turn"
+    assert_stop_result(builder.build().request, handled.CallID, "already handled")
 
 
 async def test_coordinator_run_starts_corrective_turn_for_recovered_validation_error() -> None:

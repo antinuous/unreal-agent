@@ -734,6 +734,8 @@ class StopTestRun:
     async def start(self) -> None:
         self.go()
         await wait()
+        await sleep_ns(2 * SLURP_IDLE_TIMEOUT_NS)
+        await wait()
 
     async def input(self, *inputs: Input) -> None:
         for input in inputs:

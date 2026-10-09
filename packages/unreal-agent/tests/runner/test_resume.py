@@ -154,10 +154,7 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
 
         def resumed_respond(request: LLMRequest) -> Response:
             resumed.calls += 1
-            if (
-                request.Model.ID != "initial-model"
-                or request.Model.ReasoningEffort != ReasoningEffort.LOW
-            ):
+            if model != request.Model.ID or request.Model.ReasoningEffort != effort:
                 raise ValueError(f"recovered request settings = {request.Model!r}")
             if with_tool and not has_result(request):
                 raise ValueError("missing restored result")

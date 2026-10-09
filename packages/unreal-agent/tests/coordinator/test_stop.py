@@ -244,6 +244,8 @@ async def test_coordinator_cancellation_while_collecting_updates(source: str) ->
     run = new_stop_test_run(1)
     run.go()
     await wait()
+    await sleep_ns(2 * SLURP_IDLE_TIMEOUT_NS)
+    await wait()
     if source == "inbox":
         await submit_test_input(run.inputs, external_event("input", "hello"))
     else:

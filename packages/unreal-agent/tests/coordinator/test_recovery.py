@@ -2,15 +2,16 @@ from typing import cast
 
 import pytest
 from msgspec.structs import replace
-from unreal_agent.inbox import ControlMode
+from unreal_agent.inbox import ControlMode, Settings
 from unreal_agent.llm import Item as LLMItem
-from unreal_agent.llm import ItemType, Message, Role
+from unreal_agent.llm import ItemType, Message, Model, Request, Response, Role
 from unreal_agent.operation import LocalOperationManager, Status, UnsupportedError
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind, ModelResponse, ToolCallStatus
 from unreal_agent.tool import CallStatus, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
+    FakeAdapter,
     MemoryStore,
     assert_stop_result,
     caused_by,
@@ -19,12 +20,81 @@ from tests.coordinator._helpers import (
     new_stop_test_run,
     persist_test_run,
     restore_test_run,
+    settings_input,
     stop_input,
     stored_item,
     submit_test_input,
     text_response,
     with_preamble,
 )
+
+
+def text_adapter(text: str) -> FakeAdapter:
+    async def respond(_: Request) -> Response:
+        return text_response(text)
+
+    return FakeAdapter(respond)
+
+
+@fake_time
+async def test_coordinator_resume_processes_queued_hard_stop_before_model_request() -> None:
+    run = new_stop_test_run(0)
+    run.store.history = [stored_item(1, ItemKind.INPUT, external_event("pending", "hello"))]
+    await submit_test_input(run.inputs, stop_input("stop", ControlMode.STOP_HARD))
+    await run.start()
+    assert await run.error() is None
+    assert run.store.appended_turns == [], (
+        "resume started a model turn before accepting the queued hard stop"
+    )
+
+
+@fake_time
+async def test_coordinator_resume_processes_queued_settings_before_model_request() -> None:
+    run = new_stop_test_run(0)
+    run.store.history = [stored_item(1, ItemKind.INPUT, external_event("pending", "hello"))]
+    run.dependencies.context_builder.set_model(Model(ID="previous"))
+    adapter = text_adapter("Hello.")
+    run.dependencies.llm = adapter
+    await submit_test_input(run.inputs, settings_input("settings", Settings(Model="next")))
+    await submit_test_input(run.inputs, stop_input("stop", ControlMode.STOP_WHEN_IDLE))
+    await run.start()
+    assert await run.error() is None
+    assert len(adapter.requests) == 1, f"requests = {len(adapter.requests)}, want one"
+    assert adapter.requests[0].Model.ID == "next", "resumed request did not use the queued model"
+
+
+@fake_time
+async def test_coordinator_resume_processes_queued_input_before_model_request() -> None:
+    run = new_stop_test_run(0)
+    run.store.history = [stored_item(1, ItemKind.INPUT, external_event("pending", "hello"))]
+    adapter = text_adapter("Hello.")
+    run.dependencies.llm = adapter
+    await submit_test_input(run.inputs, external_event("queued", "continue"))
+    await submit_test_input(run.inputs, stop_input("stop", ControlMode.STOP_WHEN_IDLE))
+    await run.start()
+    assert await run.error() is None
+    want = with_preamble(
+        LLMItem(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="hello")),
+        LLMItem(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="continue")),
+    )
+    assert len(adapter.requests) == 1, f"requests = {len(adapter.requests)}, want one"
+    assert adapter.requests[0].Input == want, "resumed request did not include both inputs"
+
+
+@fake_time
+async def test_coordinator_resume_processes_queued_completion_before_model_request() -> None:
+    run = new_stop_test_run(1)
+    run.store.history.append(
+        stored_item(4, ItemKind.INPUT, external_event("pending", "check progress"))
+    )
+    adapter = text_adapter("Done.")
+    run.dependencies.llm = adapter
+    run.operations.send(replace(run.store.resume.operations[0], Status=Status.COMPLETED))
+    await submit_test_input(run.inputs, stop_input("stop", ControlMode.STOP_WHEN_IDLE))
+    await run.start()
+    assert await run.error() is None
+    assert len(adapter.requests) == 1, f"requests = {len(adapter.requests)}, want one"
+    assert_stop_result(adapter.requests[0], "call-0", str(Status.COMPLETED))
 
 
 @pytest.mark.parametrize("stage", ["untranslated", "rejected", "accepted"])

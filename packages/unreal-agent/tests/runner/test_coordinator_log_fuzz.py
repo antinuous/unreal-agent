@@ -18,6 +18,7 @@ from hypothesis import strategies as st
 from msgspec.structs import replace
 from unreal_agent.contextbuilder import new_builder
 from unreal_agent.coordinator import Coordinator, Dependencies
+from unreal_agent.coordinator.loop import SLURP_IDLE_TIMEOUT
 from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputKind
 from unreal_agent.llm import Message, Model, RequestOptions, Response, Role
 from unreal_agent.llm import Request as LLMRequest
@@ -213,9 +214,10 @@ async def run_coordinator_log_case(
             async def complete(call: LogModelCall, variant: int) -> None:
                 assert not call.finished.is_set(), "model request was interrupted before completion"
                 call.response.set_result(fuzz_log_response(text, usage, call.index, variant))
-                # The coordinator ends the request when it accepts its result.
-                # Wait for that boundary before submitting the next input.
+                # The coordinator accepts the result after draining pending
+                # events. Wait for that boundary before submitting the next input.
                 await call.finished.wait()
+                await asyncio.sleep(2 * SLURP_IDLE_TIMEOUT)
                 await wait()
 
             pending = await next_call()
