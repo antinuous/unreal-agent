@@ -1,8 +1,8 @@
 """Messages API request encoding.
 
 Bodies match the Go encoder byte for byte: object members are sorted at every
-level, numbers in tool arguments and schemas keep their text, and raw thinking
-blocks are replayed in their own member order.
+level, numbers in tool arguments and schemas keep their text, and raw provider
+items are replayed in their own member order.
 """
 
 import base64
@@ -19,7 +19,7 @@ from unreal_agent.llm.model import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderItem,
     ReasoningEffort,
     Request,
     Role,
@@ -222,11 +222,8 @@ def request_input_block(item: Item) -> Any:
                     f"encode tool call {go_quote(call.CallID)} arguments: {error}"
                 ) from error
             return {"id": call.CallID, "input": arguments, "name": call.Name, "type": "tool_use"}
-        case ItemType.REASONING:
-            raw = bytes(cast(Reasoning, item.Data).Raw)
-            if not raw:
-                raise ValueError("reasoning must carry an Anthropic thinking block in Raw")
-            return Raw(reformat_checked(raw))
+        case ItemType.PROVIDER:
+            return Raw(reformat_checked(bytes(cast(ProviderItem, item.Data).Raw)))
         case _:
             raise ValueError(f"unsupported assistant item type {go_quote(item.Type)}")
 

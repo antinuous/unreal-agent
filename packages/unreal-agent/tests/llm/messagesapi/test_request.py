@@ -7,7 +7,9 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     ReasoningEffort,
     Request,
     Role,
@@ -252,8 +254,17 @@ def test_request_tool_output_preserves_images_and_empty_results() -> None:
         ([tool_call("a"), tool_call("a")], "duplicate tool call"),
         ([tool_call("")], "must have an ID and name"),
         (
-            [Item(Type=ItemType.REASONING, Data=Reasoning(Summary=["only summary"]))],
-            "thinking block in Raw",
+            [
+                Item(
+                    Type=ItemType.PROVIDER,
+                    Data=ProviderItem(
+                        Display=ProviderDisplay(
+                            Kind=ProviderDisplayKind.REASONING, Text="only summary"
+                        )
+                    ),
+                )
+            ],
+            "provider item Raw is required",
         ),
     ],
     ids=[
@@ -432,7 +443,7 @@ def test_request_replays_malformed_arguments_as_an_object(arguments: str) -> Non
 )
 def test_request_replays_opaque_reasoning(raw: str) -> None:
     request = valid_request()
-    request.Input.append(Item(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(raw.encode()))))
+    request.Input.append(Item(Type=ItemType.PROVIDER, Data=ProviderItem(Raw=Raw(raw.encode()))))
     replayed = _content(request_body(request), 1)[0]
     assert parse_any(replayed) == parse_any(raw.encode())
 
@@ -446,6 +457,6 @@ def test_request_replays_opaque_reasoning(raw: str) -> None:
 )
 def test_request_rejects_malformed_reasoning_json(raw: str) -> None:
     request = valid_request()
-    request.Input.append(Item(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(raw.encode()))))
+    request.Input.append(Item(Type=ItemType.PROVIDER, Data=ProviderItem(Raw=Raw(raw.encode()))))
     with pytest.raises(ValueError, match=r"^encode messages request: "):
         request_body(request)

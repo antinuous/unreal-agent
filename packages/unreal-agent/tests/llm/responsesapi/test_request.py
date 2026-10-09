@@ -10,7 +10,9 @@ from unreal_agent.llm import (
     ItemType,
     Message,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     ReasoningEffort,
     Request,
     Response,
@@ -214,9 +216,20 @@ def test_request_body_encodes_tool_result_outputs(
             id="unsupported tool result kind",
         ),
         pytest.param(
-            Item(Type=ItemType.REASONING, Data=Reasoning(Summary=["thought"])),
-            "input item 0: reasoning item must carry the provider item in Raw",
-            id="reasoning without raw",
+            Item(
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Type="reasoning",
+                    Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="thought"),
+                ),
+            ),
+            "input item 0: provider item Raw is required",
+            id="provider item without raw",
+        ),
+        pytest.param(
+            Item(Type=ItemType.PROVIDER, Data=Message()),
+            "input item 0: provider data must be llm.ProviderItem, got llm.Message",
+            id="mismatched provider data",
         ),
         pytest.param(
             Item(Type=ItemType.MESSAGE, Data=ToolCall()),
@@ -251,8 +264,12 @@ def test_request_input_item_replays_raw_reasoning_verbatim() -> None:
     item = request_input_item(
         Item(
             ProviderID="ignored",
-            Type=ItemType.REASONING,
-            Data=Reasoning(Summary=["stale summary"], Raw=Raw(raw)),
+            Type=ItemType.PROVIDER,
+            Data=ProviderItem(
+                Type="reasoning",
+                Raw=Raw(raw),
+                Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="stale summary"),
+            ),
         )
     )
     assert bytes(item) == raw
@@ -452,8 +469,8 @@ def test_request_body_matches_go_for_edge_values() -> None:
                 Data=Message(Role=cast(Role, "developer"), Text="d", Phase="x"),
             ),
             Item(
-                Type=ItemType.REASONING,
-                Data=Reasoning(Raw=Raw(b'{ "z" : 1 , "a" : "<\\u003c" }')),
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(Raw=Raw(b'{ "z" : 1 , "a" : "<\\u003c" }')),
             ),
             Item(Type=ItemType.TOOL_CALL, Data=ToolCall(Arguments="nope")),
             Item(Type=ItemType.TOOL_RESULT, Data=ToolResult()),

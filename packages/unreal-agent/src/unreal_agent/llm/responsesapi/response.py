@@ -17,7 +17,9 @@ from unreal_agent.llm.model import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -288,11 +290,10 @@ def _output_item(source: Raw) -> Item | None:
             summary = [
                 part.text or "" if part is not None else "" for part in reasoning.summary or []
             ]
-            return Item(
-                ProviderID=reasoning.id or "",
-                Type=ItemType.REASONING,
-                Data=Reasoning(Summary=summary, Raw=Raw(bytes(source))),
-            )
+            provider = ProviderItem(Type=item_type, Raw=Raw(bytes(source)))
+            if display := "\n\n".join(summary):
+                provider.Display = ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text=display)
+            return Item(ProviderID=reasoning.id or "", Type=ItemType.PROVIDER, Data=provider)
         case _:
             raise ValueError(f"unsupported output item type {go_quote(item_type)}")
 

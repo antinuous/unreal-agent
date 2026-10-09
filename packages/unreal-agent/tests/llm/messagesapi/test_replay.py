@@ -8,7 +8,9 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Request,
     Response,
     Role,
@@ -110,26 +112,26 @@ def test_replay_preserves_committed_results_while_delivering_old_completions() -
         assert results[1]["text"] == "C completed"
 
 
-def test_request_uses_raw_thinking_instead_of_summary() -> None:
+def test_request_uses_raw_thinking_instead_of_display() -> None:
     raw = Raw(b'{"type":"thinking","thinking":"original","signature":"signed"}')
+    stale = ProviderItem(
+        Type="thinking",
+        Raw=raw,
+        Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="stale display text"),
+    )
     _, wire = encode_request(
         Request(
             Model=Model(ID="claude-test"),
             Input=[
                 message(Role.USER, "Start"),
-                Item(
-                    Type=ItemType.REASONING,
-                    Data=Reasoning(Summary=["stale display text"], Raw=raw),
-                ),
+                Item(Type=ItemType.PROVIDER, Data=stale),
                 tool_call("a"),
                 tool_result("a", "done", False),
             ],
         )
     )
     assert wire["messages"][1]["content"][0]["type"] == "thinking"
-    block = request_input_block(
-        Item(Type=ItemType.REASONING, Data=Reasoning(Summary=["stale display text"], Raw=raw))
-    )
+    block = request_input_block(Item(Type=ItemType.PROVIDER, Data=stale))
     thinking = decode(bytes(block), dict[str, str])
     assert (thinking["thinking"], thinking["signature"]) == ("original", "signed")
 
@@ -142,13 +144,14 @@ def test_request_body_with_large_history(kind: str) -> None:
         if kind == "thinking":
             request.Input.append(
                 Item(
-                    Type=ItemType.REASONING,
-                    Data=Reasoning(
+                    Type=ItemType.PROVIDER,
+                    Data=ProviderItem(
+                        Type="thinking",
                         Raw=Raw(
                             b'{"type":"thinking","thinking":"","signature":"'
                             + b"x" * (16 << 10)
                             + b'","provider_state":{"v":2}}'
-                        )
+                        ),
                     ),
                 )
             )

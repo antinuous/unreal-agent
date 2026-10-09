@@ -7,7 +7,9 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Role,
     ToolCall,
     ToolResult,
@@ -55,10 +57,13 @@ ROUND_TRIP_ITEMS = [
     ),
     Item(
         ProviderID="reasoning-1",
-        Type=ItemType.REASONING,
-        Data=Reasoning(Summary=["inspect"], Raw=Raw(b'{"encrypted":"opaque"}')),
+        Type=ItemType.PROVIDER,
+        Data=ProviderItem(
+            Type="reasoning",
+            Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="inspect"),
+            Raw=Raw(b'{"encrypted":"opaque"}'),
+        ),
     ),
-    Item(ProviderID="reasoning-empty", Type=ItemType.REASONING, Data=Reasoning()),
 ]
 
 
@@ -73,11 +78,11 @@ def test_item_json_round_trip(want: Item) -> None:
     assert gojson.encode(got) == encoded
 
 
-def test_reasoning_raw_is_compacted_on_encode() -> None:
-    item = Item(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(b'{ "encrypted" : [1, 2.50] }')))
+def test_provider_raw_is_compacted_on_encode() -> None:
+    item = Item(Type=ItemType.PROVIDER, Data=ProviderItem(Raw=Raw(b'{ "encrypted" : [1, 2.50] }')))
     assert (
         gojson.encode(item)
-        == b'{"ProviderID":"","Type":"reasoning","Data":{"Raw":{"encrypted":[1,2.50]}}}'
+        == b'{"ProviderID":"","Type":"provider","Data":{"Type":"","Raw":{"encrypted":[1,2.50]}}}'
     )
 
 
@@ -87,7 +92,21 @@ def test_reasoning_raw_is_compacted_on_encode() -> None:
         (Item(Type=ItemType.MESSAGE, Data=ToolCall()), "llm.Message"),
         (Item(Type=ItemType.TOOL_CALL, Data=Message()), "llm.ToolCall"),
         (Item(Type=ItemType.TOOL_RESULT, Data=Message()), "llm.ToolResult"),
-        (Item(Type=ItemType.REASONING, Data=Message()), "llm.Reasoning"),
+        (Item(Type=ItemType.PROVIDER, Data=Message()), "llm.ProviderItem"),
+        (Item(Type=ItemType.PROVIDER, Data=ProviderItem()), "provider item Raw is required"),
+        (
+            Item(Type=ItemType.PROVIDER, Data=ProviderItem(Raw=Raw(b"null"))),
+            "provider item Raw is required",
+        ),
+        (
+            Item(
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="visible")
+                ),
+            ),
+            "provider item Raw is required",
+        ),
         (Item(Type=cast(ItemType, "unknown"), Data=Message()), 'unsupported item type "unknown"'),
     ],
 )
@@ -111,6 +130,12 @@ def test_item_json_rejects_invalid_tag_and_data_on_encode(item: Item, want: str)
         '{"Type":"tool_result","Data":{"Output":{}}}',
         '{"Type":"tool_result","Data":{"Output":["done"]}}',
         '{"Type":"tool_result","Data":{"Output":[{"Value":42}]}}',
+        '{"Type":"reasoning","Data":[]}',
+        '{"Type":"provider","Data":[]}',
+        '{"Type":"provider","Data":null}',
+        '{"Type":"provider","Data":{}}',
+        '{"Type":"provider","Data":{"Raw":null}}',
+        '{"Type":"provider","Data":{"Display":{"Kind":"reasoning","Text":"visible"}}}',
         "{}",
         '{"Type":"message"}',
     ],
@@ -123,3 +148,73 @@ def test_item_json_rejects_invalid_encoding(encoded: str) -> None:
 def test_item_json_null_data_message() -> None:
     with pytest.raises(JSONError, match="message data must not be null"):
         gojson.decode('{"Type":"message","Data":null}', Item)
+
+
+def _reasoning_display(text: str) -> ProviderDisplay:
+    return ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text=text)
+
+
+@pytest.mark.parametrize(
+    ("data", "want"),
+    [
+        pytest.param(
+            '{"Summary":["first","second"],"Raw":{"type":"reasoning",'
+            '"encrypted_content":"opaque","extra":9007199254740993}}',
+            ProviderItem(
+                Type="reasoning",
+                Raw=Raw(
+                    b'{"type":"reasoning","encrypted_content":"opaque","extra":9007199254740993}'
+                ),
+                Display=_reasoning_display("first\n\nsecond"),
+            ),
+            id="responses",
+        ),
+        pytest.param(
+            '{"Raw":{"type":"thinking","thinking":"original","signature":"signed"}}',
+            ProviderItem(
+                Type="thinking",
+                Raw=Raw(b'{"type":"thinking","thinking":"original","signature":"signed"}'),
+            ),
+            id="thinking",
+        ),
+        pytest.param(
+            '{"Raw":{"type":"redacted_thinking","data":"opaque"}}',
+            ProviderItem(
+                Type="redacted_thinking", Raw=Raw(b'{"type":"redacted_thinking","data":"opaque"}')
+            ),
+            id="redacted",
+        ),
+        pytest.param(
+            '{"Summary":["visible"]}',
+            ProviderItem(Display=_reasoning_display("visible")),
+            id="summary only",
+        ),
+        pytest.param("{}", ProviderItem(), id="empty"),
+        pytest.param(
+            '{"Raw":{"type":42,"state":"opaque"}}',
+            ProviderItem(Raw=Raw(b'{"type":42,"state":"opaque"}')),
+            id="unrecognised payload",
+        ),
+        pytest.param('{"Raw":[1,2]}', ProviderItem(Raw=Raw(b"[1,2]")), id="nonobject payload"),
+    ],
+)
+def test_item_json_migrates_legacy_reasoning(data: str, want: ProviderItem) -> None:
+    item = gojson.decode(
+        '{"ProviderID":"original-id","Type":"reasoning","Data":' + data + "}", Item
+    )
+    expected = Item(ProviderID="original-id", Type=ItemType.PROVIDER, Data=want)
+    assert item == expected
+    assert type(item.Type) is ItemType
+    if not bytes(want.Raw):
+        with pytest.raises(JSONError, match="provider item Raw is required"):
+            gojson.encode(item)
+        return
+    encoded = gojson.encode(item)
+    assert b'"Type":"reasoning","Data"' not in encoded, "wrote retired representation"
+    assert b'"Summary"' not in encoded, "wrote retired representation"
+    assert gojson.decode(encoded, Item) == expected, "migration changed on reload"
+
+
+def test_item_json_rejects_malformed_legacy_reasoning() -> None:
+    with pytest.raises(JSONError, match="decode reasoning data"):
+        gojson.decode('{"Type":"reasoning","Data":{"Summary":"text"}}', Item)

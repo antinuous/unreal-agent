@@ -4,7 +4,9 @@ from unreal_agent.llm import (
     ItemType,
     Message,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Request,
     Role,
     Tool,
@@ -50,9 +52,12 @@ def detailed_request() -> Request:
             ),
             Item(
                 ProviderID="previous-reasoning",
-                Type=ItemType.REASONING,
-                Data=Reasoning(
-                    Summary=["Checked the request."],
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Type="reasoning",
+                    Display=ProviderDisplay(
+                        Kind=ProviderDisplayKind.REASONING, Text="Checked the request."
+                    ),
                     Raw=Raw(
                         b'{"id":"previous-reasoning","type":"reasoning","status":"completed",'
                         b'"summary":[{"type":"summary_text","text":"Checked the request."}],'

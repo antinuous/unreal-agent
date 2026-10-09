@@ -7,7 +7,7 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -49,7 +49,7 @@ def test_response_converts_web_search_response() -> None:
     }""")
     assert len(response.Output or []) == 2
     reasoning = (response.Output or [])[0].Data
-    assert isinstance(reasoning, Reasoning)
+    assert isinstance(reasoning, ProviderItem)
     raw = json.loads(bytes(reasoning.Raw))
     assert raw["encrypted_content"] == "opaque"
     assert raw["id"] == "reasoning-1"
@@ -250,7 +250,7 @@ def test_response_keeps_raw_reasoning_and_usage_byte_for_byte() -> None:
         b' "usage" : { "input_tokens" : 1 } }'
     )
     reasoning = (response.Output or [])[0].Data
-    assert isinstance(reasoning, Reasoning)
+    assert isinstance(reasoning, ProviderItem)
     assert bytes(reasoning.Raw) == b'{ "id" : "x", "type":"reasoning", "summary":[] }'
     assert bytes(response.Usage.Raw) == b'{ "input_tokens" : 1 }'
 
@@ -282,19 +282,19 @@ def test_response_accepts_null_members_like_go() -> None:
     response = decode_response(
         b'{"status":"completed","output":[{"type":"reasoning","summary":[null]}],"usage":null}'
     )
-    assert (response.Output or [])[0].Data == Reasoning(
-        Summary=[""], Raw=Raw(b'{"type":"reasoning","summary":[null]}')
+    assert (response.Output or [])[0].Data == ProviderItem(
+        Type="reasoning", Raw=Raw(b'{"type":"reasoning","summary":[null]}')
     )
     assert response.Usage == Usage(Raw=Raw(b"null"))
     failed = decode_response(b'{"status":"failed","output":[]}')
     assert failed.Failure == Failure(Message="response failed")
 
 
-def test_response_encodes_empty_output_and_summary_like_go() -> None:
+def test_response_encodes_empty_output_and_provider_item_like_go() -> None:
     failed = decode_response(b'{"status":"failed"}')
     assert failed.Output == []
     assert b'"Output":[]' in encode(failed)
     response = decode_response(b'{"status":"completed","output":[{"type":"reasoning"}]}')
     assert encode((response.Output or [])[0]) == (
-        b'{"ProviderID":"","Type":"reasoning","Data":{"Summary":[],"Raw":{"type":"reasoning"}}}'
+        b'{"ProviderID":"","Type":"provider","Data":{"Type":"reasoning","Raw":{"type":"reasoning"}}}'
     )

@@ -13,7 +13,6 @@ from unreal_agent.llm import (
     ItemType,
     Message,
     Model,
-    Reasoning,
     Request,
     Response,
     Role,
@@ -28,7 +27,7 @@ from unreal_agent.llm import (
 )
 from unreal_agent.tool import Skill
 
-from tests.contextbuilder._helpers import text, tool_result
+from tests.contextbuilder._helpers import reasoning, text, tool_result
 
 
 def with_preamble(*items: Item) -> list[Item]:
@@ -74,8 +73,8 @@ def test_builder_adds_model_response_output() -> None:
     output = [
         Item(
             ProviderID="reasoning-1",
-            Type=ItemType.REASONING,
-            Data=Reasoning(Summary=["Need current weather."]),
+            Type=ItemType.PROVIDER,
+            Data=reasoning("Need current weather."),
         ),
         Item(
             ProviderID="message-1",
@@ -103,15 +102,20 @@ def test_builder_adds_model_response_output() -> None:
 def test_builder_builds_request_from_added_values() -> None:
     model = Model(ID="gpt-test")
     weather = Tool(Type=ToolType.FUNCTION, Name="weather", Description="Get weather")
-    reasoning = Reasoning(Summary=["Need current weather."])
+    thought = reasoning("Need current weather.")
     call = ToolCall(CallID="call-1", Name="weather", Arguments='{"city":"London"}')
 
     current = new_builder()
     current.set_model(model)
     current.add_tool(weather)
-    current.add_reasoning(reasoning)
-    current.commit()
-    current.add_model_response(Response(Output=[Item(Type=ItemType.TOOL_CALL, Data=call)]))
+    current.add_model_response(
+        Response(
+            Output=[
+                Item(Type=ItemType.PROVIDER, Data=thought),
+                Item(Type=ItemType.TOOL_CALL, Data=call),
+            ]
+        )
+    )
     current.add_tool_result("call-1", text("completed:operation-1"), False)
     result = current.build()
 
@@ -120,7 +124,7 @@ def test_builder_builds_request_from_added_values() -> None:
             Model=model,
             Tools=[weather],
             Input=with_preamble(
-                Item(Type=ItemType.REASONING, Data=reasoning),
+                Item(Type=ItemType.PROVIDER, Data=thought),
                 Item(Type=ItemType.TOOL_CALL, Data=call),
                 tool_result("call-1", "completed:operation-1"),
             ),

@@ -12,11 +12,14 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from unreal_agent.gojson import Raw
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import (
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -93,8 +96,14 @@ async def test_runner_output_converts_to_trajectory(
                 Usage=usage,
                 Output=[
                     LLMItem(
-                        Type=ItemType.REASONING,
-                        Data=Reasoning(Summary=["plan the command"]),
+                        Type=ItemType.PROVIDER,
+                        Data=ProviderItem(
+                            Type="reasoning",
+                            Raw=Raw(b'{"type":"reasoning"}'),
+                            Display=ProviderDisplay(
+                                Kind=ProviderDisplayKind.REASONING, Text="plan the command"
+                            ),
+                        ),
                     ),
                     LLMItem(
                         Type=ItemType.TOOL_CALL,

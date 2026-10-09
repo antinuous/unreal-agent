@@ -14,7 +14,9 @@ from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import (
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -165,8 +167,12 @@ async def test_store_persists_typed_history_and_pagination(tmp_path: Path) -> No
                 ),
                 LLMItem(
                     ProviderID="reasoning-1",
-                    Type=ItemType.REASONING,
-                    Data=Reasoning(Summary=["inspect"], Raw=Raw(b'{"encrypted":"opaque"}')),
+                    Type=ItemType.PROVIDER,
+                    Data=ProviderItem(
+                        Type="reasoning",
+                        Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="inspect"),
+                        Raw=Raw(b'{"encrypted":"opaque"}'),
+                    ),
                 ),
             ],
             Usage=Usage(InputTokens=10, OutputTokens=4, Raw=Raw(b'{"provider":14}')),
@@ -756,8 +762,14 @@ async def test_missing_sessions_fail_every_read_modify_write_method(
             id="message data has wrong type",
         ),
         pytest.param(
-            invalid_response_call(LLMItem(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(b"{")))),
-            id="reasoning raw data is invalid JSON",
+            invalid_response_call(LLMItem(Type=ItemType.PROVIDER, Data=Message())),
+            id="provider data has wrong type",
+        ),
+        pytest.param(
+            invalid_response_call(
+                LLMItem(Type=ItemType.PROVIDER, Data=ProviderItem(Type="reasoning", Raw=Raw(b"{")))
+            ),
+            id="provider raw data is invalid JSON",
         ),
         pytest.param(
             invalid_response_call(LLMItem(Type=cast(ItemType, "unknown"), Data=Message())),

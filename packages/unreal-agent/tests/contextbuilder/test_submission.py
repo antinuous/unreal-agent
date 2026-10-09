@@ -6,13 +6,12 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Message,
-    Reasoning,
     Response,
     Role,
     ToolCall,
 )
 
-from tests.contextbuilder._helpers import text, tool_result
+from tests.contextbuilder._helpers import reasoning, text, tool_result
 
 
 def message(role: Role, value: str, provider_id: str = "") -> Item:
@@ -49,13 +48,11 @@ def test_builder_places_response_before_unsubmitted_inputs(empty_response: bool)
     current.add_tool_result("A", text("done A"), False)
     current.add_external_input(external("second", b'"continue"'))
     current.add_control_message(ControlMessage(Mode=ControlMode.HEARTBEAT, Reason="heartbeat"))
-    current.add_reasoning(Reasoning(Summary=["added reasoning"]))
     preview = current.build()
     suffix = [
         tool_result("A", "done A"),
         message(Role.USER, "continue"),
         message(Role.USER, "heartbeat"),
-        Item(Type=ItemType.REASONING, Data=Reasoning(Summary=["added reasoning"])),
     ]
     want_preview = [*original, *suffix]
     assert preview.request.Input == want_preview
@@ -63,8 +60,8 @@ def test_builder_places_response_before_unsubmitted_inputs(empty_response: bool)
     output: list[Item] = [
         Item(
             ProviderID="reasoning",
-            Type=ItemType.REASONING,
-            Data=Reasoning(Summary=["response reasoning"]),
+            Type=ItemType.PROVIDER,
+            Data=reasoning("response reasoning"),
         ),
         message(Role.ASSISTANT, "working", "message"),
         Item(

@@ -15,7 +15,9 @@ from unreal_agent.llm.model import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -134,14 +136,18 @@ def _output_item(source: Raw) -> Item:
             thinking = _as(source, wire.ResponseThinkingBlock)
             if not thinking.signature:
                 raise ValueError("thinking block must have a signature")
-            summary = [thinking.thinking] if thinking.thinking else None
-            return Item(
-                Type=ItemType.REASONING, Data=Reasoning(Summary=summary, Raw=Raw(bytes(source)))
-            )
+            provider = ProviderItem(Type=kind, Raw=Raw(bytes(source)))
+            if thinking.thinking:
+                provider.Display = ProviderDisplay(
+                    Kind=ProviderDisplayKind.REASONING, Text=thinking.thinking
+                )
+            return Item(Type=ItemType.PROVIDER, Data=provider)
         case "redacted_thinking":
             if not _as(source, wire.ResponseRedactedThinkingBlock).data:
                 raise ValueError("redacted thinking block must have data")
-            return Item(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(bytes(source))))
+            return Item(
+                Type=ItemType.PROVIDER, Data=ProviderItem(Type=kind, Raw=Raw(bytes(source)))
+            )
         case _:
             raise ValueError(f"unsupported output block type {go_quote(kind)}")
 

@@ -17,7 +17,9 @@ from unreal_agent.llm import (
     Failure,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     RequestOptions,
     Response,
     Role,
@@ -331,9 +333,10 @@ def fuzz_log_response(text: str, usage: Usage, index: int, variant: int) -> Resp
         Output=[
             LLMItem(
                 ProviderID=f"reasoning-{index}",
-                Type=ItemType.REASONING,
-                Data=Reasoning(
-                    Summary=[text],
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Type="reasoning",
+                    Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text=text),
                     Raw=gojson.Raw(gojson.encode(_ReasoningRaw(Encrypted=text, Index=index))),
                 ),
             ),

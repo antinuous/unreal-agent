@@ -2,7 +2,18 @@ import pytest
 from msgspec.structs import replace
 from unreal_agent.contextbuilder import Result, new_builder
 from unreal_agent.inbox import ControlMessage, ControlMode, Settings
-from unreal_agent.llm import ItemType, Message, Model, Reasoning, ReasoningEffort, Role, Tool
+from unreal_agent.llm import (
+    Item,
+    ItemType,
+    Message,
+    Model,
+    ReasoningEffort,
+    Response,
+    Role,
+    Tool,
+)
+
+from tests.contextbuilder._helpers import reasoning
 
 
 @pytest.mark.parametrize(
@@ -29,7 +40,9 @@ def test_builder_settings_only_change_effort_in_subsequent_requests() -> None:
     builder = new_builder()
     builder.set_model(Model(ID="model", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH))
     builder.add_tool(Tool(Name="tool"))
-    builder.add_reasoning(Reasoning(Summary=["thought"]))
+    builder.add_model_response(
+        Response(Output=[Item(Type=ItemType.PROVIDER, Data=reasoning("thought"))])
+    )
     original = builder.build()
     builder.add_control_message(
         ControlMessage(

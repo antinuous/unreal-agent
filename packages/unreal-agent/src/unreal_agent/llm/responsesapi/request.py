@@ -14,7 +14,7 @@ from unreal_agent.llm.model import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderItem,
     ReasoningEffort,
     Request,
     Role,
@@ -168,11 +168,9 @@ def _request_item(source: Item) -> Raw:
             if result.CallID:
                 output_item["call_id"] = result.CallID
             return _union(output_item)
-        case ItemType.REASONING:
-            reasoning = _data(source, Reasoning, "reasoning")
-            if len(reasoning.Raw) == 0:
-                raise ValueError("reasoning item must carry the provider item in Raw")
-            return Raw(reformat_checked(bytes(reasoning.Raw)))
+        case ItemType.PROVIDER:
+            source.validate()
+            return Raw(reformat_checked(bytes(cast(ProviderItem, source.Data).Raw)))
         case _:
             raise ValueError(f"unsupported input item type {go_quote(source.Type)}")
 
@@ -230,7 +228,6 @@ _GO_NAMES: Final[dict[type, str]] = {
     Message: "llm.Message",
     ToolCall: "llm.ToolCall",
     ToolResult: "llm.ToolResult",
-    Reasoning: "llm.Reasoning",
 }
 
 

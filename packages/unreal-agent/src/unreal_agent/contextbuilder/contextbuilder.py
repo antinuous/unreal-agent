@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from unreal_agent.inbox import ControlMessage, Input
-from unreal_agent.llm import Model, Reasoning, Request, Response, Tool, ToolResultOutput
+from unreal_agent.llm import Model, Request, Response, Tool, ToolResultOutput
 
 __all__ = ["Builder", "Change", "ChangeKind", "Report", "Result"]
 
@@ -47,8 +47,6 @@ class Builder(Protocol):
     def set_system_prompt(self, prompt: str, /) -> None: ...
 
     def add_model_response(self, response: Response, /) -> None: ...
-
-    def add_reasoning(self, reasoning: Reasoning, /) -> None: ...
 
     def add_tool(self, tool: Tool, /) -> None: ...
 

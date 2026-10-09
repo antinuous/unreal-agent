@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, Final, cast
 
 from msgspec import field
 
@@ -13,7 +13,9 @@ __all__ = [
     "ItemType",
     "Message",
     "Model",
-    "Reasoning",
+    "ProviderDisplay",
+    "ProviderDisplayKind",
+    "ProviderItem",
     "ReasoningEffort",
     "Request",
     "Response",
@@ -41,7 +43,10 @@ class ItemType(StrEnum):
     MESSAGE = "message"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
-    REASONING = "reasoning"
+    PROVIDER = "provider"
+
+
+_LEGACY_ITEM_REASONING: Final = "reasoning"
 
 
 class ToolResultKind(StrEnum):
@@ -104,49 +109,73 @@ class ToolResult(Struct):
     Running: bool = False
 
 
-class Reasoning(Struct):
-    """A reasoning item.
-
-    Raw is the provider's verbatim reasoning item. A provider may attach state to
-    it that the harness cannot reconstruct, such as encrypted reasoning content,
-    so adapters replay Raw unchanged instead of re-encoding Summary.
-    """
-
-    Summary: Annotated[list[str] | None, OmitZero] = None
-    Raw: Annotated[_RawJSON, OmitZero] = _RawJSON(b"")
+class ProviderDisplayKind(StrEnum):
+    NONE = ""
+    REASONING = "reasoning"
 
 
-type ItemData = Message | ToolCall | ToolResult | Reasoning
+class ProviderDisplay(Struct):
+    Kind: ProviderDisplayKind = ProviderDisplayKind.NONE
+    Text: str = ""
+
+
+class ProviderItem(Struct):
+    """Raw is required and authoritative for replay. Display is a presentation projection."""
+
+    Type: str = ""
+    Raw: _RawJSON = _RawJSON(b"")
+    Display: Annotated[ProviderDisplay | None, OmitZero] = None
+
+
+class _LegacyReasoning(Struct):
+    Summary: list[str] | None = None
+    Raw: _RawJSON = _RawJSON(b"")
+
+
+type ItemData = Message | ToolCall | ToolResult | ProviderItem
 
 _DATA_TYPES: dict[str, tuple[type[Struct], str, str]] = {
     ItemType.MESSAGE: (Message, "message", "llm.Message"),
     ItemType.TOOL_CALL: (ToolCall, "tool call", "llm.ToolCall"),
     ItemType.TOOL_RESULT: (ToolResult, "tool result", "llm.ToolResult"),
-    ItemType.REASONING: (Reasoning, "reasoning", "llm.Reasoning"),
+    ItemType.PROVIDER: (ProviderItem, "provider", "llm.ProviderItem"),
 }
 
+_GO_NAMES: dict[type, str] = {kind: go_name for kind, _, go_name in _DATA_TYPES.values()}
+
 if TYPE_CHECKING:
+    _ItemTypeField = ItemType
     _ItemDataField = ItemData | None
 else:
-    # Decoding captures Data verbatim so __post_init__ can decode it by Type.
+    # Decoding captures Type and Data verbatim so __post_init__ can migrate the
+    # retired "reasoning" type and decode Data by Type.
+    _ItemTypeField = str
     _ItemDataField = Raw
 
 
 class Item(Struct, kw_only=True):
     """A model input or output item whose Data type is selected by Type.
 
-    Decoding rejects unknown types and null or absent data. Encoding with
-    `gojson.encode` calls `validate` first, like Go's MarshalJSON.
+    Decoding rejects unknown types and null or absent data, and validates every
+    item except legacy "reasoning" items, which decode as provider items that
+    may lack Raw. Encoding with `gojson.encode` calls `validate` first, like Go's
+    MarshalJSON.
     """
 
     ProviderID: str = ""
-    Type: ItemType = ItemType.NONE
+    Type: _ItemTypeField = ItemType.NONE
     # Required, unlike other fields, because Go's UnmarshalJSON rejects an item without Data.
     Data: _ItemDataField
 
     def __post_init__(self) -> None:
         if isinstance(self.Data, Raw):
-            self.Data = _decode_item_data(self.Type, self.Data)
+            kind = self.Type
+            self.Data = _decode_item_data(kind, self.Data)
+            if kind == _LEGACY_ITEM_REASONING:
+                self.Type = ItemType.PROVIDER
+            else:
+                self.Type = ItemType(kind)
+                self.validate()
 
     def validate(self) -> None:
         """Raise ValueError when Data does not match Type."""
@@ -155,7 +184,12 @@ class Item(Struct, kw_only=True):
             raise ValueError(f"unsupported item type {json_quote(self.Type)}")
         kind, label, go_name = entry
         if type(self.Data) is not kind:
-            raise ValueError(f"{label} data must be {go_name}, got {go_type_name(self.Data)}")
+            got = go_type_name(self.Data, _GO_NAMES)
+            raise ValueError(f"{label} data must be {go_name}, got {got}")
+        if isinstance(self.Data, ProviderItem):
+            raw = bytes(self.Data.Raw).lstrip(b" \t\r\n")
+            if not raw or raw.startswith(b"n"):
+                raise ValueError("provider item Raw is required")
 
     def __gojson_validate__(self) -> None:
         try:
@@ -167,6 +201,8 @@ class Item(Struct, kw_only=True):
 def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
     if bytes(encoded).strip() == b"null":
         raise ValueError(f"{kind} data must not be null")
+    if kind == _LEGACY_ITEM_REASONING:
+        return _decode_legacy_reasoning(encoded)
     entry = _DATA_TYPES.get(kind)
     if entry is None:
         raise ValueError(f"unsupported item type {json_quote(kind)}")
@@ -175,6 +211,30 @@ def _decode_item_data(kind: str, encoded: Raw) -> ItemData:
         return cast(ItemData, decode(encoded, data_type))
     except JSONError as error:
         raise ValueError(f"decode {label} data: {error}") from error
+
+
+def _decode_legacy_reasoning(encoded: Raw) -> ProviderItem:
+    try:
+        value = decode(encoded, _LegacyReasoning)
+    except JSONError as error:
+        raise ValueError(f"decode reasoning data: {error}") from error
+    provider = ProviderItem(Raw=value.Raw)
+    if bytes(value.Raw).lstrip(b" \t\r\n").startswith(b"{"):
+        try:
+            header = decode(value.Raw, dict[str, Raw])
+        except JSONError as error:
+            raise ValueError(f"decode legacy reasoning payload: {error}") from error
+        kind = header.get("type")
+        if kind is not None and bytes(kind).lstrip(b" \t\r\n").startswith(b'"'):
+            try:
+                provider.Type = decode(kind, str)
+            except JSONError as error:
+                raise ValueError(f"decode legacy reasoning type: {error}") from error
+    if value.Summary:
+        provider.Display = ProviderDisplay(
+            Kind=ProviderDisplayKind.REASONING, Text="\n\n".join(value.Summary)
+        )
+    return provider
 
 
 class Tool(Struct):

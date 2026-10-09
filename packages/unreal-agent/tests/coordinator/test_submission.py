@@ -7,7 +7,7 @@ from unreal_agent import gojson
 from unreal_agent.contextbuilder import TOOL_CALL_RUNNING_PAYLOAD
 from unreal_agent.inbox import ControlMode
 from unreal_agent.llm import Item as LLMItem
-from unreal_agent.llm import ItemType, Reasoning, Response, ToolCall, ToolResult
+from unreal_agent.llm import ItemType, ProviderItem, Response, ToolCall, ToolResult
 from unreal_agent.operation import Status
 from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, Registry, StaticTranslators
 
@@ -221,11 +221,12 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
         Output=[
             LLMItem(
                 ProviderID="reasoning",
-                Type=ItemType.REASONING,
-                Data=Reasoning(
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Type="reasoning",
                     Raw=gojson.Raw(
                         b'{"id":"reasoning","type":"reasoning","summary":[],"encrypted_content":"opaque"}'
-                    )
+                    ),
                 ),
             ),
             LLMItem(

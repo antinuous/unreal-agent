@@ -22,7 +22,9 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Request,
     RequestOptions,
     Response,
@@ -288,9 +290,10 @@ async def test_adapter_responds() -> None:
             ),
             Item(
                 ProviderID="reasoning-1",
-                Type=ItemType.REASONING,
-                Data=Reasoning(
-                    Summary=["Used tools."],
+                Type=ItemType.PROVIDER,
+                Data=ProviderItem(
+                    Type="reasoning",
+                    Display=ProviderDisplay(Kind=ProviderDisplayKind.REASONING, Text="Used tools."),
                     Raw=Raw(
                         b'{"id":"reasoning-1","type":"reasoning","status":"completed",'
                         b'"summary":[{"type":"summary_text","text":"Used tools."}],'

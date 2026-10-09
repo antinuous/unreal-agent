@@ -1,7 +1,7 @@
 """Provider-neutral model requests, responses, and items.
 
 `Item.Data` holds the type selected by `Item.Type`. Encoding an item validates
-that pairing, and decoding selects the data type from the tag. Reasoning.Raw
+that pairing, and decoding selects the data type from the tag. ProviderItem.Raw
 and Usage.Raw pass provider JSON through byte for byte (compacted on encode).
 """
 
@@ -13,7 +13,9 @@ from unreal_agent.llm.model import (
     ItemType,
     Message,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     ReasoningEffort,
     Request,
     Response,
@@ -36,7 +38,9 @@ __all__ = [
     "ItemType",
     "Message",
     "Model",
-    "Reasoning",
+    "ProviderDisplay",
+    "ProviderDisplayKind",
+    "ProviderItem",
     "ReasoningEffort",
     "Request",
     "RequestOptions",

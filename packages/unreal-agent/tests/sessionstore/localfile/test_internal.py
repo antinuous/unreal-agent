@@ -16,7 +16,9 @@ from unreal_agent.llm import (
     Failure,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Response,
     Role,
     StopReason,
@@ -721,7 +723,10 @@ def test_encode_initial_log_embeds_json_values() -> None:
             TurnID="turn-1",
             Response=Response(
                 Output=[
-                    LLMItem(Type=ItemType.REASONING, Data=Reasoning(Raw=Raw(b'{"reasoning":true}')))
+                    LLMItem(
+                        Type=ItemType.PROVIDER,
+                        Data=ProviderItem(Type="reasoning", Raw=Raw(b'{"reasoning":true}')),
+                    )
                 ],
                 Usage=Usage(Raw=Raw(b'{"usage":true}')),
             ),
@@ -1033,8 +1038,13 @@ def test_store_loads_golden_log() -> None:
                         ),
                         LLMItem(
                             ProviderID="reasoning-1",
-                            Type=ItemType.REASONING,
-                            Data=Reasoning(Summary=["inspect"], Raw=Raw(b'{"encrypted":"opaque"}')),
+                            Type=ItemType.PROVIDER,
+                            Data=ProviderItem(
+                                Display=ProviderDisplay(
+                                    Kind=ProviderDisplayKind.REASONING, Text="inspect"
+                                ),
+                                Raw=Raw(b'{"encrypted":"opaque"}'),
+                            ),
                         ),
                     ],
                     Usage=Usage(
@@ -1138,8 +1148,13 @@ def test_store_loads_golden_fork_log() -> None:
                         ),
                         LLMItem(
                             ProviderID="reasoning-1",
-                            Type=ItemType.REASONING,
-                            Data=Reasoning(Summary=["inspect"], Raw=Raw(b'{"encrypted":"opaque"}')),
+                            Type=ItemType.PROVIDER,
+                            Data=ProviderItem(
+                                Display=ProviderDisplay(
+                                    Kind=ProviderDisplayKind.REASONING, Text="inspect"
+                                ),
+                                Raw=Raw(b'{"encrypted":"opaque"}'),
+                            ),
                         ),
                     ],
                     Usage=Usage(
@@ -1186,19 +1201,41 @@ def test_store_loads_golden_fork_log() -> None:
     assert got.head.operations == []
 
 
-def test_golden_session_re_encodes_byte_identical() -> None:
+_LEGACY_REASONING = (
+    b'{"ProviderID":"reasoning-1","Type":"reasoning",'
+    b'"Data":{"Summary":["inspect"],"Raw":{"encrypted":"opaque"}}}'
+)
+_MIGRATED_REASONING = (
+    b'{"ProviderID":"reasoning-1","Type":"provider","Data":{"Type":"",'
+    b'"Raw":{"encrypted":"opaque"},"Display":{"Kind":"reasoning","Text":"inspect"}}}'
+)
+
+
+def test_golden_session_re_encodes_with_provider_items() -> None:
     store = Store(TESTDATA)
     state, _ = store._read_state("golden-session")
     encoded = encode_initial_log(state.head.snapshot.session, state.items) + encode_record(
         RecordType.OPERATION, OperationRecord(Operation=state.head.operations[0])
     )
-    assert encoded == (TESTDATA / "golden-session.session.jsonl").read_bytes()
+    original = (TESTDATA / "golden-session.session.jsonl").read_bytes()
+    assert encoded == original.replace(_LEGACY_REASONING, _MIGRATED_REASONING)
 
 
-def test_golden_fork_re_encodes_byte_identical() -> None:
+def test_golden_fork_re_encodes_with_provider_items() -> None:
     state, _ = Store(TESTDATA)._read_state("golden-fork")
     encoded = encode_initial_log(state.head.snapshot.session, state.items)
-    assert encoded == (TESTDATA / "golden-fork.session.jsonl").read_bytes()
+    original = (TESTDATA / "golden-fork.session.jsonl").read_bytes()
+    assert encoded == original.replace(_LEGACY_REASONING, _MIGRATED_REASONING)
+
+
+@pytest.mark.parametrize("name", ["golden-session", "golden-fork"])
+def test_legacy_golden_logs_save_as_provider_items(name: str) -> None:
+    original, _ = Store(TESTDATA)._read_state(name)
+    encoded = encode_initial_log(original.head.snapshot.session, original.items)
+    assert b'"Type":"reasoning"' not in encoded, "retired item type survived migration"
+    assert b'"Type":"provider"' in encoded
+    restored, _ = decode_log(encoded)
+    assert restored.items == original.items, "saving migrated history changed its items"
 
 
 class _Record(gojson.Struct):

@@ -5,7 +5,9 @@ from unreal_agent.llm import (
     ItemType,
     Message,
     Model,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     Request,
     Role,
     StopReason,
@@ -52,24 +54,27 @@ def test_response_preserves_block_order_and_thinking() -> None:
     assert decoded.Failure is None
     output = decoded.Output or []
     assert [item.Type for item in output] == [
-        ItemType.REASONING,
+        ItemType.PROVIDER,
         ItemType.MESSAGE,
         ItemType.TOOL_CALL,
-        ItemType.REASONING,
+        ItemType.PROVIDER,
         ItemType.MESSAGE,
-        ItemType.REASONING,
+        ItemType.PROVIDER,
         ItemType.TOOL_CALL,
     ]
     for item in output:
         item.validate()
     for index, want in {0: THINKING, 3: REDACTED, 5: OMITTED}.items():
         reasoning = output[index].Data
-        assert isinstance(reasoning, Reasoning)
+        assert isinstance(reasoning, ProviderItem)
         assert bytes(reasoning.Raw) == want.encode()
+        assert reasoning.Type == ("redacted_thinking" if index == 3 else "thinking")
         if index == 0:
-            assert reasoning.Summary == ["Considering tools"]
+            assert reasoning.Display == ProviderDisplay(
+                Kind=ProviderDisplayKind.REASONING, Text="Considering tools"
+            )
         else:
-            assert not reasoning.Summary, "invented reasoning summary"
+            assert reasoning.Display is None, "invented reasoning display"
     assert output[1].Data == Message(Role=Role.ASSISTANT, Text="First")
     assert output[4].Data == Message(Role=Role.ASSISTANT, Text="Second")
     assert output[2].ProviderID == "a"

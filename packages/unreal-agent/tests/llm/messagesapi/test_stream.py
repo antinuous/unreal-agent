@@ -7,7 +7,9 @@ from unreal_agent.llm import (
     Item,
     ItemType,
     Message,
-    Reasoning,
+    ProviderDisplay,
+    ProviderDisplayKind,
+    ProviderItem,
     ReasoningEffort,
     Role,
     StopReason,
@@ -90,9 +92,9 @@ def test_stream_fixtures(
             )
         case "thinking":
             thinking = output[0].Data
-            assert output[0].Type == ItemType.REASONING
-            assert isinstance(thinking, Reasoning)
-            assert not thinking.Summary
+            assert output[0].Type == ItemType.PROVIDER
+            assert isinstance(thinking, ProviderItem)
+            assert thinking.Display is None
             answer = output[1].Data
             assert isinstance(answer, Message)
             assert "7417" in answer.Text
@@ -240,8 +242,10 @@ def test_stream_preserves_thinking_for_replay() -> None:
     )
     response = decode_response(state.unwrap())
     reasoning = (response.Output or [])[0].Data
-    assert isinstance(reasoning, Reasoning)
-    assert reasoning.Summary == ["first second"]
+    assert isinstance(reasoning, ProviderItem)
+    assert reasoning.Display == ProviderDisplay(
+        Kind=ProviderDisplayKind.REASONING, Text="first second"
+    )
     assert b'"signature":"start-end"' in bytes(reasoning.Raw)
     assert b"9007199254740993" in bytes(reasoning.Raw)
     request = valid_request()

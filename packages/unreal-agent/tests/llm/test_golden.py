@@ -40,7 +40,13 @@ class _ResponseOutput(msgspec.Struct):
 
 def _round_trip(raw: Raw, kind: type) -> bytes:
     original = bytes(raw)
-    assert gojson.encode(gojson.decode(original, kind)) == original
+    encoded = gojson.encode(gojson.decode(original, kind))
+    if b'"Type":"reasoning"' in original:
+        assert b'"Type":"reasoning"' not in encoded, "retired item type survived migration"
+        assert b'"Type":"provider"' in encoded
+        assert gojson.encode(gojson.decode(encoded, kind)) == encoded
+    else:
+        assert encoded == original
     return original
 
 

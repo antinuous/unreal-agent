@@ -1,6 +1,6 @@
 import pytest
 from unreal_agent.gojson import Raw, decode
-from unreal_agent.llm import Message, Reasoning, StopReason, ToolCall
+from unreal_agent.llm import Message, ProviderItem, StopReason, ToolCall
 from unreal_agent.llm.responsesapi import StreamEndedError, decode_response
 from unreal_agent.llm.responsesapi.stream import ResponseState
 from unreal_agent.primitives import sse_data
@@ -179,7 +179,7 @@ def test_collected_items_fallback(output: bytes) -> None:
     else:
         assert len(response.Output or []) == 3
         reasoning = (response.Output or [])[0].Data
-        assert isinstance(reasoning, Reasoning)
+        assert isinstance(reasoning, ProviderItem)
         assert b'"vendor_field":"kept"' in bytes(reasoning.Raw)
         message = (response.Output or [])[1].Data
         assert isinstance(message, Message)
