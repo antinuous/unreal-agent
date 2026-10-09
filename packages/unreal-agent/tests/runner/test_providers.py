@@ -1,11 +1,19 @@
 import asyncio
+import dataclasses
 import io
 import json
 import threading
 
 import pytest
 from unreal_agent.llm.clients import anthropic
-from unreal_agent.runner import Config, default_providers, run_main
+from unreal_agent.runner import (
+    Config,
+    Provider,
+    RunnerError,
+    default_providers,
+    find_provider,
+    run_main,
+)
 
 from tests.runner._helpers import (
     HTTPRequest,
@@ -34,9 +42,58 @@ _ANTHROPIC_STREAM = b"".join(
 
 
 def test_runner_anthropic_default_base_url() -> None:
-    [selected] = [provider for provider in default_providers() if provider.name == "anthropic"]
+    selected, _ = find_provider(default_providers(), "anthropic")
     assert selected.base_url == anthropic.DEFAULT_BASE_URL
     assert selected.api_key_environment == "ANTHROPIC_API_KEY"
+
+
+def test_find_uses_supplied_providers() -> None:
+    want = dataclasses.replace(
+        default_providers()[0],
+        name="custom",
+        base_url="https://custom.example/v1",
+        default_model="custom-model",
+        api_key_environment="CUSTOM_API_KEY",
+    )
+    got, new_client = find_provider(
+        [Provider(name="unconfigured", new_client=None), want], "custom"
+    )
+    assert (got.name, got.base_url, got.default_model, got.api_key_environment) == (
+        want.name,
+        want.base_url,
+        want.default_model,
+        want.api_key_environment,
+    )
+    assert new_client is want.new_client
+
+
+@pytest.mark.parametrize(
+    ("available", "requested", "want"),
+    [
+        pytest.param(
+            [Provider(name="second", new_client=None), Provider(name="first", new_client=None)],
+            "unknown",
+            'unsupported provider "unknown"; available providers: second, first',
+            id="unknown provider",
+        ),
+        pytest.param(
+            [],
+            "unknown",
+            'unsupported provider "unknown"; available providers: ',
+            id="no providers",
+        ),
+        pytest.param(
+            [Provider(name="unconfigured", new_client=None)],
+            "unconfigured",
+            'provider "unconfigured" has no client factory',
+            id="missing factory",
+        ),
+    ],
+)
+def test_find_errors(available: list[Provider], requested: str, want: str) -> None:
+    with pytest.raises(RunnerError) as raised:
+        find_provider(available, requested)
+    assert str(raised.value) == want
 
 
 @pytest.mark.parametrize("override", [False, True])
@@ -60,7 +117,7 @@ async def test_runner_anthropic_uses_messages_api(
         body = json.loads(request.body)
         system = body.get("system") or []
         if (
-            body.get("model") != "claude-test"
+            body.get("model") != "claude-opus-5-5"
             or body.get("stream") is not True
             or len(system) != 1
             or not system[0]["text"].endswith("\n\nmy system prompt")
@@ -80,7 +137,6 @@ async def test_runner_anthropic_uses_messages_api(
 
     variables = {
         "UNREAL_HARNESS_LLM_PROVIDER": "anthropic",
-        "UNREAL_HARNESS_LLM_MODEL": "claude-test",
         "ANTHROPIC_API_KEY": "anthropic-key",
     }
     if override:
@@ -173,7 +229,7 @@ async def test_runner_codex_uses_subscription_without_api_key(
         ):
             problems.append("wrong authentication")
         body = json.loads(request.body)
-        if body.get("stream") is not True:
+        if body.get("stream") is not True or body.get("model") != "gpt-6-astra":
             problems.append(f"body = {body!r}")
         return HTTPResponse(
             headers={"Content-Type": "text/event-stream"},
@@ -201,7 +257,7 @@ async def test_runner_codex_uses_subscription_without_api_key(
                     "OPENAI_CODEX_ACCOUNT_ID": "account",
                 }
             ),
-            reader('{"prompt":"hello","model":"gpt-test","system_prompt":"my system prompt"}'),
+            reader('{"prompt":"hello","system_prompt":"my system prompt"}'),
             output,
             stderr,
             Config(

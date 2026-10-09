@@ -19,9 +19,10 @@ from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputK
 from unreal_agent.llm import Model
 from unreal_agent.llm.responsesapi import DEFAULT_MAX_ATTEMPTS
 from unreal_agent.operation import LocalOperationManager
-from unreal_agent.runner.config import Client, Config, Getenv, Provider, ToolConfig
+from unreal_agent.runner.config import Client, Config, Getenv, ToolConfig
 from unreal_agent.runner.errors import RunnerError, describe, join, wrap
 from unreal_agent.runner.flags import HelpError, parse_flags
+from unreal_agent.runner.providers import find_provider
 from unreal_agent.runner.request import reasoning_effort, validate_request
 from unreal_agent.runner.streams import Reader, TeeWriter, Writer, write_flushed
 from unreal_agent.session import ID as SessionID
@@ -222,7 +223,7 @@ async def _run(
     cleanups.append(environment.aclose)
     max_attempts = resolve_max_attempts(parsed.max_attempts, getenv)
     provider_name = go_trim_space(getenv(LLM_PROVIDER_ENVIRONMENT)) or DEFAULT_PROVIDER
-    selected, new_client = _select_provider(config.providers, provider_name)
+    selected, new_client = find_provider(config.providers, provider_name)
     base_url = go_trim_space(getenv(LLM_BASE_URL_ENVIRONMENT)) or selected.base_url
     model = (
         go_trim_space(parsed.model)
@@ -457,18 +458,6 @@ def resolve_max_attempts(requested: int | None, getenv: Getenv) -> int:
     if max_attempts <= 0:
         raise RunnerError("max attempts must be positive")
     return max_attempts
-
-
-def _select_provider(
-    providers: list[Provider], name: str
-) -> tuple[Provider, Callable[[str, str, int, Getenv], Client]]:
-    for provider in providers:
-        if provider.name == name:
-            if provider.new_client is None:
-                raise RunnerError(f"provider {go_quote(name)} has no client factory")
-            return provider, provider.new_client
-    available = ", ".join(provider.name for provider in providers)
-    raise RunnerError(f"unsupported provider {go_quote(name)}; available providers: {available}")
 
 
 def resolve_session_directory(configured: str, getenv: Getenv) -> str:

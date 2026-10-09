@@ -26,7 +26,7 @@ from unreal_agent.runner.config import (
 )
 from unreal_agent.runner.errors import JoinedError, RunnerError
 from unreal_agent.runner.flags import FlagError, HelpError
-from unreal_agent.runner.providers import default_providers
+from unreal_agent.runner.providers import default_providers, find_provider
 from unreal_agent.runner.request import Request, RequestMessage, decode_request
 from unreal_agent.runner.run import DEFAULT_SYSTEM_PROMPT, run, run_main
 from unreal_agent.runner.streams import Reader, Writer
@@ -51,6 +51,7 @@ __all__ = [
     "Writer",
     "decode_request",
     "default_providers",
+    "find_provider",
     "run",
     "run_main",
 ]

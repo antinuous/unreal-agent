@@ -135,7 +135,7 @@ Supply `messages` or `prompt`.
 | Variable | Description |
 | --- | --- |
 | `UNREAL_HARNESS_LLM_PROVIDER` | `openai` (default), `anthropic`, `openai-codex`, `openrouter`, `fireworks`, or `ollama`. |
-| `UNREAL_HARNESS_LLM_MODEL` | Model when the request has none. Only `openai` has a default (`gpt-6-astra`). |
+| `UNREAL_HARNESS_LLM_MODEL` | Model when the request has none. `openai` and `openai-codex` default to `gpt-6-astra`, and `anthropic` defaults to `claude-opus-5-5`. |
 | `UNREAL_HARNESS_LLM_BASE_URL` | Overrides the provider's base URL. |
 | `UNREAL_HARNESS_LLM_API_KEY` | API key for any provider that takes one. Wins over the provider variable. |
 | `UNREAL_HARNESS_LLM_MAX_ATTEMPTS` | LLM request attempts when the request has no `max_attempts`. |
