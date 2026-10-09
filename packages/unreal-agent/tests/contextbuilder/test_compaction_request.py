@@ -36,6 +36,12 @@ from tests.contextbuilder._helpers import (
     user,
 )
 
+HANDOFF = (
+    "This is system message. You are performing context compaction. "
+    "Return only the text of a handoff summary for another LLM assistant "
+    "to resume the original task."
+)
+
 
 def _system(value: str) -> Item:
     return Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text=value))
@@ -66,7 +72,7 @@ def test_build_compaction_selects_same_prefix_as_reconstruction() -> None:
         3: "A output",
         4: "B input",
         6: "B output",
-        7: "Summarise",
+        7: HANDOFF,
     }.items():
         message = history[index].Data
         assert isinstance(message, Message)
@@ -121,7 +127,7 @@ def test_build_compaction_preserves_native_history() -> None:
     result = current.build_compaction()
     want = list(before.request.Input)
     want[0] = _system(go_trim_space(COMPACTION_PROMPT))
-    want.append(user("Summarise"))
+    want.append(user(HANDOFF))
     assert result.request.Input == want, "native history changed"
     assert snapshot == build_compaction_context(current), (
         "building compaction changed ordinary provider replay data"
@@ -155,7 +161,7 @@ def test_build_compaction_completes_pending_calls_at_cutoff() -> None:
     want[0] = _system(go_trim_space(COMPACTION_PROMPT))
     for call_id in ("z", "a"):
         want.append(tool_result(call_id, TOOL_CALL_RUNNING_PAYLOAD, running=True))
-    want.append(user("Summarise"))
+    want.append(user(HANDOFF))
     assert result.request.Input == want, "history with pending results"
     assert snapshot == build_compaction_context(current), (
         "completing native history changed the original builder"

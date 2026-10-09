@@ -38,7 +38,11 @@ TOOL_CALL_RUNNING_PAYLOAD: Final = (
 
 PREAMBLE: Final = read_prompt("preamble.md")
 
-COMPACTION_INSTRUCTION: Final = "Summarise"
+COMPACTION_INSTRUCTION: Final = (
+    "This is system message. You are performing context compaction. "
+    "Return only the text of a handoff summary for another LLM assistant "
+    "to resume the original task."
+)
 
 
 def _running_output() -> list[ToolResultOutput]:
