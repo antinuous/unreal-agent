@@ -189,6 +189,9 @@ async def test_runner_provider_retries(
 
     def handle(request: HTTPRequest) -> HTTPResponse:
         nonlocal attempts
+        if request.method != "POST" or request.path not in ("/responses", "/messages"):
+            leaks.append(f"unexpected request {request.method} {request.path}")
+            return HTTPResponse(status=404)
         body = json.loads(request.body)
         if "max_attempts" in body:
             leaks.append("harness retry configuration leaked into provider request")
@@ -227,12 +230,23 @@ async def test_runner_provider_retries(
     assert (code, attempts) == (1, max_attempts)
 
 
-async def test_runner_codex_uses_subscription_without_api_key(
+def test_runner_provider_default_models() -> None:
+    want = {"openai": "gpt-6-astra", "openai-codex": "gpt-6-astra", "anthropic": "claude-opus-5-5"}
+    for provider in default_providers():
+        assert provider.default_model == want.get(provider.name, ""), provider.name
+
+
+async def test_runner_codex_uses_only_responses_api(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     problems: list[str] = []
+    requests = 0
 
     def handle(request: HTTPRequest) -> HTTPResponse:
+        nonlocal requests
+        if request.method != "POST" or request.path != "/responses":
+            problems.append(f"request = {request.method} {request.path}")
+        requests += 1
         if (
             request.headers.get("authorization") != "Bearer subscription-token"
             or request.headers.get("chatgpt-account-id") != "account"
@@ -278,6 +292,7 @@ async def test_runner_codex_uses_subscription_without_api_key(
         )
     assert not problems
     assert code == 0, stderr.getvalue()
+    assert requests == 1, stderr.getvalue()
     assert b"subscription works" in output.getvalue(), stderr.getvalue()
     assert b"subscription-token" not in output.getvalue(), "credential leaked into session output"
 

@@ -1,6 +1,7 @@
 # ruff: noqa: ASYNC240
 import asyncio
 import glob
+import io
 import os
 import time
 import uuid
@@ -30,7 +31,9 @@ from unreal_agent.runner.run import (
     LLM_MODEL_ENVIRONMENT,
     LLM_PROVIDER_ENVIRONMENT,
     load_dotenv,
+    resolve_config_directory,
     resolve_session_directory,
+    run,
 )
 from unreal_agent.sessionstore import ItemKind
 
@@ -63,8 +66,15 @@ async def test_run_main_executes_batched_messages(
 
     client = FakeClient(respond)
     workspace = tmp_path_factory.mktemp("workspace")
+    config_home = tmp_path_factory.mktemp("config")
+    write_user_settings(
+        config_home,
+        '{"providers":{"openai":{"info":{"id":"openai","name":"OpenAI"},"models":[{"id":"gpt-test",'
+        '"name":"GPT Test","context_window":128000,"compaction_threshold":64000}]}}}',
+    )
     skill_path = workspace / ".harness" / "skills" / "review" / "SKILL.md"
     skill_path.parent.mkdir(parents=True, mode=0o700)
+    (workspace / ".harness" / "settings.json").write_text("invalid")
     skill_path.write_text("---\nname: review\ndescription: Review code.\n---\n")
     sessions = tmp_path_factory.mktemp("sessions")
     log_directory = tmp_path_factory.mktemp("logs") / "logs"
@@ -77,7 +87,9 @@ async def test_run_main_executes_batched_messages(
             "-log-directory",
             str(log_directory),
         ],
-        environment({"OPENAI_API_KEY": "secret", "SHELL": "/bin/sh"}),
+        environment(
+            {"XDG_CONFIG_HOME": str(config_home), "OPENAI_API_KEY": "secret", "SHELL": "/bin/sh"}
+        ),
         reader("""{
             "messages":[
                 {
@@ -95,26 +107,31 @@ async def test_run_main_executes_batched_messages(
         runner_config(client),
     )
     assert code == 0, (stderr, stdout)
-    request = requests[0]
-    assert request.Model.ID == "gpt-test"
-    assert request.Model.ReasoningEffort == ReasoningEffort.MEDIUM
-    assert request.Model.MaxOutputTokens == 2048
-    messages = [item.Data for item in request.Input if isinstance(item.Data, Message)]
-    assert len(messages) == 3
-    assert messages[0].Role == Role.SYSTEM
-    assert "<name>review</name>" in messages[0].Text
-    assert f"<location>{skill_path}</location>" in messages[0].Text
-    assert messages[0].Text.endswith("\n\nbe concise")
-    assert messages[1:] == [
+    want_messages = [
         Message(Role=Role.USER, Text="first"),
         Message(Role=Role.USER, Text="second"),
     ]
-    assert sorted(tool.Name for tool in request.Tools) == ["Bash", "SkillUse", "ViewImage"]
-    assert item_sequence(stdout) in (
-        "input.control input.external input.external input.control turn model_response",
-        "input.control input.external input.external turn input.control model_response",
-        "input.control input.external input.external turn model_response input.control",
-    )
+    all_messages_delivered = False
+    for request in requests:
+        assert request.Model.CompactionThreshold == 64_000
+        assert request.Model.ID == "gpt-test"
+        assert request.Model.ReasoningEffort == ReasoningEffort.MEDIUM
+        assert request.Model.MaxOutputTokens == 2048
+        messages = [
+            item.Data
+            for item in request.Input
+            if isinstance(item.Data, Message) and item.Data.Role != Role.ASSISTANT
+        ]
+        assert 2 <= len(messages) <= 3, messages
+        assert messages[0].Role == Role.SYSTEM
+        assert "<name>review</name>" in messages[0].Text
+        assert f"<location>{skill_path}</location>" in messages[0].Text
+        assert messages[0].Text.endswith("\n\nbe concise")
+        assert messages[1:] == want_messages[: len(messages) - 1]
+        all_messages_delivered = all_messages_delivered or len(messages) == 3
+        assert sorted(tool.Name for tool in request.Tools) == ["Bash", "SkillUse", "ViewImage"]
+    assert all_messages_delivered, "no model request included both messages"
+    assert ItemKind.MODEL_RESPONSE in item_kinds(stdout), "model response was not recorded"
     items = decode_lines(stdout)
     first = items[0].Data
     assert isinstance(first, Input)
@@ -123,7 +140,7 @@ async def test_run_main_executes_batched_messages(
     assert control.Parameters == Settings(
         Model="gpt-test",
         SystemPrompt="be concise",
-        MaxOutputTokens=request.Model.MaxOutputTokens,
+        MaxOutputTokens=2048,
         ReasoningEffort=ReasoningEffort.MEDIUM,
     )
     ids = input_ids(stdout)
@@ -558,3 +575,131 @@ def test_resolve_workspace_cleans_like_go(tmp_path: Path) -> None:
     from unreal_agent.runner.run import _resolve_workspace
 
     assert _resolve_workspace(" /" + str(tmp_path) + "//x/.. ") == str(tmp_path)
+
+
+_OPENAI_ASTRA = (
+    '{"providers":{"openai":{"info":{"id":"openai","name":"OpenAI"},"models":[{"id":"gpt-6-astra",'
+    '"name":"GPT-6 Astra","context_window":200000,"compaction_threshold":%s}]}}}'
+)
+_OPENAI_CUSTOM = (
+    '{"providers":{"openai":{"info":{"id":"openai","name":"OpenAI"},"models":[{"id":"custom",'
+    '"name":"Custom","context_window":200000%s}]}}}'
+)
+
+
+@pytest.mark.parametrize(
+    ("provider", "model", "settings", "threshold", "want_error"),
+    [
+        pytest.param("", "gpt-6-astra", "", 244_800, False, id="built-in"),
+        pytest.param("openai-codex", "gpt-6-astra", "", 244_800, False, id="Codex built-in"),
+        pytest.param(
+            "other",
+            "gpt-6-astra",
+            '{"providers":{"other":{"info":{"id":"other","name":"Other"},"models":[{"id":'
+            '"gpt-6-astra","name":"Other Astra","context_window":200000,'
+            '"compaction_threshold":75000}]}}}',
+            75_000,
+            False,
+            id="provider-specific model",
+        ),
+        pytest.param("other", "gpt-6-astra", "", 0, False, id="unconfigured provider"),
+        pytest.param("", "gpt-6-astra", _OPENAI_ASTRA % "64000", 64_000, False, id="override"),
+        pytest.param(
+            "",
+            "custom",
+            _OPENAI_CUSTOM % ',"compaction_threshold":75000',
+            75_000,
+            False,
+            id="custom model",
+        ),
+        pytest.param("", "custom", _OPENAI_CUSTOM % "", 100_000, False, id="default threshold"),
+        pytest.param(
+            "",
+            "custom",
+            _OPENAI_CUSTOM % ',"compaction_threshold":0',
+            100_000,
+            False,
+            id="zero threshold",
+        ),
+        pytest.param("", "unknown", "", 0, False, id="unknown model"),
+        pytest.param("", "gpt-6-astra", _OPENAI_ASTRA % "-1", 0, True, id="invalid settings"),
+    ],
+)
+async def test_run_loads_model_settings(
+    provider: str,
+    model: str,
+    settings: str,
+    threshold: int,
+    want_error: bool,
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    workspace = tmp_path_factory.mktemp("workspace")
+    config_home = tmp_path_factory.mktemp("config")
+    if settings:
+        write_user_settings(config_home, settings)
+    requests: list[LLMRequest] = []
+
+    def respond(request: LLMRequest) -> Response:
+        requests.append(request)
+        return Response(Stop=StopReason.COMPLETE)
+
+    config = runner_config(FakeClient(respond))
+    if provider:
+        config.providers[0].name = provider
+    variables = {"XDG_CONFIG_HOME": str(config_home), LLM_API_KEY_ENVIRONMENT: "secret"}
+    if provider:
+        variables[LLM_PROVIDER_ENVIRONMENT] = provider
+    call = run(
+        ["-workspace", str(workspace), "-session-directory", str(tmp_path_factory.mktemp("s"))],
+        environment(variables),
+        reader(f'{{"prompt":"hello","model":"{model}"}}'),
+        io.BytesIO(),
+        io.BytesIO(),
+        config,
+    )
+    if want_error:
+        with pytest.raises(RunnerError, match="load model settings"):
+            await call
+        assert requests == []
+        return
+    await call
+    assert len(requests) == 1, "no model request"
+    assert model == requests[0].Model.ID
+    assert requests[0].Model.CompactionThreshold == threshold
+
+
+@pytest.mark.parametrize(
+    ("xdg", "home", "want"),
+    [
+        pytest.param("/config", "/home/user", "/config/unreal-agent", id="XDG config home"),
+        pytest.param("/config", "", "/config/unreal-agent", id="XDG without home"),
+        pytest.param("", "/home/user", "/home/user/.config/unreal-agent", id="home fallback"),
+        pytest.param("", "", "/process/home/.config/unreal-agent", id="process home fallback"),
+        pytest.param(
+            "relative/config",
+            "/home/user",
+            "/home/user/.config/unreal-agent",
+            id="relative XDG ignored",
+        ),
+    ],
+)
+def test_resolve_config_directory(
+    xdg: str, home: str, want: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", "/process/home")
+    assert resolve_config_directory(environment({"XDG_CONFIG_HOME": xdg, "HOME": home})) == want
+
+
+@pytest.mark.parametrize("home", ["", "relative/home"])
+def test_resolve_config_directory_rejects_invalid_home(
+    home: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("HOME", "")
+    with pytest.raises(RunnerError, match="XDG_CONFIG_HOME"):
+        resolve_config_directory(environment({"HOME": home}))
+
+
+def write_user_settings(config_home: Path, contents: str) -> None:
+    directory = config_home / "unreal-agent"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    (directory / "settings.json").write_text(contents)

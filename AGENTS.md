@@ -40,6 +40,7 @@ Modules live under `packages/unreal-agent/src/unreal_agent`:
 | `contextbuilder` | Model input assembly, prompts, and skills |
 | `tool`, `tool.bash`, `tool.viewimage` | Tool registry, static tools, and translators |
 | `sessionstore`, `sessionstore.localfile` | Session store interface and the local file store |
+| `settings` | Model settings: bundled defaults merged with user overrides |
 | `coordinator` | The coordinator loop |
 | `runner` | The `unreal-agent-runner` command |
 | `gojson` | Go-compatible JSON encoding for persisted and wire formats |

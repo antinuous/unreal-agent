@@ -247,6 +247,7 @@ class Tool(Struct):
 
 class Model(Struct):
     ID: str = ""
+    CompactionThreshold: Int64 = 0
     MaxOutputTokens: Int64 | None = None
     ReasoningEffort: _ReasoningEffort = _ReasoningEffort.NONE
 

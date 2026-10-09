@@ -1,0 +1,46 @@
+{
+  "providers": {
+    "anthropic": {
+      "info": {
+        "id": "anthropic",
+        "name": "Anthropic"
+      },
+      "models": [
+        {
+          "id": "claude-opus-5-5",
+          "name": "Claude Opus 5.5",
+          "context_window": 1000000,
+          "compaction_threshold": 500000
+        }
+      ]
+    },
+    "openai": {
+      "info": {
+        "id": "openai",
+        "name": "OpenAI"
+      },
+      "models": [
+        {
+          "id": "gpt-6-astra",
+          "name": "GPT-6 Astra",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
+        }
+      ]
+    },
+    "openai-codex": {
+      "info": {
+        "id": "openai-codex",
+        "name": "OpenAI Codex"
+      },
+      "models": [
+        {
+          "id": "gpt-6-astra",
+          "name": "GPT-6 Astra",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
+        }
+      ]
+    }
+  }
+}

@@ -28,6 +28,8 @@ from unreal_agent.runner.streams import Reader, TeeWriter, Writer, write_flushed
 from unreal_agent.session import ID as SessionID
 from unreal_agent.sessionstore import Item, ResumeState, Snapshot
 from unreal_agent.sessionstore.localfile import Store
+from unreal_agent.settings import SettingsError
+from unreal_agent.settings import load as load_settings
 from unreal_agent.tool import (
     BASH_NAME,
     SKILL_USE_NAME,
@@ -50,6 +52,7 @@ __all__ = [
     "SessionObserver",
     "load_dotenv",
     "open_datetime_log",
+    "resolve_config_directory",
     "resolve_max_attempts",
     "resolve_session_directory",
     "run",
@@ -58,6 +61,7 @@ __all__ = [
 
 DEFAULT_PROVIDER: Final = "openai"
 DEFAULT_SESSION_DIRECTORY: Final = "unreal-agent/sessions"
+DEFAULT_CONFIG_DIRECTORY: Final = "unreal-agent"
 LLM_API_KEY_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_API_KEY"
 LLM_BASE_URL_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_BASE_URL"
 LLM_MODEL_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_MODEL"
@@ -247,6 +251,23 @@ async def _run(
         raise wrap(f"create {selected.name} client", error) from error
     cleanups.append(_closer(client, selected.name))
 
+    selected_model = Model(
+        ID=model,
+        MaxOutputTokens=parsed.max_output_tokens,
+        ReasoningEffort=reasoning_effort(parsed.thinking_level),
+    )
+    try:
+        config_directory = resolve_config_directory(getenv)
+    except RunnerError as error:
+        raise wrap("resolve settings directory", error) from error
+    try:
+        model_settings = load_settings(go_join(config_directory, "settings.json"))
+    except SettingsError as error:
+        raise wrap("load model settings", error) from error
+    selected_model.CompactionThreshold = model_settings.model(
+        selected.name, selected_model.ID
+    ).compaction_threshold
+
     try:
         store_directory = resolve_session_directory(options.session_directory, getenv)
     except RunnerError as error:
@@ -355,9 +376,7 @@ async def _run(
     await _submit(inputs, InputKind.CONTROL, gojson.encode(stop), "submit stop request")
 
     builder = new_builder(*registry.skills())
-    builder.set_model(
-        Model(ID=model, MaxOutputTokens=parsed.max_output_tokens, ReasoningEffort=effort)
-    )
+    builder.set_model(selected_model)
     builder.set_system_prompt(system_prompt)
     for definition in registry.static_definitions():
         builder.add_tool(definition.tool)
@@ -465,6 +484,20 @@ def resolve_max_attempts(requested: int | None, getenv: Getenv) -> int:
     if max_attempts <= 0:
         raise RunnerError("max attempts must be positive")
     return max_attempts
+
+
+def resolve_config_directory(getenv: Getenv) -> str:
+    """The `unreal-agent` directory under the XDG config home. Raises RunnerError."""
+    if os.path.isabs(root := getenv("XDG_CONFIG_HOME")):
+        return go_join(root, DEFAULT_CONFIG_DIRECTORY)
+    home = getenv("HOME") or os.environ.get("HOME", "")
+    if home == "":
+        raise RunnerError(
+            "find home directory: $HOME is not defined; set an absolute XDG_CONFIG_HOME or HOME"
+        )
+    if not os.path.isabs(home):
+        raise RunnerError("set an absolute XDG_CONFIG_HOME or HOME")
+    return go_join(home, ".config", DEFAULT_CONFIG_DIRECTORY)
 
 
 def resolve_session_directory(configured: str, getenv: Getenv) -> str:
