@@ -126,22 +126,31 @@ def test_request_body_rejects_invalid_utf8_tool_result() -> None:
 
 
 @pytest.mark.parametrize(
-    ("output", "want"),
+    ("output", "want", "running"),
     [
         pytest.param(
             [ToolResultOutput(Kind=ToolResultKind.TEXT, Value="done")],
             '[{"type":"input_text","text":"done"}]',
+            False,
             id="text",
+        ),
+        pytest.param(
+            [ToolResultOutput(Kind=ToolResultKind.TEXT, Value="running")],
+            '[{"type":"input_text","text":"running"}]',
+            True,
+            id="running",
         ),
         pytest.param(
             [ToolResultOutput(Kind=ToolResultKind.TEXT)],
             '[{"type":"input_text","text":""}]',
+            False,
             id="empty text",
         ),
-        pytest.param([], "[]", id="no outputs"),
+        pytest.param([], "[]", False, id="no outputs"),
         pytest.param(
             [ToolResultOutput(Kind=ToolResultKind.IMAGE, Value="https://example.com/image.png")],
             '[{"type":"input_image","image_url":"https://example.com/image.png"}]',
+            False,
             id="image URL",
         ),
         pytest.param(
@@ -155,18 +164,22 @@ def test_request_body_rejects_invalid_utf8_tool_result() -> None:
             '{"type":"input_image","image_url":"data:image/png;base64,Zmlyc3Q="},'
             '{"type":"input_text","text":"Resized dimensions: 2000x1500"},'
             '{"type":"input_image","image_url":"https://example.com/second.png"}]',
+            False,
             id="mixed content in order",
         ),
     ],
 )
 def test_request_body_encodes_tool_result_outputs(
-    output: list[ToolResultOutput], want: str
+    output: list[ToolResultOutput], want: str, running: bool
 ) -> None:
     body = request_body(
         Request(
             Model=Model(ID="gpt-test"),
             Input=[
-                Item(Type=ItemType.TOOL_RESULT, Data=ToolResult(CallID="call-1", Output=output))
+                Item(
+                    Type=ItemType.TOOL_RESULT,
+                    Data=ToolResult(CallID="call-1", Output=output, Running=running),
+                )
             ],
         ),
         "",

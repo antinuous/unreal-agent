@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 from unreal_agent import gojson
-from unreal_agent.contextbuilder import TOOL_CALL_RUNNING_PAYLOAD
 from unreal_agent.inbox import ControlMode, Input, InputKind
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, Message, Response, Role, ToolCall, ToolResult
@@ -68,7 +67,7 @@ async def test_run_main_heartbeat_releases_waiting_bash_and_replays(
             if not isinstance(result, ToolResult):
                 continue
             value = result.Output[0].Value
-            if result.CallID != "waiting-call" or value == TOOL_CALL_RUNNING_PAYLOAD:
+            if result.CallID != "waiting-call" or result.Running:
                 continue
             if value != "released":
                 raise ValueError(f"unexpected Bash result: {value}")

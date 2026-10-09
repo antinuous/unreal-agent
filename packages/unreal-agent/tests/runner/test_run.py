@@ -7,7 +7,6 @@ import uuid
 from pathlib import Path
 
 import pytest
-from unreal_agent.contextbuilder import TOOL_CALL_RUNNING_PAYLOAD
 from unreal_agent.inbox import ControlMode, Input, Settings
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import (
@@ -306,7 +305,7 @@ async def test_run_main_executes_bash_tool_to_completion(
             if not isinstance(result, ToolResult):
                 continue
             value = result.Output[0].Value
-            if result.CallID != "call-1" or value == TOOL_CALL_RUNNING_PAYLOAD:
+            if result.CallID != "call-1" or result.Running:
                 continue
             if truncated:
                 prefix, _, suffix = want.partition("{path}")

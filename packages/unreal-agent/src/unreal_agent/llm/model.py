@@ -101,6 +101,7 @@ class ToolResultOutput(Struct):
 class ToolResult(Struct):
     CallID: str = ""
     Output: list[ToolResultOutput] = []
+    Running: bool = False
 
 
 class Reasoning(Struct):

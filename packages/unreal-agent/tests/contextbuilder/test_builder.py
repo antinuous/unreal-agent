@@ -152,9 +152,7 @@ def test_builder_preserves_tool_result_payload() -> None:
         pytest.param(True, TOOL_CALL_RUNNING_PAYLOAD, id="still running"),
     ],
 )
-def test_builder_removes_only_staged_running_results_for_updated_call(
-    running: bool, output: str
-) -> None:
+def test_builder_replaces_only_staged_running_result_in_place(running: bool, output: str) -> None:
     current = new_builder()
     current.add_tool_result("A", text(""), True)
     current.commit()
@@ -169,13 +167,24 @@ def test_builder_removes_only_staged_running_results_for_updated_call(
     current.add_tool_result("A", text("done A"), running)
     result = current.build()
     assert result.request.Input == with_preamble(
-        tool_result("A", TOOL_CALL_RUNNING_PAYLOAD),
-        tool_result("B", TOOL_CALL_RUNNING_PAYLOAD),
+        tool_result("A", TOOL_CALL_RUNNING_PAYLOAD, running=True),
+        tool_result("A", output, running=running),
+        tool_result("B", TOOL_CALL_RUNNING_PAYLOAD, running=True),
         tool_result("C", "done C"),
         user("continue"),
-        tool_result("A", output),
     )
     assert before.request.Input == original
+
+
+def test_builder_preserves_completed_result_matching_running_payload() -> None:
+    current = new_builder()
+    current.add_tool_result("A", text(TOOL_CALL_RUNNING_PAYLOAD), False)
+    current.add_tool_result("A", [], True)
+    current.add_tool_result("A", text("done A"), False)
+    assert current.build().request.Input == with_preamble(
+        tool_result("A", TOOL_CALL_RUNNING_PAYLOAD),
+        tool_result("A", "done A"),
+    )
 
 
 def test_builder_leads_system_prompt_with_preamble() -> None:

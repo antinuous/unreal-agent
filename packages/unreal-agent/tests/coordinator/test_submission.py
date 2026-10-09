@@ -61,9 +61,9 @@ async def test_coordinator_submission_boundary_survives_recovery(stage: str) -> 
         if item.Type != ItemType.TOOL_RESULT:
             continue
         result = cast(ToolResult, item.Data)
-        assert not (
-            result.CallID == "call-1" and result.Output[0].Value == TOOL_CALL_RUNNING_PAYLOAD
-        ), "completion before submission retained its running placeholder"
+        assert not (result.CallID == "call-1" and result.Running), (
+            "completion before submission retained its running placeholder"
+        )
     await run.update(0, Status.COMPLETED)
     await run.input(stop_input("heartbeat", ControlMode.HEARTBEAT))
     assert len(run.calls) == 1, "late inputs interrupted or replaced the request"
@@ -250,7 +250,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
             *first.Input,
             *(response.Output or []),
             text_result("call-0", COMPLETED),
-            text_result("C", TOOL_CALL_RUNNING_PAYLOAD),
+            text_result("C", TOOL_CALL_RUNNING_PAYLOAD, running=True),
         ],
     )
     assert len(run.calls) == 2, (

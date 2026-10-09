@@ -99,22 +99,27 @@ class _Builder:
     def add_tool_result(
         self, call_id: str, payload: list[ToolResultOutput], running: bool, /
     ) -> None:
-        running_output = _running_output()
-        if running:
-            payload = running_output
-        self._staged_suffix = [
-            item
-            for item in self._staged_suffix
-            if not (
-                item.Type == ItemType.TOOL_RESULT
+        running_index = next(
+            (
+                index
+                for index, item in enumerate(self._staged_suffix)
+                if item.Type == ItemType.TOOL_RESULT
                 and isinstance(item.Data, ToolResult)
                 and item.Data.CallID == call_id
-                and item.Data.Output == running_output
-            )
-        ]
-        self._staged_suffix.append(
-            Item(Type=ItemType.TOOL_RESULT, Data=ToolResult(CallID=call_id, Output=list(payload)))
+                and item.Data.Running
+            ),
+            -1,
         )
+        if running:
+            payload = _running_output()
+        result_item = Item(
+            Type=ItemType.TOOL_RESULT,
+            Data=ToolResult(CallID=call_id, Output=list(payload), Running=running),
+        )
+        if running_index != -1:
+            self._staged_suffix[running_index] = result_item
+            return
+        self._staged_suffix.append(result_item)
 
     def commit(self) -> None:
         self._committed_prefix.extend(self._staged_suffix)

@@ -173,11 +173,13 @@ def text_response(text: str) -> Response:
     )
 
 
-def text_result(call_id: str, value: str) -> LLMItem:
+def text_result(call_id: str, value: str, running: bool = False) -> LLMItem:
     return LLMItem(
         Type=ItemType.TOOL_RESULT,
         Data=ToolResult(
-            CallID=call_id, Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
+            CallID=call_id,
+            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)],
+            Running=running,
         ),
     )
 

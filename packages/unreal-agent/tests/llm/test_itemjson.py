@@ -34,6 +34,15 @@ ROUND_TRIP_ITEMS = [
         ),
     ),
     Item(
+        ProviderID="result-running",
+        Type=ItemType.TOOL_RESULT,
+        Data=ToolResult(
+            CallID="call-running",
+            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="running")],
+            Running=True,
+        ),
+    ),
+    Item(
         ProviderID="result-mixed",
         Type=ItemType.TOOL_RESULT,
         Data=ToolResult(
