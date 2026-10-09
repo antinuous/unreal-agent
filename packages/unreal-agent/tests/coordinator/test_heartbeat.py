@@ -14,6 +14,7 @@ from tests.coordinator._helpers import (
     NANOSECOND,
     SECOND,
     SLURP_IDLE_TIMEOUT_NS,
+    TOOL_CALL_COMPLETION_GRACE_PERIOD_NS,
     advance_heartbeat_time,
     assert_completed_results,
     assert_heartbeat_count,
@@ -118,6 +119,7 @@ async def test_coordinator_heartbeat_yields_to_steering_and_results() -> None:
     await run.respond(0, text_response("Waiting."))
     await advance_heartbeat_time(30 * SECOND)
     await run.update(0, Status.COMPLETED)
+    await advance_heartbeat_time(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
     assert run.request_count() == 2, "result waited for a heartbeat"
     await run.respond(1, text_response("One remains."))
     await advance_heartbeat_time(MINUTE - NANOSECOND)

@@ -10,6 +10,8 @@ from tests.coordinator._helpers import (
     MILLISECOND,
     NANOSECOND,
     SECOND,
+    SLURP_IDLE_TIMEOUT_NS,
+    TOOL_CALL_COMPLETION_GRACE_PERIOD_NS,
     TOOL_CALL_RUN_GRACE_PERIOD_NS,
     assert_stop_result,
     external_event,
@@ -22,6 +24,7 @@ from tests.coordinator._helpers import (
     text_response,
     tool_grace_response,
     update_tool_grace_call,
+    wait,
 )
 
 
@@ -53,7 +56,7 @@ async def test_coordinator_tool_grace_batches_completions_until_all_calls_finish
 
 @pytest.mark.parametrize("end_grace", ["steering", "expiry"])
 @fake_time
-async def test_coordinator_tool_grace_waits_only_for_latest_turn(end_grace: str) -> None:
+async def test_coordinator_tool_grace_retains_surviving_siblings(end_grace: str) -> None:
     run = new_tool_grace_test_run()
     await run.start()
     await run.input(external_event("input", "run three tools"))
@@ -62,7 +65,8 @@ async def test_coordinator_tool_grace_waits_only_for_latest_turn(end_grace: str)
     if end_grace == "steering":
         await run.input(external_event("steering", "run two more tools"))
     else:
-        await sleep_ns(TOOL_CALL_RUN_GRACE_PERIOD_NS)
+        await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
+        await wait()
     await run.respond(1, tool_grace_response("D", "E"))
     deadline = now_ns() + TOOL_CALL_RUN_GRACE_PERIOD_NS
     await update_tool_grace_call(run, "B", Status.COMPLETED)
@@ -70,46 +74,61 @@ async def test_coordinator_tool_grace_waits_only_for_latest_turn(end_grace: str)
     await update_tool_grace_call(run, "D", Status.COMPLETED)
     assert run.request_count() == 2, "partial completion ended the new turn's grace period"
     await update_tool_grace_call(run, "E", Status.COMPLETED)
-    assert run.request_count() == 3, (
-        "older running call prevented the new turn's grace period from ending early"
-    )
-    assert now_ns() < deadline, (
-        "older running call prevented the new turn's grace period from ending early"
-    )
-    for call_id in ["A", "B", "D", "E"]:
-        assert_stop_result(run.calls[2].request, call_id, str(Status.COMPLETED))
-    assert_stop_result(run.calls[2].request, "C", TOOL_CALL_RUNNING_PAYLOAD)
-    await run.respond(2, text_response("Waiting for C."))
+    assert run.request_count() == 2, "new turn's completions discarded an older surviving sibling"
     await update_tool_grace_call(run, "C", Status.COMPLETED)
-    assert run.request_count() == 4, (
-        "older completion was deferred after the new turn's grace period ended"
-    )
-    assert_stop_result(run.calls[3].request, "C", str(Status.COMPLETED))
+    assert run.request_count() == 3, "last surviving sibling did not end grace early"
+    assert now_ns() < deadline, "last surviving sibling did not end grace early"
+    for call_id in ["A", "B", "C", "D", "E"]:
+        assert_stop_result(run.calls[2].request, call_id, str(Status.COMPLETED))
 
 
 @fake_time
-async def test_coordinator_tool_grace_deadline_does_not_reset_on_completion() -> None:
+async def test_coordinator_tool_grace_resets_on_completion_only() -> None:
     run = new_tool_grace_test_run()
     await run.start()
     await run.input(external_event("input", "run three tools"))
     await run.respond(0, tool_grace_response("A", "B", "C"))
-    deadline = now_ns() + SECOND
     await sleep_ns(100 * MILLISECOND)
     await update_tool_grace_call(run, "A", Status.COMPLETED)
+    first_deadline = now_ns() + TOOL_CALL_COMPLETION_GRACE_PERIOD_NS
     await sleep_ns(400 * MILLISECOND)
     await update_tool_grace_call(run, "B", Status.COMPLETED)
-    await sleep_ns(deadline - now_ns() - NANOSECOND)
-    assert run.request_count() == 1, "partial completions started a turn before the grace deadline"
-    await sleep_ns(NANOSECOND)
-    assert run.request_count() == 2, (
-        "pending results were not delivered at the original grace deadline"
+    deadline = now_ns() + TOOL_CALL_COMPLETION_GRACE_PERIOD_NS
+    await sleep_ns(first_deadline - now_ns() + 2 * SLURP_IDLE_TIMEOUT_NS)
+    assert run.request_count() == 1, (
+        "another completion did not replace the previous grace deadline"
     )
+    await update_tool_grace_call(run, "C", Status.AWAITING)
+    await sleep_ns(deadline - now_ns() + 2 * SLURP_IDLE_TIMEOUT_NS)
+    assert run.request_count() == 2, "progress update extended grace without a tool completion"
     assert_stop_result(run.calls[1].request, "A", str(Status.COMPLETED))
     assert_stop_result(run.calls[1].request, "B", str(Status.COMPLETED))
     assert_stop_result(run.calls[1].request, "C", TOOL_CALL_RUNNING_PAYLOAD)
     await sleep_ns(SECOND)
     assert run.request_count() == 2, "grace deadline repeated or interrupted the continuation"
     assert not run.calls[1].canceled, "grace deadline repeated or interrupted the continuation"
+
+
+@fake_time
+async def test_coordinator_unrelated_completion_preserves_grace_deadline() -> None:
+    run = new_tool_grace_test_run()
+    await run.start()
+    await run.input(external_event("first", "run both tools"))
+    await run.respond(0, tool_grace_response("A", "B"))
+    await run.input(external_event("second", "run an unrelated tool"))
+    await run.respond(1, tool_grace_response("C"))
+    await sleep_ns(2 * TOOL_CALL_RUN_GRACE_PERIOD_NS)
+    await update_tool_grace_call(run, "A", Status.COMPLETED)
+    deadline = now_ns() + TOOL_CALL_COMPLETION_GRACE_PERIOD_NS
+    await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS // 2)
+    await update_tool_grace_call(run, "C", Status.COMPLETED)
+    assert run.request_count() == 2, "unrelated completion ended the existing grace period early"
+    await sleep_ns(deadline - now_ns() + 2 * SLURP_IDLE_TIMEOUT_NS)
+    await wait()
+    assert run.request_count() == 3, "unrelated completion extended the existing grace deadline"
+    assert_stop_result(run.calls[2].request, "A", str(Status.COMPLETED))
+    assert_stop_result(run.calls[2].request, "B", TOOL_CALL_RUNNING_PAYLOAD)
+    assert_stop_result(run.calls[2].request, "C", str(Status.COMPLETED))
 
 
 @fake_time
@@ -121,9 +140,35 @@ async def test_coordinator_tool_grace_expiry_without_results_does_not_start_turn
     await sleep_ns(SECOND)
     assert run.request_count() == 1, "grace expiry started a turn without pending inputs"
     await update_tool_grace_call(run, "A", Status.COMPLETED)
-    assert run.request_count() == 2, "completion after grace expiry was deferred"
+    assert run.request_count() == 1, (
+        "completion after run grace expiry did not wait for its sibling"
+    )
+    await update_tool_grace_call(run, "B", Status.COMPLETED)
+    assert run.request_count() == 2, (
+        "last sibling completion did not end the completion grace period"
+    )
     assert_stop_result(run.calls[1].request, "A", str(Status.COMPLETED))
-    assert_stop_result(run.calls[1].request, "B", TOOL_CALL_RUNNING_PAYLOAD)
+    assert_stop_result(run.calls[1].request, "B", str(Status.COMPLETED))
+
+
+@pytest.mark.parametrize("siblings", [False, True], ids=["siblings=false", "siblings=true"])
+@fake_time
+async def test_coordinator_completion_grace_waits_only_for_same_turn(siblings: bool) -> None:
+    run = new_tool_grace_test_run()
+    await run.start()
+    await run.input(external_event("first", "run tools"))
+    response = tool_grace_response("A", "B") if siblings else tool_grace_response("A")
+    await run.respond(0, response)
+    await run.input(external_event("second", "run an unrelated tool"))
+    await run.respond(1, tool_grace_response("C"))
+    await sleep_ns(2 * TOOL_CALL_RUN_GRACE_PERIOD_NS)
+    await update_tool_grace_call(run, "A", Status.COMPLETED)
+    if siblings:
+        assert run.request_count() == 2, "completion did not wait for its surviving sibling"
+        await update_tool_grace_call(run, "B", Status.COMPLETED)
+    assert run.request_count() == 3, "completion waited for a call from another turn"
+    assert_stop_result(run.calls[2].request, "A", str(Status.COMPLETED))
+    assert_stop_result(run.calls[2].request, "C", TOOL_CALL_RUNNING_PAYLOAD)
 
 
 @pytest.mark.parametrize("kind", ["external", "heartbeat"])
@@ -159,8 +204,8 @@ async def test_coordinator_tool_grace_discards_previous_deadline() -> None:
     await sleep_ns(250 * MILLISECOND)
     await run.input(external_event("steering", "run another tool"))
     await run.respond(1, tool_grace_response("C"))
-    new_deadline = now_ns() + SECOND
     await update_tool_grace_call(run, "A", Status.COMPLETED)
+    new_deadline = now_ns() + TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS
     await sleep_ns(old_deadline - now_ns() + NANOSECOND)
     assert run.request_count() == 2, "previous deadline ended the new grace period"
     await sleep_ns(new_deadline - now_ns())
@@ -205,23 +250,26 @@ async def test_coordinator_stop_during_tool_grace_period(mode: ControlMode) -> N
     run = new_tool_grace_test_run()
     await run.start()
     await run.input(external_event("input", "run tool"))
-    await run.respond(0, tool_grace_response("A"))
+    await run.respond(0, tool_grace_response("A", "B"))
     await run.input(stop_input("stop", mode))
     terminal = Status.CANCELED
     if mode == ControlMode.STOP_WHEN_IDLE:
         terminal = Status.COMPLETED
         assert len(run.operations.cancels) == 0, "when-idle stop canceled pending work"
     else:
-        assert len(run.operations.cancels) == 1, (
+        assert len(run.operations.cancels) == 2, (
             "stop waited for grace expiry before canceling work"
         )
     assert run.request_count() == 1, "stop started a turn before the operation finished"
     await update_tool_grace_call(run, "A", terminal)
+    assert run.request_count() == 1, "partial completion did not wait for its sibling"
+    await update_tool_grace_call(run, "B", terminal)
     if mode != ControlMode.STOP_HARD:
         assert run.request_count() == 2, (
             "when_idle waited for grace expiry before delivering the result"
         )
         assert_stop_result(run.calls[1].request, "A", str(terminal))
+        assert_stop_result(run.calls[1].request, "B", str(terminal))
         await run.respond(1, text_response("Done."))
     else:
         assert run.request_count() == 1, "hard stop started a final turn"

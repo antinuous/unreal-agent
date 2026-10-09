@@ -39,6 +39,7 @@ __all__ = [
     "HISTORY_PAGE_SIZE",
     "SLURP_IDLE_TIMEOUT",
     "SLURP_MAX_ITEMS",
+    "TOOL_CALL_COMPLETION_GRACE_PERIOD",
     "TOOL_CALL_RUN_GRACE_PERIOD",
     "Coordinator",
 ]
@@ -47,6 +48,7 @@ HISTORY_PAGE_SIZE: Final = 256
 SLURP_IDLE_TIMEOUT: Final = 0.001
 SLURP_MAX_ITEMS: Final = 100
 TOOL_CALL_RUN_GRACE_PERIOD: Final = 1.0
+TOOL_CALL_COMPLETION_GRACE_PERIOD: Final = 1.0
 
 _G_EXPONENT_LIMIT: Final = 6
 
@@ -364,7 +366,18 @@ class Coordinator:
         inputs, updates = self._sources()
         await self._process_inputs(await slurp(inputs))
         await self._process_operations(await slurp(updates))
-        await self._reconcile_tool_calls()
+        completed = await self._reconcile_tool_calls()
+        siblings = {
+            key
+            for status in completed
+            for key in self._state.tool_calls
+            if key.turn_id == status.TurnID
+        }
+        if siblings:
+            self._state.grace_tool_calls.update(siblings)
+            if self._state.grace is not None:
+                self._state.grace.cancel()
+            self._state.grace = Timer(TOOL_CALL_COMPLETION_GRACE_PERIOD, self._wake.set)
         return self._state.call_model or (
             self._pending_inputs() > 0
             and self._cancel_model is None

@@ -14,6 +14,7 @@ from unreal_agent.tool import BASH_NAME, Registry, StaticTranslators
 
 from tests.coordinator._helpers import (
     SLURP_IDLE_TIMEOUT_NS,
+    TOOL_CALL_COMPLETION_GRACE_PERIOD_NS,
     FakeAdapter,
     FakeOperationManager,
     StopTestCall,
@@ -189,6 +190,7 @@ async def test_coordinator_run_defers_completions_until_model_finishes(
             await sleep_ns(2 * SLURP_IDLE_TIMEOUT_NS)
         else:
             await finish_operation(0)
+            await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
             first_pending = 1
         assert len(calls) == 1, f"model requests = {len(calls)}, want 1"
         first = calls[0]

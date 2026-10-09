@@ -14,6 +14,7 @@ from unreal_agent.tool import BASH_NAME, VIEW_IMAGE_NAME, Registry, StaticTransl
 from tests.coordinator._helpers import (
     SECOND,
     SLURP_IDLE_TIMEOUT_NS,
+    TOOL_CALL_COMPLETION_GRACE_PERIOD_NS,
     FailingStore,
     OperationStatusTranslator,
     SubmissionTranslator,
@@ -49,9 +50,10 @@ async def test_coordinator_submission_boundary_survives_recovery(stage: str) -> 
     run.go()
     await wait()
     await run.update(1, Status.COMPLETED)
-    assert len(run.calls) == 1, "completion before submission was not included immediately"
+    await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
+    assert len(run.calls) == 1, "completion before submission was not included after grace expiry"
     assert run.current._state.current_turn_inputs == 1, (
-        "completion before submission was not included immediately"
+        "completion before submission was not included after grace expiry"
     )
     sent = run.calls[0].request
     original = list(sent.Input)
@@ -163,6 +165,7 @@ async def test_coordinator_recovers_pending_results_after_input_write_failure(ki
     await restore_test_run(run, faults)
     await run.start()
     await run.update(1, Status.COMPLETED)
+    await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
     want = run.calls[0].request
     await run.update(0, Status.COMPLETED)
     want = replace(want, Input=[*want.Input, text_result("call-0", COMPLETED)])
@@ -214,6 +217,7 @@ async def test_coordinator_starts_new_tool_while_delivering_previous_completion(
     run.go()
     await wait()
     await run.update(1, Status.COMPLETED)
+    await sleep_ns(TOOL_CALL_COMPLETION_GRACE_PERIOD_NS + 2 * SLURP_IDLE_TIMEOUT_NS)
     first = run.calls[0].request
     await run.update(0, Status.COMPLETED)
     dispatches = len(run.operations.adds)
