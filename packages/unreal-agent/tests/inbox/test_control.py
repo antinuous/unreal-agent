@@ -35,6 +35,40 @@ async def test_inbox_settings_controls(effort: ReasoningEffort) -> None:
     assert got == want
 
 
+@pytest.mark.parametrize(
+    "settings",
+    [
+        Settings(),
+        Settings(Model="model"),
+        Settings(SystemPrompt="be concise"),
+        Settings(SystemPrompt=""),
+        Settings(MaxOutputTokens=2048),
+        Settings(
+            Model="model",
+            SystemPrompt="be concise",
+            MaxOutputTokens=2048,
+            ReasoningEffort=ReasoningEffort.HIGH,
+        ),
+    ],
+)
+async def test_inbox_partial_settings_controls(settings: Settings) -> None:
+    want = ControlMessage(Mode=ControlMode.UPDATE_SETTINGS, Parameters=settings)
+    payload = gojson.encode(want)
+    input = Input(ID="settings", Kind=InputKind.CONTROL, Payload=Raw(payload))
+    got = (await submit_and_receive(Inbox(), input)).decode_control_message()
+    assert got == want
+
+
+def test_settings_encoding_matches_go() -> None:
+    settings = Settings(
+        SystemPrompt="", Model="model", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH
+    )
+    assert gojson.encode(settings) == (
+        b'{"SystemPrompt":"","Model":"model","MaxOutputTokens":2048,"ReasoningEffort":"high"}'
+    )
+    assert gojson.encode(Settings()) == b"{}"
+
+
 def test_control_message_encoding_omits_zero_parameters() -> None:
     assert (
         gojson.encode(ControlMessage(Mode=ControlMode.STOP_HARD, Reason="r"))
@@ -53,14 +87,13 @@ def test_control_message_encoding_omits_zero_parameters() -> None:
         '{"Mode":"heartbeat","Reason":"waiting","extra":true}',
         '{"Mode":"heartbeat"}',
         '{"Mode":"heartbeat","Reason":""}',
-        '{"Mode":"settings","Parameters":{}}',
         '{"Mode":"settings","Parameters":[]}',
         '{"Mode":"settings","Parameters":"high"}',
-        '{"Mode":"settings","Parameters":{"ReasoningEffort":""}}',
-        '{"Mode":"settings","Parameters":{"ReasoningEffort":null}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"default"}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":42}}',
-        '{"Mode":"settings","Parameters":{"Model":"model","ReasoningEffort":"high"}}',
+        '{"Mode":"settings","Parameters":{"Model":" "}}',
+        '{"Mode":"settings","Parameters":{"MaxOutputTokens":0}}',
+        '{"Mode":"settings","Parameters":{"MaxOutputTokens":-1}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"high","extra":true}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"high"},"extra":true}',
         '{"Mode":"hard","Parameters":{"ReasoningEffort":"high"}}',
@@ -81,10 +114,15 @@ async def test_inbox_rejects_invalid_control_messages(payload: str) -> None:
         ('{"Mode":"soft"}', 'unsupported control mode "soft"'),
         ('{"Mode":"hard","extra":true}', "decode control message: "),
         ('{"Mode":"heartbeat","Reason":null}', "heartbeat reason is empty"),
-        ('{"Mode":"settings"}', "decode settings parameters: "),
-        ('{"Mode":"settings","Parameters":null}', 'unsupported reasoning effort ""'),
+        ('{"Mode":"settings"}', "settings parameters are missing"),
+        ('{"Mode":"settings","Parameters":null}', "settings parameters are missing"),
+        ('{"Mode":"settings","Parameters":[]}', "decode settings parameters: "),
         ('{"Mode":"settings","Parameters":{"ReasoningEffort":"turbo"}}', '"turbo"'),
-        ('{"Mode":"settings","Parameters":{"Model":"model"}}', "decode settings parameters: "),
+        ('{"Mode":"settings","Parameters":{"Model":" "}}', "model ID is empty"),
+        (
+            '{"Mode":"settings","Parameters":{"MaxOutputTokens":0}}',
+            "max output tokens must be positive",
+        ),
         ('{"Mode":"hard","Parameters":null}', 'control mode "hard" does not accept parameters'),
     ],
 )

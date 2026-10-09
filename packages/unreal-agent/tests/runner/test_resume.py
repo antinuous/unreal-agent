@@ -9,7 +9,7 @@ from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, ReasoningEffort, Response, ToolCall, ToolResult
 from unreal_agent.llm import Request as LLMRequest
 from unreal_agent.runner import Client
-from unreal_agent.runner.run import LLM_API_KEY_ENVIRONMENT
+from unreal_agent.runner.run import DEFAULT_SYSTEM_PROMPT, LLM_API_KEY_ENVIRONMENT
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind
 from unreal_agent.sessionstore.localfile import Store
 
@@ -154,7 +154,10 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
 
         def resumed_respond(request: LLMRequest) -> Response:
             resumed.calls += 1
-            if model != request.Model.ID or request.Model.ReasoningEffort != ReasoningEffort.LOW:
+            if (
+                request.Model.ID != "initial-model"
+                or request.Model.ReasoningEffort != ReasoningEffort.LOW
+            ):
                 raise ValueError(f"recovered request settings = {request.Model!r}")
             if with_tool and not has_result(request):
                 raise ValueError("missing restored result")
@@ -171,7 +174,9 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
                 control = item.Data.decode_control_message()
                 if control.Mode == ControlMode.UPDATE_SETTINGS:
                     settings += 1
-                    assert control.Parameters == Settings(ReasoningEffort=effort)
+                    assert control.Parameters == Settings(
+                        Model=model, SystemPrompt=DEFAULT_SYSTEM_PROMPT, ReasoningEffort=effort
+                    )
         assert settings == 1, "recorded settings controls, want 1"
         assert item_kinds(stdout).count(ItemKind.MODEL_RESPONSE) == 1
 

@@ -1,6 +1,6 @@
 import pytest
 from unreal_agent.inbox import ControlMode, Settings
-from unreal_agent.llm import Model, ReasoningEffort
+from unreal_agent.llm import Message, Model, ReasoningEffort, Request
 from unreal_agent.operation import Status
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import ModelResponse
@@ -23,23 +23,51 @@ from tests.coordinator._helpers import (
 )
 
 
+def system_text(request: Request) -> str:
+    first = request.Input[0].Data
+    assert isinstance(first, Message)
+    return first.Text
+
+
 @fake_time
 async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
     run = new_stop_test_run(0)
     await run.start()
-    await run.input(settings_input("initial", Settings(ReasoningEffort=ReasoningEffort.LOW)))
+    initial_model = Model(ID="initial", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.LOW)
+    await run.input(
+        settings_input(
+            "initial",
+            Settings(
+                Model=initial_model.ID,
+                MaxOutputTokens=2048,
+                SystemPrompt="initial prompt",
+                ReasoningEffort=initial_model.ReasoningEffort,
+            ),
+        )
+    )
     assert run.request_count() == 0, "settings woke an idle model"
     assert run.current._pending_inputs() == 0, "settings woke an idle model"
     run.assert_running()
     await run.input(external_event("prompt", "hello"))
     assert run.request_count() == 1, "next turn did not use settings"
-    assert run.calls[0].request.Model.ReasoningEffort == ReasoningEffort.LOW, (
+    assert run.calls[0].request.Model == initial_model, "next turn did not use settings"
+    assert system_text(run.calls[0].request).endswith("initial prompt"), (
         "next turn did not use settings"
     )
-    await run.input(settings_input("next", Settings(ReasoningEffort=ReasoningEffort.HIGH)))
+    await run.input(
+        settings_input(
+            "next",
+            Settings(
+                Model="next", SystemPrompt="next prompt", ReasoningEffort=ReasoningEffort.HIGH
+            ),
+        )
+    )
     assert run.request_count() == 1, "settings interrupted or altered the active request"
     assert not run.calls[0].canceled, "settings interrupted or altered the active request"
-    assert run.calls[0].request.Model.ReasoningEffort == ReasoningEffort.LOW, (
+    assert run.calls[0].request.Model == initial_model, (
+        "settings interrupted or altered the active request"
+    )
+    assert system_text(run.calls[0].request).endswith("initial prompt"), (
         "settings interrupted or altered the active request"
     )
     await run.respond(0, text_response("Hello."))
@@ -47,7 +75,10 @@ async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
     assert run.current._pending_inputs() == 0, "settings caused an extra turn after the response"
     await run.input(external_event("follow-up", "continue"))
     assert run.request_count() == 2, "following turn did not use updated settings"
-    assert run.calls[1].request.Model.ReasoningEffort == ReasoningEffort.HIGH, (
+    assert run.calls[1].request.Model == Model(
+        ID="next", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH
+    ), "following turn did not use updated settings"
+    assert system_text(run.calls[1].request).endswith("next prompt"), (
         "following turn did not use updated settings"
     )
     await run.respond(1, text_response("Done."))
@@ -89,12 +120,26 @@ async def test_coordinator_settings_preserve_tool_grace_and_apply_to_continuatio
 async def test_coordinator_settings_follow_inbox_order_and_deduplicate() -> None:
     run = new_heartbeat_test_run(0)
     await run.start()
-    first = settings_input("first", Settings(ReasoningEffort=ReasoningEffort.LOW))
-    last = settings_input("last", Settings(ReasoningEffort=ReasoningEffort.HIGH))
-    await run.input(first, last, first)
-    assert run.recorded_inputs == [first, last], f"recorded settings = {run.recorded_inputs!r}"
+    first = settings_input(
+        "first",
+        Settings(
+            Model="initial",
+            MaxOutputTokens=123,
+            SystemPrompt="saved prompt",
+            ReasoningEffort=ReasoningEffort.LOW,
+        ),
+    )
+    last = settings_input("last", Settings(Model="next", ReasoningEffort=ReasoningEffort.HIGH))
+    repeated = settings_input("repeated", Settings(Model="next"))
+    await run.input(first, last, first, repeated)
+    assert run.recorded_inputs == [first, last, repeated], (
+        f"recorded settings = {run.recorded_inputs!r}"
+    )
     await run.input(external_event("prompt", "hello"))
-    assert run.calls[0].request.Model.ReasoningEffort == ReasoningEffort.HIGH, (
+    assert run.calls[0].request.Model == Model(
+        ID="next", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH
+    ), "duplicate rolled back the latest settings"
+    assert system_text(run.calls[0].request).endswith("saved prompt"), (
         "duplicate rolled back the latest settings"
     )
 
@@ -142,14 +187,27 @@ async def test_coordinator_settings_require_persistence() -> None:
     assert run.request_count() == 0, "model ran after settings persistence failed"
 
 
-@pytest.mark.parametrize("mode", ["resume", "fork"])
+@pytest.mark.parametrize(
+    ("mode", "prompt"),
+    [("resume", "saved prompt"), ("fork", "saved prompt"), ("resume", ""), ("fork", "")],
+)
 @fake_time
-async def test_coordinator_settings_replay_on_resume_and_fork(mode: str) -> None:
+async def test_coordinator_settings_replay_on_resume_and_fork(mode: str, prompt: str) -> None:
     parent = new_stop_test_run(0)
     store = await persist_test_run(parent)
     for input in [
-        settings_input("first", Settings(ReasoningEffort=ReasoningEffort.LOW)),
-        settings_input("last", Settings(ReasoningEffort=ReasoningEffort.HIGH)),
+        settings_input(
+            "first",
+            Settings(
+                Model="saved-model",
+                SystemPrompt="initial prompt",
+                MaxOutputTokens=123,
+                ReasoningEffort=ReasoningEffort.LOW,
+            ),
+        ),
+        settings_input("effort", Settings(ReasoningEffort=ReasoningEffort.HIGH)),
+        settings_input("prompt", Settings(SystemPrompt=prompt)),
+        settings_input("omitted-prompt", Settings(Model="saved-model")),
     ]:
         await store.append_input("session-1", input)
     turn = Turn(ID="parent-turn", PreviousTurnID="turn-1", Type=TurnType.REGULAR)
@@ -169,12 +227,16 @@ async def test_coordinator_settings_replay_on_resume_and_fork(mode: str) -> None
     run.dependencies.context_builder.set_model(
         Model(ID="model", ReasoningEffort=ReasoningEffort.MEDIUM)
     )
+    want_prompt = system_text(run.dependencies.context_builder.build().request)
+    if prompt:
+        want_prompt += "\n\n" + prompt
+    run.dependencies.context_builder.set_system_prompt("caller prompt")
     await run.start()
     assert run.request_count() == 0, "replayed settings started a turn"
     await run.input(external_event("prompt", "continue"))
-    assert run.calls[0].request.Model.ID == "model", (
-        "latest recorded settings did not override initial configuration"
-    )
-    assert run.calls[0].request.Model.ReasoningEffort == ReasoningEffort.HIGH, (
+    assert run.calls[0].request.Model == Model(
+        ID="saved-model", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH
+    ), "latest recorded settings did not override initial configuration"
+    assert system_text(run.calls[0].request) == want_prompt, (
         "latest recorded settings did not override initial configuration"
     )

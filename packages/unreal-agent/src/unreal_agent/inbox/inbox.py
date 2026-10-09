@@ -1,8 +1,8 @@
 from enum import StrEnum
 from typing import Annotated
 
-from unreal_agent._go import json_quote
-from unreal_agent.gojson import JSONError, OmitZero, Raw, Struct, decode, is_valid_json
+from unreal_agent._go import go_trim_space, json_quote
+from unreal_agent.gojson import Int64, JSONError, OmitZero, Raw, Struct, decode, is_valid_json
 from unreal_agent.llm import ReasoningEffort
 
 __all__ = [
@@ -36,6 +36,9 @@ _ReasoningEffort = ReasoningEffort
 
 
 class Settings(Struct):
+    SystemPrompt: Annotated[str | None, OmitZero] = None
+    Model: Annotated[str, OmitZero] = ""
+    MaxOutputTokens: Annotated[Int64 | None, OmitZero] = None
     ReasoningEffort: Annotated[_ReasoningEffort, OmitZero] = _ReasoningEffort.NONE
 
 
@@ -52,6 +55,9 @@ class _ControlEnvelope(Struct, forbid_unknown_fields=True):
 
 
 class _SettingsParameters(Struct, forbid_unknown_fields=True):
+    SystemPrompt: str | None = None
+    Model: str | None = None
+    MaxOutputTokens: Int64 | None = None
     ReasoningEffort: str | None = None
 
 
@@ -95,20 +101,30 @@ class Input(Struct):
                     raise ValueError("heartbeat reason is empty")
                 return ControlMessage(Mode=ControlMode.HEARTBEAT, Reason=reason)
             case ControlMode.UPDATE_SETTINGS:
+                raw = bytes(envelope.Parameters)
+                if len(raw) == 0 or raw == b"null":
+                    raise ValueError("settings parameters are missing")
                 try:
-                    parameters = (
-                        decode(bytes(envelope.Parameters), _SettingsParameters | None)
-                        or _SettingsParameters()
-                    )
+                    parameters = decode(raw, _SettingsParameters)
                 except JSONError as error:
                     raise ValueError(f"decode settings parameters: {error}") from error
                 effort = parameters.ReasoningEffort or ""
-                if not ReasoningEffort.is_valid(effort):
+                if effort and not ReasoningEffort.is_valid(effort):
                     raise ValueError(f"unsupported reasoning effort {json_quote(effort)}")
+                model = parameters.Model or ""
+                if model and not go_trim_space(model):
+                    raise ValueError("model ID is empty")
+                if parameters.MaxOutputTokens is not None and parameters.MaxOutputTokens <= 0:
+                    raise ValueError("max output tokens must be positive")
                 return ControlMessage(
                     Mode=ControlMode.UPDATE_SETTINGS,
                     Reason=reason,
-                    Parameters=Settings(ReasoningEffort=ReasoningEffort(effort)),
+                    Parameters=Settings(
+                        SystemPrompt=parameters.SystemPrompt,
+                        Model=model,
+                        MaxOutputTokens=parameters.MaxOutputTokens,
+                        ReasoningEffort=ReasoningEffort(effort),
+                    ),
                 )
             case _:
                 raise ValueError(f"unsupported control mode {json_quote(mode)}")

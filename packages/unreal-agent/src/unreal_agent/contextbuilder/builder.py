@@ -72,7 +72,16 @@ class _Builder:
                 settings = message.Parameters
                 if not isinstance(settings, Settings):
                     raise TypeError("settings control message has no settings parameters")
-                self._model = replace(self._model, ReasoningEffort=settings.ReasoningEffort)
+                if settings.SystemPrompt is not None:
+                    self.set_system_prompt(settings.SystemPrompt)
+                model = replace(self._model)
+                if settings.Model:
+                    model.ID = settings.Model
+                if settings.MaxOutputTokens is not None:
+                    model.MaxOutputTokens = settings.MaxOutputTokens
+                if settings.ReasoningEffort:
+                    model.ReasoningEffort = settings.ReasoningEffort
+                self._model = model
             case ControlMode.HEARTBEAT:
                 self._staged_suffix.append(
                     Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text=message.Reason))

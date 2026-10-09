@@ -120,7 +120,12 @@ async def test_run_main_executes_batched_messages(
     assert isinstance(first, Input)
     control = first.decode_control_message()
     assert control.Mode == ControlMode.UPDATE_SETTINGS
-    assert control.Parameters == Settings(ReasoningEffort=ReasoningEffort.MEDIUM)
+    assert control.Parameters == Settings(
+        Model="gpt-test",
+        SystemPrompt="be concise",
+        MaxOutputTokens=request.Model.MaxOutputTokens,
+        ReasoningEffort=ReasoningEffort.MEDIUM,
+    )
     ids = input_ids(stdout)
     assert len(ids) == 2
     assert ids[0] == "69621f8d-4f4d-49a5-8f7d-3b24fd855c01"

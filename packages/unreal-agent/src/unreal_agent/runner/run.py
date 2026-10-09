@@ -327,8 +327,17 @@ async def _run(
 
     cleanups.append(close_inbox)
     effort = reasoning_effort(parsed.thinking_level)
+    system_prompt = (
+        parsed.system_prompt if parsed.system_prompt is not None else DEFAULT_SYSTEM_PROMPT
+    )
     settings = ControlMessage(
-        Mode=ControlMode.UPDATE_SETTINGS, Parameters=Settings(ReasoningEffort=effort)
+        Mode=ControlMode.UPDATE_SETTINGS,
+        Parameters=Settings(
+            SystemPrompt=system_prompt,
+            Model=model,
+            MaxOutputTokens=parsed.max_output_tokens,
+            ReasoningEffort=effort,
+        ),
     )
     await _submit(inputs, InputKind.CONTROL, gojson.encode(settings), "submit settings")
     for index, message in enumerate(messages):
@@ -349,9 +358,7 @@ async def _run(
     builder.set_model(
         Model(ID=model, MaxOutputTokens=parsed.max_output_tokens, ReasoningEffort=effort)
     )
-    builder.set_system_prompt(
-        parsed.system_prompt if parsed.system_prompt is not None else DEFAULT_SYSTEM_PROMPT
-    )
+    builder.set_system_prompt(system_prompt)
     for definition in registry.static_definitions():
         builder.add_tool(definition.tool)
 
