@@ -5,7 +5,7 @@ from msgspec.structs import replace
 
 from unreal_agent._go import go_quote
 from unreal_agent.gojson import Timestamp, is_valid_json
-from unreal_agent.inbox import Input, InputKind
+from unreal_agent.inbox import Input
 from unreal_agent.operation import Operation, Status
 from unreal_agent.session import ID as SessionID
 from unreal_agent.session import Session, Turn, TurnID
@@ -186,12 +186,12 @@ class StoredState:
         self.head.save_operation(value)
 
     def resume(self) -> ResumeState:
-        external_input_ids: list[str] = []
+        input_ids: list[str] = []
         pending: set[str] = set()
         for item in self.items:
             match item.Data:
-                case Input(Kind=InputKind.EXTERNAL, ID=input_id):
-                    external_input_ids.append(input_id)
+                case Input(ID=input_id):
+                    input_ids.append(input_id)
                 case ToolCallStatus(Operations=snapshots):
                     for value in snapshots:
                         if value.Status in _TERMINAL_STATUSES:
@@ -208,7 +208,7 @@ class StoredState:
         return ResumeState(
             snapshot=self.head.snapshot,
             operations=operations,
-            external_input_ids=external_input_ids,
+            input_ids=input_ids,
         )
 
     def inherit_item(self, item: Item) -> None:

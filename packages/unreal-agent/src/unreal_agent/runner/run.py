@@ -339,7 +339,7 @@ async def _run(
     operations = LocalOperationManager(*configured.remote_jobs)
     cleanups.append(operations.aclose)
     try:
-        inputs = Inbox(restored.external_input_ids)
+        inputs = Inbox(restored.input_ids)
     except ValueError as error:
         raise wrap("open inbox", error) from error
 

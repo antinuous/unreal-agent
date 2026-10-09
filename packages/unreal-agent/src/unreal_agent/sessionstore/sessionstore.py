@@ -192,7 +192,7 @@ class ResumeState:
     snapshot: Snapshot = field(default_factory=Snapshot)
     operations: list[Operation] = field(default_factory=list)
     """Unfinished operations and terminal states missing from tool-call history."""
-    external_input_ids: list[InputID] = field(default_factory=list)
+    input_ids: list[InputID] = field(default_factory=list)
 
 
 class Store(Protocol):

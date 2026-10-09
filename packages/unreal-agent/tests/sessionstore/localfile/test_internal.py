@@ -205,10 +205,10 @@ def test_stored_state_lifecycle() -> None:
     assert state.items[0].RecordedAt == STATE_UPDATED_AT
     resume = state.resume()
     assert resume.operations == [updated]
-    assert resume.external_input_ids == ["input-1"]
+    assert resume.input_ids == ["input-1"]
 
 
-def test_resume_returns_only_external_input_ids() -> None:
+def test_resume_returns_all_input_ids() -> None:
     state = new_stored_state("session-1", STATE_CREATED_AT)
     for input in [
         Input(ID="external-1", Kind=InputKind.EXTERNAL),
@@ -217,16 +217,16 @@ def test_resume_returns_only_external_input_ids() -> None:
         Input(ID="external-2", Kind=InputKind.EXTERNAL),
     ]:
         state.append_input(input, STATE_UPDATED_AT)
-    assert state.resume().external_input_ids == ["external-1", "external-2"]
+    assert state.resume().input_ids == ["external-1", "control-1", "crash-1", "external-2"]
 
 
-def test_resume_includes_inherited_external_input_ids() -> None:
+def test_resume_includes_inherited_input_ids() -> None:
     parent = new_stored_state("parent", STATE_CREATED_AT)
     parent.append_input(Input(ID="parent-input", Kind=InputKind.EXTERNAL), STATE_UPDATED_AT)
     parent.append_turn(Turn(ID="turn-1", Type=TurnType.REGULAR), STATE_UPDATED_AT)
     child = fork_stored_state(parent, "child", "turn-1", STATE_UPDATED_AT)
     child.append_input(Input(ID="child-input", Kind=InputKind.EXTERNAL), STATE_UPDATED_AT)
-    assert child.resume().external_input_ids == ["parent-input", "child-input"]
+    assert child.resume().input_ids == ["parent-input", "child-input"]
 
 
 def test_status_operation_references_accept_error() -> None:

@@ -186,7 +186,7 @@ async def _fork_store_outcome(
         outcome.append((page.next_after, page.more))
         resumed = await store.resume(id)
         outcome.append((resumed.snapshot.session.ID, resumed.operations))
-        outcome.append(resumed.external_input_ids)
+        outcome.append(resumed.input_ids)
     return outcome
 
 

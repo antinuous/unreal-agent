@@ -454,7 +454,7 @@ class MemoryStore:
         return ResumeState(
             snapshot=dataclasses.replace(resumed.snapshot),
             operations=[clone(value, Operation) for value in resumed.operations],
-            external_input_ids=list(resumed.external_input_ids),
+            input_ids=list(resumed.input_ids),
         )
 
     async def fork(

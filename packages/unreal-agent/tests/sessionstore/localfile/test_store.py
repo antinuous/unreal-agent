@@ -231,10 +231,38 @@ async def test_store_persists_typed_history_and_pagination(tmp_path: Path) -> No
 
     resume = await reopened.resume(snapshot.session.ID)
     assert resume.operations == [initial]
-    assert resume.external_input_ids == ["input-1"]
+    assert resume.input_ids == ["input-1"]
 
     after_end = await reopened.items(snapshot.session.ID, 100, 10)
     assert (after_end.items, after_end.next_after, after_end.more) == ([], 100, False)
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        Input(ID="external", Kind=InputKind.EXTERNAL),
+        Input(ID="hard-stop", Kind=InputKind.CONTROL, Payload=Raw(b'{"Mode":"hard"}')),
+        Input(ID="idle-stop", Kind=InputKind.CONTROL, Payload=Raw(b'{"Mode":"when_idle"}')),
+        Input(
+            ID="heartbeat",
+            Kind=InputKind.CONTROL,
+            Payload=Raw(b'{"Mode":"heartbeat","Reason":"check progress"}'),
+        ),
+        Input(
+            ID="settings",
+            Kind=InputKind.CONTROL,
+            Payload=Raw(b'{"Mode":"settings","Parameters":{"Model":"test"}}'),
+        ),
+        Input(ID="crash", Kind=InputKind.CRASH),
+    ],
+    ids=lambda input: input.ID,
+)
+async def test_store_resume_restores_persisted_input_ids(input: Input, tmp_path: Path) -> None:
+    store = Store(tmp_path)
+    await store.create("session-1")
+    await store.append_input("session-1", input)
+    restored = await Store(tmp_path).resume("session-1")
+    assert restored.input_ids == [input.ID]
 
 
 async def test_store_notifies_observers_synchronously_after_item_persistence(
