@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 
 from unreal_agent._go import go_bytes, go_quote, go_trim_space, to_valid_utf8
 from unreal_agent.llm import ToolCall, ToolResult, ToolResultKind, ToolResultOutput
@@ -13,13 +14,27 @@ from unreal_agent.tool._jsonv2 import GoJSONError, decode_string_field
 from unreal_agent.tool.static import SKILL_USE_NAME
 from unreal_agent.tool.tool import CallStatus, Context, Skill, TranslationError
 
-__all__ = ["SkillUseTranslator"]
+__all__ = ["SkillUseResult", "SkillUseTranslator"]
 
 
-def _text(call_id: str, value: str) -> ToolResult:
-    return ToolResult(
-        CallID=call_id, Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
-    )
+@dataclass(frozen=True, slots=True)
+class SkillUseResult:
+    CallID: str = ""
+    Content: bytes = b""
+    Running: bool = False
+    Error: str = ""
+
+    def to_llm_result(self) -> ToolResult:
+        text = to_valid_utf8(self.Content)
+        if self.Running:
+            text = "Skill is loading."
+        elif self.Error:
+            text = self.Error
+        return ToolResult(
+            CallID=self.CallID,
+            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=text)],
+            Running=self.Running,
+        )
 
 
 class SkillUseTranslator:
@@ -56,9 +71,9 @@ class SkillUseTranslator:
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
+    ) -> SkillUseResult:
         if status.Error:
-            return _text(call_id, status.Error)
+            return SkillUseResult(CallID=call_id, Error=status.Error)
         if len(operations) != 1:
             raise TranslationError(
                 f"skill-use call {go_quote(call_id)} has {len(operations)} operations, want 1"
@@ -72,16 +87,18 @@ class SkillUseTranslator:
             ) from error
         match current.Status:
             case Status.COMPLETED:
-                return _text(call_id, to_valid_utf8(state.Content))
+                return SkillUseResult(CallID=call_id, Content=state.Content)
             case Status.READY | Status.AWAITING | Status.CANCELING:
-                return _text(call_id, "Skill is loading.")
+                return SkillUseResult(CallID=call_id, Running=True)
             case Status.CANCELED | Status.FAILED:
                 if not state.TerminalError:
                     raise TranslationError(
                         f"skill-use call {go_quote(call_id)} terminal operation "
                         f"{go_quote(current.ID)} has no error"
                     )
-                return _text(call_id, state.TerminalError)
+                return SkillUseResult(
+                    CallID=call_id, Content=state.Content, Error=state.TerminalError
+                )
             case _:
                 raise TranslationError(
                     f"skill-use call {go_quote(call_id)} operation {go_quote(current.ID)} "

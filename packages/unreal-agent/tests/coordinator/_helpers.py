@@ -65,8 +65,10 @@ from unreal_agent.tool import (
     CallStatus,
     Context,
     Registry,
+    SkillUseResult,
     StaticTranslators,
 )
+from unreal_agent.tool import Result as ToolOutcome
 
 # Nanosecond resolution so fake-time deadlines land exactly.
 fake_time = pytest.mark.looptime(resolution=1e-9)
@@ -203,10 +205,8 @@ class TestTranslator:
     def translate(self, ctx: Context, call: ToolCall, /) -> CallStatus:
         return CallStatus()
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
-        return ToolResult(
-            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="error:" + status.Error)]
-        )
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
+        return SkillUseResult(Error="error:" + status.Error)
 
 
 class SubmittingTranslator:
@@ -223,20 +223,17 @@ class SubmittingTranslator:
             self.on_translate()
         return CallStatus(WaitingFor=[ctx.submit(spec) for spec in self.specs])
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
-        return ToolResult(
-            CallID=call_id,
-            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=status.Error)],
-        )
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
+        return SkillUseResult(CallID=call_id, Error=status.Error)
 
 
 class OperationStatusTranslator:
     def translate(self, ctx: Context, call: ToolCall, /) -> CallStatus:
         return CallStatus()
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
         statuses = ",".join(str(value.Status) for value in operations)
-        return ToolResult(Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=statuses)])
+        return SkillUseResult(Content=statuses.encode())
 
 
 class FailingResultTranslator:
@@ -246,7 +243,7 @@ class FailingResultTranslator:
     def translate(self, ctx: Context, call: ToolCall, /) -> CallStatus:
         return CallStatus()
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
         raise self.error
 
 
@@ -254,15 +251,15 @@ class TerminalResultTranslator:
     def translate(self, ctx: Context, call: ToolCall, /) -> CallStatus:
         return CallStatus()
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
         for value in operations:
             if value.Status in (Status.COMPLETED, Status.FAILED, Status.CANCELED):
                 raise RuntimeError("terminal result failed")
-        return ToolResult(Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="pending")])
+        return SkillUseResult(Content=b"pending")
 
 
 class SubmissionTranslator(SubmittingTranslator):
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
         return OperationStatusTranslator().translate_result(call_id, status, operations)
 
 
@@ -271,7 +268,7 @@ class SubmittingResultErrorTranslator(SubmittingTranslator):
         super().__init__(specs)
         self.error = error
 
-    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolResult:
+    def translate_result(self, call_id: str, status: CallStatus, operations: Any, /) -> ToolOutcome:
         raise self.error
 
 

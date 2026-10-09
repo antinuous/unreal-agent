@@ -753,8 +753,11 @@ class Coordinator:
             raise CoordinatorError(
                 f"add tool call {go_quote(status.CallID)} result to context: {error}"
             ) from error
+        model_result = result.to_llm_result()
         running = not self._tool_call_operations_are_terminal(status.TurnID, status.CallID)
-        self._dependencies.context_builder.add_tool_result(status.CallID, result.Output, running)
+        self._dependencies.context_builder.add_tool_result(
+            status.CallID, model_result.Output, running
+        )
         if not running:
             self._finish_tool_call(status.TurnID, status.CallID)
 

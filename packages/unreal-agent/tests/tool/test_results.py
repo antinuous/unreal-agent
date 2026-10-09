@@ -22,9 +22,11 @@ from unreal_agent.tool import (
 from tests.tool._helpers import RecordingContext
 
 
-def text(value: str) -> ToolResult:
+def text(value: str, *, running: bool = False) -> ToolResult:
     return ToolResult(
-        CallID="call", Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
+        CallID="call",
+        Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)],
+        Running=running,
     )
 
 
@@ -53,11 +55,12 @@ def test_unconfigured_static_tools_report_errors_without_label(name: str) -> Non
     want = f'static tool "{name}" is not configured'
     assert status == CallStatus(Error=want)
     assert ctx.specs == []
-    assert translator.translate_result("call", status, []) == text(want)
+    assert translator.translate_result("call", status, []).to_llm_result() == text(want)
 
 
 def test_skill_use_validation_error_has_no_label() -> None:
-    assert skill_use().translate_result("call", CallStatus(Error="bad"), []) == text("bad")
+    result = skill_use().translate_result("call", CallStatus(Error="bad"), [])
+    assert result.to_llm_result() == text("bad")
 
 
 @pytest.mark.parametrize(
@@ -90,7 +93,9 @@ def test_skill_use_validation_error_has_no_label() -> None:
 )
 def test_skill_use_results(status: Status, state: SkillUseState, want: str) -> None:
     operation = skill_operation(status, state)
-    assert skill_use().translate_result("call", CallStatus(), [operation]) == text(want)
+    running = status in (Status.READY, Status.AWAITING, Status.CANCELING)
+    result = skill_use().translate_result("call", CallStatus(), [operation])
+    assert result.to_llm_result() == text(want, running=running)
 
 
 @pytest.mark.parametrize(

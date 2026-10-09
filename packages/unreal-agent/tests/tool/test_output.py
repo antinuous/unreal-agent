@@ -74,6 +74,6 @@ def test_validation_errors_are_bounded_before_result_translation(
     assert status.ErrorTruncated == truncated
 
     status = decode(encode(status), CallStatus)
-    result = translator.translate_result("invalid-call", status, [])
+    result = translator.translate_result("invalid-call", status, []).to_llm_result()
     assert result.Output[0].Value.startswith("Error: ")
     assert result.Output[0].Value.removeprefix("Error: ") == status.Error

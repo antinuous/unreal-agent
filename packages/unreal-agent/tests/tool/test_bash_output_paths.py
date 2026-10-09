@@ -87,8 +87,10 @@ async def test_capture_paths_survive_failure_and_cancellation(
     assert step.operation.Status == terminal
     assert state.Result is None
 
-    result = bash.BashTranslator(bash.Config()).translate_result(
-        "call", CallStatus(), [step.operation]
+    result = (
+        bash.BashTranslator(bash.Config())
+        .translate_result("call", CallStatus(), [step.operation])
+        .to_llm_result()
     )
     assert result.Output[0].Value.endswith("Error: " + state.TerminalError)
     for filename, recorded, exists in (
@@ -159,7 +161,7 @@ async def test_truncated_output_can_be_read_from_capture_files(
 
     # A resumed translator must use the operation's capture directory.
     translator = bash.BashTranslator(bash.Config(base_directory=str(tmp_path / "other")))
-    result = translator.translate_result("call-1", status, [completed])
+    result = translator.translate_result("call-1", status, [completed]).to_llm_result()
     state = decode_shell_state(completed)
     assert state.Result is not None
     want = state.Result.Out

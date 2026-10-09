@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, Final
 
 from unreal_agent._go import go_quote
@@ -10,11 +11,24 @@ __all__ = [
     "BASH_NAME",
     "SKILL_USE_NAME",
     "VIEW_IMAGE_NAME",
+    "UnavailableResult",
 ]
 
 BASH_NAME: Final = "Bash"
 VIEW_IMAGE_NAME: Final = "ViewImage"
 SKILL_USE_NAME: Final = "SkillUse"
+
+
+@dataclass(frozen=True, slots=True)
+class UnavailableResult:
+    CallID: str = ""
+    Error: str = ""
+
+    def to_llm_result(self) -> ToolResult:
+        return ToolResult(
+            CallID=self.CallID,
+            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=self.Error)],
+        )
 
 
 class UnavailableTranslator:
@@ -28,11 +42,8 @@ class UnavailableTranslator:
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
-        return ToolResult(
-            CallID=call_id,
-            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=self._error_message())],
-        )
+    ) -> UnavailableResult:
+        return UnavailableResult(CallID=call_id, Error=self._error_message())
 
     def _error_message(self) -> str:
         return f"static tool {go_quote(self._name)} is not configured"

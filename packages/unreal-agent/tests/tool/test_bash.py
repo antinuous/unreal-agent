@@ -192,10 +192,22 @@ def test_translator_translates_shell_operation_results(
             )
         ],
     )
-    assert result.CallID == "call-1"
-    assert result.Output[0].Value == want
+    model = result.to_llm_result()
+    running = status in (Status.READY, Status.AWAITING, Status.CANCELING)
+    assert isinstance(result, bash.Result)
+    assert (result.CallID, result.Running, model.Running) == ("call-1", running, running)
+    if not running:
+        assert (result.Output, result.OutPath, result.ErrPath) == (
+            state.Result,
+            state.OutPath,
+            state.ErrPath,
+        )
+    if status == Status.COMPLETED:
+        assert result.Error == state.TerminalError, "command exit code became a tool error"
+    assert model.CallID == "call-1"
+    assert model.Output[0].Value == want
     for internal in ("secret command", "/secret/path", "operation-1"):
-        assert internal not in result.Output[0].Value
+        assert internal not in model.Output[0].Value
 
 
 @pytest.mark.parametrize(

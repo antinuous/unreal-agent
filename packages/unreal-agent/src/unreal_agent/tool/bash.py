@@ -8,6 +8,7 @@ from unreal_agent.operation import (
     Operation,
     OperationError,
     ShellInput,
+    ShellResult,
     Spec,
     Status,
     decode_shell_state,
@@ -17,7 +18,7 @@ from unreal_agent.tool._jsonv2 import GoJSONError, decode_optional_string, decod
 from unreal_agent.tool.output import error_status, parse_max_output_length
 from unreal_agent.tool.tool import CallStatus, Context, TranslationError
 
-__all__ = ["BashTranslator", "Config"]
+__all__ = ["BashTranslator", "Config", "Result"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,10 +34,41 @@ class _ArgumentError(Exception):
         self.limit = limit
 
 
-def _text(call_id: str, value: str) -> ToolResult:
-    return ToolResult(
-        CallID=call_id, Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=value)]
-    )
+@dataclass(frozen=True, slots=True)
+class Result:
+    CallID: str = ""
+    Running: bool = False
+    Output: ShellResult | None = None
+    OutPath: str = ""
+    ErrPath: str = ""
+    Error: str = ""
+
+    def to_llm_result(self) -> ToolResult:
+        parts: list[str] = []
+        if self.Running:
+            parts.append("Command is still running.")
+        else:
+            if self.Output is not None:
+                if self.Output.Out:
+                    parts.append(self.Output.Out)
+                if self.Output.Err:
+                    parts.append("Stderr:\n" + self.Output.Err)
+                if self.Output.ExitCode != 0:
+                    parts.append(f"Exit code: {self.Output.ExitCode}")
+            else:
+                if self.OutPath:
+                    parts.append("Stdout capture: " + self.OutPath)
+                if self.ErrPath:
+                    parts.append("Stderr capture: " + self.ErrPath)
+            if self.Error:
+                parts.append("Error: " + self.Error)
+            if not parts:
+                parts.append("(no output)")
+        return ToolResult(
+            CallID=self.CallID,
+            Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="\n".join(parts))],
+            Running=self.Running,
+        )
 
 
 class BashTranslator:
@@ -58,18 +90,18 @@ class BashTranslator:
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
+    ) -> Result:
         if status.Error:
             if operations:
                 raise TranslationError(
                     f"bash tool call {go_quote(call_id)} has both a validation error and operations"
                 )
-            return _text(call_id, "Error: " + status.Error)
+            return Result(CallID=call_id, Error=status.Error)
         if len(operations) != 1:
             raise TranslationError(
                 f"bash tool call {go_quote(call_id)} has {len(operations)} operations, want 1"
             )
-        return _text(call_id, _translate_operation_result(call_id, operations[0]))
+        return _translate_operation_result(call_id, operations[0])
 
     def _build_operation(self, command: str, limit: int) -> Spec:
         shell_input = ShellInput(
@@ -78,7 +110,7 @@ class BashTranslator:
         return new_shell_spec(shell_input, self._config.base_directory, limit)
 
 
-def _translate_operation_result(call_id: str, current: Operation) -> str:
+def _translate_operation_result(call_id: str, current: Operation) -> Result:
     if current.Type != TYPE_SHELL:
         raise TranslationError(
             f"bash tool call {go_quote(call_id)} operation {go_quote(current.ID)} has type "
@@ -93,7 +125,7 @@ def _translate_operation_result(call_id: str, current: Operation) -> str:
     terminal_error = state.TerminalError
     match current.Status:
         case Status.READY | Status.AWAITING | Status.CANCELING:
-            return "Command is still running."
+            return Result(CallID=call_id, Running=True)
         case Status.COMPLETED:
             if state.Result is None:
                 raise TranslationError(
@@ -108,25 +140,13 @@ def _translate_operation_result(call_id: str, current: Operation) -> str:
                 f"bash tool call {go_quote(call_id)} operation {go_quote(current.ID)} "
                 f"has invalid status {go_quote(current.Status)}"
             )
-
-    parts: list[str] = []
-    if state.Result is not None:
-        if state.Result.Out:
-            parts.append(state.Result.Out)
-        if state.Result.Err:
-            parts.append("Stderr:\n" + state.Result.Err)
-        if state.Result.ExitCode != 0:
-            parts.append(f"Exit code: {state.Result.ExitCode}")
-    else:
-        if state.OutPath:
-            parts.append("Stdout capture: " + state.OutPath)
-        if state.ErrPath:
-            parts.append("Stderr capture: " + state.ErrPath)
-    if terminal_error:
-        parts.append("Error: " + terminal_error)
-    if not parts:
-        return "(no output)"
-    return "\n".join(parts)
+    return Result(
+        CallID=call_id,
+        Output=state.Result,
+        OutPath=state.OutPath,
+        ErrPath=state.ErrPath,
+        Error=terminal_error,
+    )
 
 
 def _validate_arguments(encoded: str) -> tuple[str, int]:

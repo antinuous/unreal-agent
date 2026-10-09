@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from dataclasses import replace as replace_dataclass
 from typing import Final
 
 from msgspec.structs import replace
@@ -25,6 +26,7 @@ __all__ = [
     "DEFAULT_MAX_SIZE",
     "DEFAULT_MAX_WIDTH",
     "Config",
+    "Result",
     "ViewImageTranslator",
 ]
 
@@ -39,6 +41,52 @@ _ARGUMENTS_TYPE: Final = 'struct { Path string "json:\\"path\\"" }'
 class Config:
     directory: str = ""
     limits: ViewImageConfig = field(default_factory=ViewImageConfig)
+
+
+@dataclass(frozen=True, slots=True)
+class Result:
+    CallID: str = ""
+    Running: bool = False
+    Image: ViewImageResult | None = None
+    Error: str = ""
+
+    def to_llm_result(self) -> ToolResult:
+        output: list[ToolResultOutput] = []
+        details: list[str] = []
+        if self.Running:
+            details.append("Image is still loading.")
+        else:
+            failed = self.Error != ""
+            if failed:
+                details.append("Error: " + self.Error)
+            if (image := self.Image) is not None:
+                if not failed:
+                    output.append(
+                        ToolResultOutput(
+                            Kind=ToolResultKind.IMAGE,
+                            Value=f"data:{image.EncodedMIMEType};base64,{image.Content}",
+                        )
+                    )
+                if image.OriginalMIMEType and (
+                    failed or image.OriginalMIMEType != image.EncodedMIMEType
+                ):
+                    details.append("original MIME type: " + image.OriginalMIMEType)
+                if (
+                    image.OriginalWidth > 0
+                    and image.OriginalHeight > 0
+                    and (failed or image.ScaleRatio < 1)
+                ):
+                    details.append(
+                        f"original dimensions: {image.OriginalWidth}x{image.OriginalHeight}"
+                    )
+                if not failed and image.ScaleRatio < 1:
+                    details.append(
+                        f"multiply coordinates by {1 / image.ScaleRatio:.2f} "
+                        "to approximate original"
+                    )
+        if details:
+            output.append(ToolResultOutput(Kind=ToolResultKind.TEXT, Value="; ".join(details)))
+        return ToolResult(CallID=self.CallID, Output=output, Running=self.Running)
 
 
 class ViewImageTranslator:
@@ -79,16 +127,13 @@ class ViewImageTranslator:
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
+    ) -> Result:
         if status.Error:
             if operations:
                 raise TranslationError(
                     f"ViewImage call {go_quote(call_id)} has both a validation error and operations"
                 )
-            return ToolResult(
-                CallID=call_id,
-                Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="Error: " + status.Error)],
-            )
+            return Result(CallID=call_id, Error=status.Error)
         if len(operations) != 1:
             raise TranslationError(
                 f"ViewImage call {go_quote(call_id)} has {len(operations)} operations, want 1"
@@ -100,58 +145,32 @@ class ViewImageTranslator:
             raise TranslationError(
                 f"decode ViewImage call {go_quote(call_id)} result: {error}"
             ) from error
-        output: list[ToolResultOutput] = []
-        details: list[str] = []
+        result = Result(CallID=call_id, Image=state.Result)
         match current.Status:
             case Status.READY | Status.AWAITING | Status.CANCELING:
-                details.append("Image is still loading.")
+                return replace_dataclass(result, Running=True)
             case Status.FAILED | Status.CANCELED:
-                message = "view-image operation " + current.Status
-                if state.Result is not None:
-                    if state.Result.Error:
-                        message = state.Result.Error
-                    details.extend(_image_metadata(state.Result, failed=True))
-                details.insert(0, "Error: " + message)
+                error = "view-image operation " + current.Status
+                if state.Result is not None and state.Result.Error:
+                    error = state.Result.Error
+                return replace_dataclass(result, Error=error)
             case Status.COMPLETED:
-                result = state.Result
+                image = state.Result
                 if (
-                    result is None
-                    or not result.Content
-                    or not result.EncodedMIMEType
-                    or result.ScaleRatio <= 0
-                    or result.ScaleRatio > 1
-                    or result.Error
+                    image is None
+                    or not image.Content
+                    or not image.EncodedMIMEType
+                    or image.ScaleRatio <= 0
+                    or image.ScaleRatio > 1
+                    or image.Error
                 ):
                     raise TranslationError(
                         f"ViewImage call {go_quote(call_id)} completed operation "
                         f"{go_quote(current.ID)} has an invalid image result"
-                    )
-                output.append(
-                    ToolResultOutput(
-                        Kind=ToolResultKind.IMAGE,
-                        Value=f"data:{result.EncodedMIMEType};base64,{result.Content}",
-                    )
-                )
-                details = _image_metadata(result, failed=False)
-                if result.ScaleRatio < 1:
-                    details.append(
-                        f"multiply coordinates by {1 / result.ScaleRatio:.2f} "
-                        "to approximate original"
                     )
             case _:
                 raise TranslationError(
                     f"ViewImage call {go_quote(call_id)} operation {go_quote(current.ID)} "
                     f"has invalid status {go_quote(current.Status)}"
                 )
-        if details:
-            output.append(ToolResultOutput(Kind=ToolResultKind.TEXT, Value="; ".join(details)))
-        return ToolResult(CallID=call_id, Output=output)
-
-
-def _image_metadata(result: ViewImageResult, *, failed: bool) -> list[str]:
-    details: list[str] = []
-    if result.OriginalMIMEType and (failed or result.OriginalMIMEType != result.EncodedMIMEType):
-        details.append("original MIME type: " + result.OriginalMIMEType)
-    if result.OriginalWidth > 0 and result.OriginalHeight > 0 and (failed or result.ScaleRatio < 1):
-        details.append(f"original dimensions: {result.OriginalWidth}x{result.OriginalHeight}")
-    return details
+        return result

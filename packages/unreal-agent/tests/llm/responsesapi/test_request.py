@@ -528,7 +528,7 @@ def test_request_body_replays_rejected_tool_call_from_history() -> None:
     status = translator.translate(tool_context, call)
     assert "decode Bash arguments:" in status.Error
     assert tool_context.submissions == 0
-    result = translator.translate_result(call.CallID, status, [])
+    result = translator.translate_result(call.CallID, status, []).to_llm_result()
 
     builder = new_builder()
     builder.add_model_response(response)

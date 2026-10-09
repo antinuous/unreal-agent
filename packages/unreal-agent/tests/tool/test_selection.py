@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 import pytest
-from unreal_agent.llm import ToolCall, ToolResult
+from unreal_agent.llm import ToolCall
 from unreal_agent.operation import Operation
 from unreal_agent.tool import (
     BASH_NAME,
@@ -10,7 +10,9 @@ from unreal_agent.tool import (
     CallStatus,
     Context,
     Registry,
+    Result,
     Skill,
+    SkillUseResult,
     StaticTranslators,
 )
 
@@ -23,8 +25,8 @@ class FixedTranslator:
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
-        return ToolResult()
+    ) -> Result:
+        return SkillUseResult()
 
 
 @pytest.mark.parametrize("selection", [0, 1, 6, 7])

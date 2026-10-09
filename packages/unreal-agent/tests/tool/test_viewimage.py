@@ -120,7 +120,10 @@ def test_translator_rejects_invalid_arguments() -> None:
     assert status.Error
     assert ctx.specs == []
     assert not status.WaitingFor
-    result = translator.translate_result("call", status, [])
+    raw = translator.translate_result("call", status, [])
+    assert isinstance(raw, viewimage.Result)
+    assert (raw.Image, raw.Error) == (None, status.Error)
+    result = raw.to_llm_result()
     assert result.CallID == "call"
     assert len(result.Output) == 1
     assert result.Output[0].Kind == ToolResultKind.TEXT
@@ -195,9 +198,19 @@ def test_translator_formats_conditional_image_metadata(
             ScaleRatio=ratio,
         ),
     )
-    result = viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
+    raw = viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
         "call", CallStatus(), [current]
     )
+    assert isinstance(raw, viewimage.Result)
+    assert (raw.CallID, raw.Running, raw.Error) == ("call", False, "")
+    assert raw.Image is not None
+    assert (
+        raw.Image.OriginalMIMEType,
+        raw.Image.EncodedMIMEType,
+        raw.Image.ScaleRatio,
+        raw.Image.OriginalWidth,
+        raw.Image.OriginalHeight,
+    ) == (original, encoded, ratio, 120, 80)
     want = ToolResult(
         CallID="call",
         Output=[
@@ -206,7 +219,7 @@ def test_translator_formats_conditional_image_metadata(
     )
     if text:
         want.Output.append(ToolResultOutput(Kind=ToolResultKind.TEXT, Value=text))
-    assert result == want
+    assert raw.to_llm_result() == want
 
 
 @pytest.mark.parametrize(
@@ -259,8 +272,18 @@ def test_translator_formats_failures_and_pending_operations(
     got = viewimage.ViewImageTranslator(viewimage.Config()).translate_result(
         "call", CallStatus(), [image_operation(status, result)]
     )
-    assert got == ToolResult(
-        CallID="call", Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=want)]
+    running = status in (Status.READY, Status.AWAITING, Status.CANCELING)
+    assert isinstance(got, viewimage.Result)
+    assert (got.Running, got.Image) == (running, result)
+    if not running:
+        want_error = "view-image operation " + status
+        if result is not None and result.Error:
+            want_error = result.Error
+        assert got.Error == want_error
+    assert got.to_llm_result() == ToolResult(
+        CallID="call",
+        Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value=want)],
+        Running=running,
     )
 
 
@@ -349,7 +372,7 @@ async def test_view_image_reads_workspace_file_and_returns_resized_data_url(
         async for current in manager.updates():
             if current.Status in (Status.READY, Status.AWAITING):
                 continue
-            result = resolved.translate_result("call", status, [current])
+            result = resolved.translate_result("call", status, [current]).to_llm_result()
             assert current.Status == Status.COMPLETED
             assert len(result.Output) == 2
             assert result.Output[0].Kind == ToolResultKind.IMAGE

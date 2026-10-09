@@ -12,6 +12,7 @@ __all__ = [
     "Context",
     "Definition",
     "RegistrationID",
+    "Result",
     "ResultTranslator",
     "Skill",
     "TranslationError",
@@ -41,10 +42,20 @@ class TranslationError(Exception):
     """A call's status and operations cannot be turned into a tool result."""
 
 
+class Result(Protocol):
+    """A tool-owned result value.
+
+    By convention, a concrete result's `Error` field describes a model-visible
+    failure and may accompany partial output.
+    """
+
+    def to_llm_result(self) -> ToolResult: ...
+
+
 class ResultTranslator(Protocol):
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
+    ) -> Result:
         """Raise `TranslationError` when the status and operations are inconsistent."""
         ...
 

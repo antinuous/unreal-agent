@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 import pytest
-from unreal_agent.llm import Tool, ToolCall, ToolResult, ToolType
+from unreal_agent.llm import Tool, ToolCall, ToolType
 from unreal_agent.operation import Operation
 from unreal_agent.tool import (
     BASH_NAME,
@@ -11,7 +11,9 @@ from unreal_agent.tool import (
     CallStatus,
     Context,
     Registry,
+    Result,
     Skill,
+    SkillUseResult,
     SkillUseTranslator,
     StaticTranslators,
 )
@@ -20,14 +22,14 @@ from unreal_agent.tool import (
 class FixedTranslator:
     def __init__(self) -> None:
         self.status = CallStatus()
-        self.result = ToolResult()
+        self.result: Result = SkillUseResult()
 
     def translate(self, ctx: Context, call: ToolCall, /) -> CallStatus:
         return self.status
 
     def translate_result(
         self, call_id: str, status: CallStatus, operations: Sequence[Operation], /
-    ) -> ToolResult:
+    ) -> Result:
         return self.result
 
 
