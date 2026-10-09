@@ -11,7 +11,7 @@ from typing import Final
 import msgspec
 
 from unreal_agent._go import go_quote
-from unreal_agent.gojson import Int64, JSONError, Raw
+from unreal_agent.gojson import Int64, JSONError, Raw, decode
 from unreal_agent.llm.model import (
     Failure,
     Item,
@@ -26,7 +26,7 @@ from unreal_agent.llm.model import (
     ToolCall,
     Usage,
 )
-from unreal_agent.llm.responsesapi._wire import decode_object
+from unreal_agent.llm.responsesapi._wire import decode_object, trim_space
 
 __all__ = ["decode_response"]
 
@@ -206,12 +206,17 @@ def decode_response(body: bytes) -> Response:
     """Normalize a terminal Responses API response. Raises ValueError."""
     try:
         source = decode_object(body, _Response)
+        model = decode(bytes(source.model), str | None) if source.model else None
         usage = decode_object(bytes(source.usage), _ResponseUsage) if source.usage else None
     except JSONError as error:
         raise ValueError(f"decode response: {error}") from error
+    if usage is not None and trim_space(bytes(source.usage)) == b"null":
+        usage = None
     converted = _response(source, usage)
     if source.usage:
         converted.Usage.Raw = Raw(bytes(source.usage))
+    if usage is not None:
+        converted.Usage.ByModel = {model or "": converted.Usage.token_usage}
     return converted
 
 

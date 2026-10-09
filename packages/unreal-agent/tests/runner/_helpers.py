@@ -24,6 +24,7 @@ from unreal_agent.llm import (
     Response,
     Role,
     StopReason,
+    TokenUsage,
     Usage,
 )
 from unreal_agent.llm import Item as LLMItem
@@ -302,6 +303,16 @@ def fuzz_log_usage(
         CacheWriteInputTokens=written & MAX_INT64,
         OutputTokens=output & MAX_INT64,
         ReasoningTokens=reasoning & MAX_INT64,
+        ByModel={
+            "primary": TokenUsage(InputTokens=input & MAX_INT64, OutputTokens=output & MAX_INT64),
+            "fallback": TokenUsage(
+                InputTokens=input // 2,
+                CachedInputTokens=cached // 2,
+                CacheWriteInputTokens=written // 2,
+                OutputTokens=output // 2,
+                ReasoningTokens=reasoning // 2,
+            ),
+        },
         Raw=gojson.Raw(
             gojson.encode(
                 _UsageRaw(
@@ -328,7 +339,7 @@ class _ReasoningRaw(gojson.Struct):
 def fuzz_log_response(text: str, usage: Usage, index: int, variant: int) -> Response:
     response = Response(
         ID=f"response-{index}",
-        Usage=replace(usage),
+        Usage=replace(usage, ByModel=None if usage.ByModel is None else dict(usage.ByModel)),
         Stop=[StopReason.COMPLETE, StopReason.MAX_OUTPUT_TOKENS, StopReason.REFUSED][variant % 3],
         Output=[
             LLMItem(

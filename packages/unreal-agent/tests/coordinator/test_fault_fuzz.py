@@ -131,7 +131,12 @@ def clone_fault_item(item: Item) -> Item:
             data,
             Response=replace(
                 response,
-                Usage=replace(response.Usage),
+                Usage=replace(
+                    response.Usage,
+                    ByModel=None
+                    if response.Usage.ByModel is None
+                    else dict(response.Usage.ByModel),
+                ),
                 Output=[replace(output) for output in (response.Output or [])],
             ),
         )

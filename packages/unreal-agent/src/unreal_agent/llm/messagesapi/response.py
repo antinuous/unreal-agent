@@ -21,10 +21,11 @@ from unreal_agent.llm.model import (
     Response,
     Role,
     StopReason,
+    TokenUsage,
     ToolCall,
     Usage,
 )
-from unreal_agent.llm.responsesapi._wire import decode_object
+from unreal_agent.llm.responsesapi._wire import decode_object, trim_space
 
 __all__ = ["decode_response"]
 
@@ -53,6 +54,15 @@ def decode_response(body: bytes) -> Response:
     converted = _response(source, usage)
     if len(source.usage):
         converted.Usage.Raw = Raw(bytes(source.usage))
+    if usage.iterations:
+        by_model: dict[str, TokenUsage] = {}
+        for iteration in usage.iterations:
+            counters = iteration or wire.UsageIteration()
+            model = counters.model or ""
+            by_model[model] = by_model.get(model, TokenUsage()).add(response_usage(counters))
+        converted.Usage.ByModel = by_model
+    elif len(source.usage) and trim_space(bytes(source.usage)) != b"null":
+        converted.Usage.ByModel = {source.model or "": converted.Usage.token_usage}
     return converted
 
 
@@ -64,26 +74,20 @@ def _response(source: wire.Message, usage: wire.Usage) -> Response:
         )
     if source.stop_reason is None:
         raise ValueError("response must have a stop reason")
-    output: list[Item] = []
-    converted = Response(ID=source.id or "", Output=output, Usage=response_usage(usage))
+    converted = Response(ID=source.id or "", Usage=Usage.of(response_usage(usage)))
     stop = _STOP_REASONS.get(source.stop_reason)
     if stop is None:
         raise ValueError(f"unsupported stop reason {go_quote(source.stop_reason)}")
     converted.Stop = stop
     if stop == StopReason.REFUSED:
         converted.Failure = _refusal(source.stop_details)
-    calls: set[str] = set()
+    output: list[Item] = []
     for index, block in enumerate(source.content or []):
         try:
-            item = _output_item(block)
+            output.append(_output_item(block))
         except (ValueError, JSONError) as error:
             raise ValueError(f"output block {index}: {error}") from error
-        if item.Type == ItemType.TOOL_CALL:
-            call_id = item.Data.CallID if isinstance(item.Data, ToolCall) else ""
-            if call_id in calls:
-                raise ValueError(f"output block {index}: duplicate tool call {go_quote(call_id)}")
-            calls.add(call_id)
-        output.append(item)
+    converted.Output = output
     return converted
 
 
@@ -148,15 +152,22 @@ def _output_item(source: Raw) -> Item:
             return Item(
                 Type=ItemType.PROVIDER, Data=ProviderItem(Type=kind, Raw=Raw(bytes(source)))
             )
+        case "fallback":
+            boundary = _as(source, wire.ResponseFallbackBlock)
+            if not (boundary.from_ and boundary.from_.model and boundary.to and boundary.to.model):
+                raise ValueError("fallback block must have from and to models")
+            return Item(
+                Type=ItemType.PROVIDER, Data=ProviderItem(Type=kind, Raw=Raw(bytes(source)))
+            )
         case _:
             raise ValueError(f"unsupported output block type {go_quote(kind)}")
 
 
-def response_usage(source: wire.Usage) -> Usage:
+def response_usage(source: wire.UsageCounters) -> TokenUsage:
     cached = source.cache_read_input_tokens or 0
     written = source.cache_creation_input_tokens or 0
     details = source.output_tokens_details
-    return Usage(
+    return TokenUsage(
         InputTokens=(source.input_tokens or 0) + cached + written,
         CachedInputTokens=cached,
         CacheWriteInputTokens=written,

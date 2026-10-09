@@ -30,6 +30,7 @@ from unreal_agent.llm import (
     Response,
     Role,
     StopReason,
+    TokenUsage,
     ToolCall,
     Usage,
 )
@@ -313,6 +314,15 @@ async def test_adapter_responds() -> None:
             CacheWriteInputTokens=3,
             OutputTokens=10,
             ReasoningTokens=4,
+            ByModel={
+                "": TokenUsage(
+                    InputTokens=20,
+                    CachedInputTokens=8,
+                    CacheWriteInputTokens=3,
+                    OutputTokens=10,
+                    ReasoningTokens=4,
+                )
+            },
             Raw=Raw(
                 b'{"input_tokens":20,"input_tokens_details":{"cached_tokens":8,'
                 b'"cache_write_tokens":3},"output_tokens":10,"output_tokens_details":'

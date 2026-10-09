@@ -14,6 +14,7 @@ from typing import Final
 __all__ = [
     "decode_rune",
     "go_bytes",
+    "go_parse_bool",
     "go_quote",
     "go_quote_rune",
     "go_trim_space",
@@ -164,3 +165,17 @@ def go_type_name(value: object, names: Mapping[type, str] = _NO_TYPE_NAMES) -> s
 
 def json_quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
+
+
+_BOOLS: Final = {
+    **dict.fromkeys(("1", "t", "T", "TRUE", "true", "True"), True),
+    **dict.fromkeys(("0", "f", "F", "FALSE", "false", "False"), False),
+}
+
+
+def go_parse_bool(value: str) -> bool:
+    """Go's `strconv.ParseBool`. Raises ValueError with Go's message."""
+    parsed = _BOOLS.get(value)
+    if parsed is None:
+        raise ValueError(f"strconv.ParseBool: parsing {go_quote(value)}: invalid syntax")
+    return parsed

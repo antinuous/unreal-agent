@@ -11,6 +11,7 @@ from unreal_agent.llm import (
     Request,
     Role,
     StopReason,
+    TokenUsage,
     ToolCall,
     Usage,
 )
@@ -263,12 +264,6 @@ def test_response_rejects_unsupported_blocks(content: str) -> None:
         decode_response(response_body("end_turn", "[" + content + "]"))
 
 
-def test_response_rejects_duplicate_calls() -> None:
-    call = '{"type":"tool_use","id":"a","name":"Bash","input":{}}'
-    with pytest.raises(ValueError, match=r'^output block 1: duplicate tool call "a"$'):
-        decode_response(response_body("tool_use", "[" + call + "," + call + "]"))
-
-
 def test_response_usage() -> None:
     usage = (
         '{"input_tokens":7,"cache_read_input_tokens":30,"cache_creation_input_tokens":20,'
@@ -286,10 +281,11 @@ def test_response_usage() -> None:
         CacheWriteInputTokens=20,
         OutputTokens=11,
         ReasoningTokens=5,
+        ByModel={"": decoded.Usage.token_usage},
         Raw=Raw(usage.encode()),
     )
     without_cache = response_usage(WireUsage(input_tokens=7, output_tokens=11))
-    assert without_cache == Usage(InputTokens=7, OutputTokens=11)
+    assert without_cache == TokenUsage(InputTokens=7, OutputTokens=11)
 
 
 @pytest.mark.parametrize(
@@ -316,7 +312,8 @@ def test_response_optional_usage(usage: str) -> None:
     if usage:
         body += ',"usage":' + usage
     decoded = decode_response((body + "}").encode())
-    assert decoded.Usage == Usage(Raw=Raw(usage.encode()))
+    by_model = {"": TokenUsage()} if usage == "{}" else None
+    assert decoded.Usage == Usage(ByModel=by_model, Raw=Raw(usage.encode()))
 
 
 def test_response_error_messages() -> None:

@@ -21,6 +21,7 @@ __all__ = [
     "Response",
     "Role",
     "StopReason",
+    "TokenUsage",
     "Tool",
     "ToolCall",
     "ToolResult",
@@ -259,8 +260,8 @@ class Request(Struct):
     Tools: list[Tool] = []
 
 
-class Usage(Struct):
-    """Token usage.
+class TokenUsage(Struct):
+    """Token counters.
 
     InputTokens includes CachedInputTokens and CacheWriteInputTokens.
     OutputTokens includes ReasoningTokens.
@@ -271,7 +272,45 @@ class Usage(Struct):
     CacheWriteInputTokens: Int64 = 0
     OutputTokens: Int64 = 0
     ReasoningTokens: Int64 = 0
+
+    def add(self, other: TokenUsage) -> TokenUsage:
+        return TokenUsage(
+            InputTokens=self.InputTokens + other.InputTokens,
+            CachedInputTokens=self.CachedInputTokens + other.CachedInputTokens,
+            CacheWriteInputTokens=self.CacheWriteInputTokens + other.CacheWriteInputTokens,
+            OutputTokens=self.OutputTokens + other.OutputTokens,
+            ReasoningTokens=self.ReasoningTokens + other.ReasoningTokens,
+        )
+
+
+class Usage(TokenUsage):
+    """Token usage with per-model counters.
+
+    An empty ByModel key means the provider did not report the model.
+    """
+
+    ByModel: Annotated[dict[str, TokenUsage] | None, OmitZero] = None
     Raw: Annotated[_RawJSON, OmitZero] = _RawJSON(b"")
+
+    @classmethod
+    def of(cls, tokens: TokenUsage) -> Usage:
+        return cls(
+            InputTokens=tokens.InputTokens,
+            CachedInputTokens=tokens.CachedInputTokens,
+            CacheWriteInputTokens=tokens.CacheWriteInputTokens,
+            OutputTokens=tokens.OutputTokens,
+            ReasoningTokens=tokens.ReasoningTokens,
+        )
+
+    @property
+    def token_usage(self) -> TokenUsage:
+        return TokenUsage(
+            InputTokens=self.InputTokens,
+            CachedInputTokens=self.CachedInputTokens,
+            CacheWriteInputTokens=self.CacheWriteInputTokens,
+            OutputTokens=self.OutputTokens,
+            ReasoningTokens=self.ReasoningTokens,
+        )
 
 
 class Failure(Struct):

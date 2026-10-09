@@ -20,6 +20,7 @@ from unreal_agent.llm import (
     Response,
     Role,
     StopReason,
+    TokenUsage,
     ToolCall,
     Usage,
 )
@@ -175,7 +176,21 @@ async def test_store_persists_typed_history_and_pagination(tmp_path: Path) -> No
                     ),
                 ),
             ],
-            Usage=Usage(InputTokens=10, OutputTokens=4, Raw=Raw(b'{"provider":14}')),
+            Usage=Usage(
+                InputTokens=10,
+                OutputTokens=4,
+                ByModel={
+                    "primary": TokenUsage(InputTokens=8, OutputTokens=2),
+                    "fallback": TokenUsage(
+                        InputTokens=10,
+                        CachedInputTokens=3,
+                        CacheWriteInputTokens=2,
+                        OutputTokens=4,
+                        ReasoningTokens=1,
+                    ),
+                },
+                Raw=Raw(b'{"provider":14}'),
+            ),
         ),
     )
     await store.append_model_response(snapshot.session.ID, response)

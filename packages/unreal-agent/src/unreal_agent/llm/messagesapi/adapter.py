@@ -57,6 +57,8 @@ MODEL_RESPONSE_IDLE_TIMEOUT: Final = 30 * 60.0
 MAX_SSE_FRAME_BYTES: Final = 256 << 20
 MAX_ERROR_BODY_BYTES: Final = 1 << 20
 
+_FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
+
 
 @dataclass(frozen=True, slots=True)
 class Exchange:
@@ -78,6 +80,7 @@ class Config:
 
     endpoint: str = ""
     headers: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    fallback: bool = False
     max_attempts: int | None = None
     trace: Callable[[Exchange], None] | None = None
     clock: Callable[[], Timestamp] | None = None
@@ -116,12 +119,18 @@ class MessagesAdapter:
             if name.lower() != "accept"
         }
         self.headers["Accept"] = ["text/event-stream"]
+        if config.fallback:
+            name = next(
+                (n for n in self.headers if n.lower() == "anthropic-beta"), "Anthropic-Beta"
+            )
+            self.headers.setdefault(name, []).append(_FALLBACK_BETA)
+        self.fallback = config.fallback
         self.trace = config.trace
         self._clock = config.clock or (lambda: _timer.wall_clock())
         self._jitter = config.jitter or random.random
 
     async def respond(self, request: Request, options: RequestOptions) -> Response:
-        body = request_body(request)
+        body = request_body(request, fallback=self.fallback)
         result = await self._exchange(body)
         if self.trace is not None and result.body:
             self.trace(Exchange(body, result.status, result.body))

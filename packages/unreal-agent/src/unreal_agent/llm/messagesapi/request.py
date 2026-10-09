@@ -39,10 +39,12 @@ DEFAULT_MAX_OUTPUT_TOKENS: Final = 128_000
 _IMAGE_MEDIA_TYPES: Final = ("image/png", "image/jpeg", "image/gif", "image/webp")
 
 
-def request_body(request: Request) -> bytes:
+def request_body(request: Request, *, fallback: bool = False) -> bytes:
     """Encode the streaming request body. Raises ValueError for unsupported input."""
     try:
         params = request_params(request)
+        if fallback:
+            params["fallbacks"] = "default"
         return encode(params, deterministic=True)
     except JSONError as error:
         raise ValueError(f"encode messages request: {error}") from error

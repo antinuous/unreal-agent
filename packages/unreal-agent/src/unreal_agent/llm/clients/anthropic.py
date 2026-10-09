@@ -20,6 +20,7 @@ DEFAULT_BASE_URL: Final = "https://api.anthropic.com/v1"
 class Config:
     api_key: str = ""
     base_url: str = ""
+    fallback: bool = False
     max_attempts: int | None = None
     trace: Callable[[Exchange], None] | None = None
 
@@ -37,6 +38,7 @@ class Client:
                 "Anthropic-Version": ["2023-06-01"],
                 "Content-Type": ["application/json"],
             },
+            fallback=config.fallback,
             max_attempts=config.max_attempts,
             trace=config.trace,
         )

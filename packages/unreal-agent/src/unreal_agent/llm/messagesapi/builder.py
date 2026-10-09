@@ -1,7 +1,7 @@
 """Assembly of a streamed message from its message and content block events."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Final
 
 from unreal_agent._go import go_quote
 from unreal_agent.gojson import JSONError, Raw, encode, validate
@@ -9,6 +9,10 @@ from unreal_agent.llm.messagesapi._wire import BlockDelta, parse_any
 from unreal_agent.llm.responsesapi._wire import decode_object
 
 __all__ = ["BlockContentBuilder", "MessageBuilder", "merge_usage"]
+
+# A fallback block starts the next model's attempt; earlier thinking and tool
+# calls belong to a superseded model and cannot be replayed.
+_SUPERSEDED_KINDS: Final = frozenset({"thinking", "redacted_thinking", "tool_use"})
 
 
 def _optional_string(fields: dict[str, Any], name: str) -> str:
@@ -49,7 +53,7 @@ class BlockContentBuilder:
                 signature = _optional_string(fields, "signature")
                 block.text.append(thinking)
                 block.signature.append(signature)
-            case "tool_use" | "redacted_thinking":
+            case "tool_use" | "redacted_thinking" | "fallback":
                 pass
             case kind:
                 raise ValueError(f"unsupported output block type {go_quote(kind)}")
@@ -140,14 +144,20 @@ class MessageBuilder:
 
     def build(self) -> bytes:
         content: list[dict[str, Any]] = []
-        for index in sorted(self.blocks):
+        superseded = False
+        for index in sorted(self.blocks, reverse=True):
             builder = self.blocks[index]
             if not builder.finalized:
+                continue
+            if builder.kind == "fallback":
+                superseded = True
+            if superseded and builder.kind in _SUPERSEDED_KINDS:
                 continue
             try:
                 content.append(builder.build())
             except ValueError as error:
                 raise ValueError(f"content block {index}: {error}") from error
+        content.reverse()
         self.fields["content"] = content
         return encode(self.fields, deterministic=True)
 

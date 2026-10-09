@@ -140,7 +140,7 @@ class OutputTokensDetails(Wire):
     thinking_tokens: Int64 | None = None
 
 
-class Usage(Wire):
+class UsageCounters(Wire):
     cache_creation: CacheCreation | None = None
     cache_creation_input_tokens: Int64 | None = None
     cache_read_input_tokens: Int64 | None = None
@@ -150,6 +150,14 @@ class Usage(Wire):
     output_tokens_details: OutputTokensDetails | None = None
     server_tool_use: ServerToolUsage | None = None
     service_tier: str | None = None
+
+
+class UsageIteration(UsageCounters):
+    model: str | None = None
+
+
+class Usage(UsageCounters):
+    iterations: list[UsageIteration | None] | None = None
 
 
 class Container(Wire):
@@ -196,6 +204,15 @@ class ResponseThinkingBlock(Wire):
     signature: str | None = None
     thinking: str | None = None
     type: str | None = None
+
+
+class FallbackModel(Wire):
+    model: str | None = None
+
+
+class ResponseFallbackBlock(Wire):
+    from_: FallbackModel | None = msgspec.field(default=None, name="from")
+    to: FallbackModel | None = None
 
 
 class ResponseRedactedThinkingBlock(Wire):

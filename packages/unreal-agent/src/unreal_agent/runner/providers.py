@@ -1,7 +1,7 @@
 import dataclasses
 from collections.abc import Callable
 
-from unreal_agent._go import go_quote
+from unreal_agent._go import go_parse_bool, go_quote
 from unreal_agent.llm.clients import anthropic, fireworks, ollama, openai, openaicodex, openrouter
 from unreal_agent.runner.config import Client, Getenv, Provider
 from unreal_agent.runner.errors import RunnerError
@@ -9,9 +9,17 @@ from unreal_agent.runner.errors import RunnerError
 __all__ = ["default_providers", "find_provider"]
 
 
-def _anthropic(api_key: str, base_url: str, max_attempts: int, _: Getenv) -> Client:
+def _anthropic(api_key: str, base_url: str, max_attempts: int, getenv: Getenv) -> Client:
+    fallback = False
+    if value := getenv("ANTHROPIC_FALLBACK"):
+        try:
+            fallback = go_parse_bool(value)
+        except ValueError as error:
+            raise ValueError(f"parse ANTHROPIC_FALLBACK: {error}") from error
     return anthropic.Client(
-        anthropic.Config(api_key=api_key, base_url=base_url, max_attempts=max_attempts)
+        anthropic.Config(
+            api_key=api_key, base_url=base_url, max_attempts=max_attempts, fallback=fallback
+        )
     )
 
 

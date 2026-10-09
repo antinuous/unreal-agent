@@ -11,6 +11,7 @@ from unreal_agent.llm import (
     Response,
     Role,
     StopReason,
+    TokenUsage,
     Usage,
 )
 from unreal_agent.llm.responsesapi import decode_response
@@ -96,7 +97,9 @@ def test_response_preserves_raw_usage() -> None:
         b'"cost":0.0042,"provider_usage":{"prompt_tokens":7}}'
     )
     response = decode_response(
-        b'{"id":"response-1","status":"completed","output":[],"usage":' + raw + b"}"
+        b'{"id":"response-1","model":"served-model","status":"completed","output":[],"usage":'
+        + raw
+        + b"}"
     )
     usage = response.Usage
     assert (
@@ -107,6 +110,29 @@ def test_response_preserves_raw_usage() -> None:
         usage.ReasoningTokens,
     ) == (7, 3, 2, 5, 4)
     assert bytes(usage.Raw) == raw
+    want = TokenUsage(
+        InputTokens=7,
+        CachedInputTokens=3,
+        CacheWriteInputTokens=2,
+        OutputTokens=5,
+        ReasoningTokens=4,
+    )
+    assert usage.ByModel == {"served-model": want}
+
+
+@pytest.mark.parametrize("model", ["", '"model":null,', '"model":"",'])
+@pytest.mark.parametrize("usage", ["", "null", "{}", '{"input_tokens":7,"output_tokens":5}'])
+def test_response_usage_without_model(model: str, usage: str) -> None:
+    body = '{"id":"response-1","status":"completed","output":[],' + model + '"object":"response"'
+    want: dict[str, TokenUsage] | None = None
+    if usage:
+        body += ',"usage":' + usage
+        if usage != "null":
+            want = {"": TokenUsage()}
+            if usage != "{}":
+                want[""] = TokenUsage(InputTokens=7, OutputTokens=5)
+    response = decode_response((body + "}").encode())
+    assert response.Usage.ByModel == want
 
 
 @pytest.mark.parametrize(
@@ -123,6 +149,7 @@ def test_response_preserves_raw_usage() -> None:
                 Usage=Usage(
                     InputTokens=2,
                     OutputTokens=1,
+                    ByModel={"": TokenUsage(InputTokens=2, OutputTokens=1)},
                     Raw=Raw(
                         b'{"input_tokens":2,"input_tokens_details":{},"output_tokens":1,'
                         b'"output_tokens_details":{}}'
@@ -141,6 +168,7 @@ def test_response_preserves_raw_usage() -> None:
                 Output=[],
                 Usage=Usage(
                     InputTokens=2,
+                    ByModel={"": TokenUsage(InputTokens=2)},
                     Raw=Raw(
                         b'{"input_tokens":2,"input_tokens_details":{},"output_tokens":0,'
                         b'"output_tokens_details":{}}'
@@ -158,6 +186,7 @@ def test_response_preserves_raw_usage() -> None:
                 Output=[],
                 Usage=Usage(
                     InputTokens=2,
+                    ByModel={"": TokenUsage(InputTokens=2)},
                     Raw=Raw(
                         b'{"input_tokens":2,"input_tokens_details":{},"output_tokens":0,'
                         b'"output_tokens_details":{}}'

@@ -21,6 +21,7 @@ from unreal_agent.llm import (
     RequestOptions,
     Role,
     StopReason,
+    TokenUsage,
     Tool,
     ToolCall,
     ToolResult,
@@ -274,6 +275,12 @@ async def test_openrouter_client_calls_responses_api() -> None:
     assert (response.ID, response.Stop) == ("resp-1", StopReason.COMPLETE)
 
 
+FIREWORKS_USAGE = (
+    b'{"input_tokens":17,"output_tokens":31,"total_tokens":48,'
+    b'"input_tokens_details":{"cached_tokens":0}}'
+)
+
+
 async def test_fireworks_client_calls_responses_api() -> None:
     def handler(request: ServerRequest, writer: ResponseWriter) -> None:
         assert request.path == "/responses"
@@ -287,10 +294,10 @@ async def test_fireworks_client_calls_responses_api() -> None:
         assert "prompt_cache_key" not in body
         write_sse(
             writer,
-            b'data: {"type":"response.completed","response":{"id":"resp-1","status":"completed",'
-            b'"output":[],"usage":{"prompt_tokens":11,"completion_tokens":7,"total_tokens":18,'
-            b'"prompt_tokens_details":{"cached_tokens":3},'
-            b'"completion_tokens_details":{"reasoning_tokens":5}}}}\n\n',
+            b'data: {"type":"response.completed","response":{"id":"resp-1",'
+            b'"model":"served-model","status":"completed","output":[],"usage":'
+            + FIREWORKS_USAGE
+            + b"}}\n\n",
         )
 
     with serve(handler) as server:
@@ -301,18 +308,10 @@ async def test_fireworks_client_calls_responses_api() -> None:
                 RequestOptions(CacheKey="session-1"),
             )
     assert (response.ID, response.Stop) == ("resp-1", StopReason.COMPLETE)
-    usage = response.Usage
-    assert (
-        usage.InputTokens,
-        usage.CachedInputTokens,
-        usage.OutputTokens,
-        usage.ReasoningTokens,
-    ) == (
-        11,
-        3,
-        7,
-        5,
-    )
+    want = TokenUsage(InputTokens=17, OutputTokens=31)
+    assert response.Usage.token_usage == want
+    assert bytes(response.Usage.Raw) == FIREWORKS_USAGE
+    assert response.Usage.ByModel == {"served-model": want}
 
 
 async def test_ollama_client_uses_responses_without_authentication() -> None:

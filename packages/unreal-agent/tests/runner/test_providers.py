@@ -5,6 +5,16 @@ import json
 import threading
 
 import pytest
+from unreal_agent.llm import (
+    Item,
+    ItemType,
+    Message,
+    Model,
+    Request,
+    RequestOptions,
+    Role,
+    TokenUsage,
+)
 from unreal_agent.llm.clients import anthropic
 from unreal_agent.runner import (
     Config,
@@ -270,3 +280,113 @@ async def test_runner_codex_uses_subscription_without_api_key(
     assert code == 0, stderr.getvalue()
     assert b"subscription works" in output.getvalue(), stderr.getvalue()
     assert b"subscription-token" not in output.getvalue(), "credential leaked into session output"
+
+
+@pytest.mark.parametrize(
+    ("value", "enabled"),
+    [
+        pytest.param("", False, id="disabled"),
+        pytest.param("0", False, id="disabled_zero"),
+        pytest.param("false", False, id="disabled_false"),
+        pytest.param("1", True, id="enabled_one"),
+        pytest.param("true", True, id="enabled_true"),
+    ],
+)
+async def test_anthropic_fallback_configuration_and_continuation(value: str, enabled: bool) -> None:
+    problems: list[str] = []
+    count = 0
+
+    def handle(request: HTTPRequest) -> HTTPResponse:
+        nonlocal count
+        count += 1
+        turn = count
+        body = json.loads(request.body)
+        if body["model"] != "primary-model":
+            problems.append(f"primary model changed to {body['model']!r}")
+        beta = request.headers.get("anthropic-beta", "")
+        if not enabled:
+            if "fallbacks" in body or beta:
+                problems.append("fallback enabled without configuration")
+        else:
+            if body.get("fallbacks") != "default" or beta != "server-side-fallback-2026-07-01":
+                problems.append(f"fallbacks = {body.get('fallbacks')!r}, beta = {beta!r}")
+            messages = body["messages"]
+            if turn == 2 and (
+                len(messages) != 3
+                or messages[1]["role"] != "assistant"
+                or len(messages[1]["content"]) != 2
+                or messages[1]["content"][0].get("type") != "fallback"
+            ):
+                problems.append(f"continuation lost fallback boundary: {messages!r}")
+        model = "primary-model"
+        usage = '{"input_tokens":10,"output_tokens":4}'
+        if enabled:
+            model = "fallback-model"
+            iterations = (
+                '{"type":"fallback_message","model":"fallback-model",'
+                '"input_tokens":10,"output_tokens":4}'
+            )
+            if turn == 1:
+                iterations = (
+                    '{"type":"message","model":"primary-model","input_tokens":8,"output_tokens":2},'
+                    + iterations
+                )
+            usage = '{"input_tokens":10,"output_tokens":4,"iterations":[' + iterations + "]}"
+        events = [
+            '{"type":"message_start","message":{"id":"message","type":"message",'
+            f'"role":"assistant","content":[],"model":{json.dumps(model)},"usage":{{}}}}}}'
+        ]
+        if enabled and turn == 1:
+            events += [
+                '{"type":"content_block_start","index":0,"content_block":{"type":"fallback",'
+                '"from":{"model":"primary-model"},"to":{"model":"fallback-model"}}}',
+                '{"type":"content_block_stop","index":0}',
+            ]
+        events += [
+            '{"type":"content_block_start","index":1,"content_block":{"type":"text","text":"Answer"}}',
+            '{"type":"content_block_stop","index":1}',
+            '{"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":' + usage + "}",
+            '{"type":"message_stop"}',
+        ]
+        stream = "".join(f"data: {event}\n\n" for event in events)
+        return HTTPResponse(headers={"Content-Type": "text/event-stream"}, body=stream.encode())
+
+    _, new_client = find_provider(default_providers(), "anthropic")
+    with http_server(handle) as url:
+        client = new_client(
+            "test-key", url, 1, lambda name: value if name == "ANTHROPIC_FALLBACK" else ""
+        )
+        try:
+            request = Request(
+                Model=Model(ID="primary-model"),
+                Input=[Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="Hello"))],
+            )
+            for turn in range(2):
+                response = await client.respond(request, RequestOptions())
+                if enabled:
+                    assert b'"fallback_message"' in bytes(response.Usage.Raw)
+                want = {"primary-model": TokenUsage(InputTokens=10, OutputTokens=4)}
+                if enabled:
+                    want = {"fallback-model": TokenUsage(InputTokens=10, OutputTokens=4)}
+                    if turn == 0:
+                        want["primary-model"] = TokenUsage(InputTokens=8, OutputTokens=2)
+                assert response.Usage.ByModel == want
+                request.Input += response.Output or []
+                request.Input.append(
+                    Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="Continue"))
+                )
+        finally:
+            await client.aclose()
+    assert not problems
+    assert count == 2
+
+
+def test_anthropic_rejects_invalid_fallback_configuration() -> None:
+    selected, new_client = find_provider(default_providers(), "anthropic")
+    with pytest.raises(ValueError, match=r"^parse ANTHROPIC_FALLBACK: "):
+        new_client(
+            "test-key",
+            selected.base_url,
+            1,
+            lambda name: "tru" if name == "ANTHROPIC_FALLBACK" else "",
+        )
