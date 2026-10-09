@@ -345,7 +345,9 @@ async def _run(
     await _submit(inputs, InputKind.CONTROL, gojson.encode(stop), "submit stop request")
 
     builder = new_builder(*registry.skills())
-    builder.set_model(Model(ID=model, ReasoningEffort=effort))
+    builder.set_model(
+        Model(ID=model, MaxOutputTokens=parsed.max_output_tokens, ReasoningEffort=effort)
+    )
     builder.set_system_prompt(
         parsed.system_prompt if parsed.system_prompt is not None else DEFAULT_SYSTEM_PROMPT
     )

@@ -65,6 +65,9 @@ Request schema (JSON object; unknown fields are rejected):
     Supply messages or prompt. messages takes precedence when both are present.
   model: string (optional)
     Provider model ID; defaults to UNREAL_HARNESS_LLM_MODEL or the provider default.
+  max_output_tokens: positive integer (optional)
+    Maximum output tokens per model request; omitted uses the provider adapter's default.
+    Unsupported by openai-codex.
   max_attempts: positive integer (optional)
     Overrides UNREAL_HARNESS_LLM_MAX_ATTEMPTS (default 5); 1 disables retries.
   system_prompt: string (optional)

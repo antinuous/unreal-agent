@@ -89,6 +89,7 @@ async def test_run_main_executes_batched_messages(
             ],
             "system_prompt":"be concise",
             "model":"gpt-test",
+            "max_output_tokens":2048,
             "thinking_level":"medium"
         }"""),
         runner_config(client),
@@ -97,6 +98,7 @@ async def test_run_main_executes_batched_messages(
     request = requests[0]
     assert request.Model.ID == "gpt-test"
     assert request.Model.ReasoningEffort == ReasoningEffort.MEDIUM
+    assert request.Model.MaxOutputTokens == 2048
     messages = [item.Data for item in request.Input if isinstance(item.Data, Message)]
     assert len(messages) == 3
     assert messages[0].Role == Role.SYSTEM
@@ -215,6 +217,8 @@ async def test_run_main_uses_llm_configuration_from_environment(
     def respond(request: LLMRequest) -> Response:
         if request.Model.ID != "environment-model":
             raise ValueError(f"model = {request.Model.ID!r}")
+        if request.Model.MaxOutputTokens is not None:
+            raise ValueError(f"max output tokens = {request.Model.MaxOutputTokens}, want unset")
         return Response(ID="response-1", Stop=StopReason.COMPLETE)
 
     client = FakeClient(respond)

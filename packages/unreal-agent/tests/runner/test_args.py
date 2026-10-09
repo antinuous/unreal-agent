@@ -90,6 +90,16 @@ async def test_run_main_request_sources(
         ),
         pytest.param([""], "empty input", id="empty argument"),
         pytest.param(['{"messages":[]}'], "messages must not be empty", id="invalid request"),
+        pytest.param(
+            ['{"prompt":"hello","max_output_tokens":0}'],
+            "max_output_tokens must be positive",
+            id="zero output tokens",
+        ),
+        pytest.param(
+            ['{"prompt":"hello","max_output_tokens":-1}'],
+            "max_output_tokens must be positive",
+            id="negative output tokens",
+        ),
     ],
 )
 async def test_run_main_rejects_invalid_request_arguments(args: list[str], want: str) -> None:
@@ -174,6 +184,7 @@ async def test_run_main_help() -> None:
         "message_id?:",
         "prompt:",
         "model:",
+        "max_output_tokens:",
         "max_attempts:",
         "system_prompt:",
         "thinking_level:",

@@ -39,6 +39,7 @@ class Request:
     prompt: str | None = None
     system_prompt: str | None = None
     model: str = ""
+    max_output_tokens: int | None = None
     max_attempts: int | None = None
     session_id: str | None = None
     thinking_level: str = ""
@@ -133,25 +134,28 @@ def _optional_string(value: Any, pointer: str) -> str | None:
     return None if value is None else _string(value, pointer)
 
 
-def _optional_int(value: Any, pointer: str) -> int | None:
-    if value is None:
-        return None
-    if not isinstance(value, _Number):
-        raise _mismatch(value, "int", pointer)
-    negative = value.startswith("-")
-    digits = value[1:] if negative else value
-    if not digits.isascii() or not digits.isdigit() or (digits[0] == "0" and digits != "0"):
-        raise GoJSONError(
-            f"json: cannot unmarshal JSON number {value} into Go int "
-            f"within {go_quote(pointer)}: invalid syntax"
-        )
-    magnitude = int(digits)
-    if magnitude > (_MAX_INT64 + 1 if negative else _MAX_INT64):
-        raise GoJSONError(
-            f"json: cannot unmarshal JSON number {value} into Go int "
-            f"within {go_quote(pointer)}: value out of range"
-        )
-    return -magnitude if negative else magnitude
+def _optional_integer(go_type: str) -> Callable[[Any, str], int | None]:
+    def decode(value: Any, pointer: str) -> int | None:
+        if value is None:
+            return None
+        if not isinstance(value, _Number):
+            raise _mismatch(value, go_type, pointer)
+        negative = value.startswith("-")
+        digits = value[1:] if negative else value
+        if not digits.isascii() or not digits.isdigit() or (digits[0] == "0" and digits != "0"):
+            raise GoJSONError(
+                f"json: cannot unmarshal JSON number {value} into Go {go_type} "
+                f"within {go_quote(pointer)}: invalid syntax"
+            )
+        magnitude = int(digits)
+        if magnitude > (_MAX_INT64 + 1 if negative else _MAX_INT64):
+            raise GoJSONError(
+                f"json: cannot unmarshal JSON number {value} into Go {go_type} "
+                f"within {go_quote(pointer)}: value out of range"
+            )
+        return -magnitude if negative else magnitude
+
+    return decode
 
 
 def _optional_bool(value: Any, pointer: str) -> bool | None:
@@ -201,7 +205,8 @@ _REQUEST_FIELDS: Final[dict[str, Callable[[Any, str], Any]]] = {
     "prompt": _optional_string,
     "system_prompt": _optional_string,
     "model": _string,
-    "max_attempts": _optional_int,
+    "max_output_tokens": _optional_integer("int64"),
+    "max_attempts": _optional_integer("int"),
     "session_id": _optional_string,
     "thinking_level": _string,
     "include_partial_messages": _optional_bool,
@@ -220,6 +225,8 @@ _THINKING_LEVELS: Final = {
 
 def validate_request(parsed: Request) -> list[RequestMessage]:
     """Return the user messages to deliver. Raises RunnerError."""
+    if parsed.max_output_tokens is not None and parsed.max_output_tokens <= 0:
+        raise RunnerError("max_output_tokens must be positive")
     if parsed.session_id is not None and go_trim_space(parsed.session_id) == "":
         raise RunnerError("session_id must not be empty")
     if parsed.thinking_level != "" and parsed.thinking_level not in _THINKING_LEVELS:
