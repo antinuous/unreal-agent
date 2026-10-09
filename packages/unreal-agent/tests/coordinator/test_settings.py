@@ -1,4 +1,5 @@
 import pytest
+from msgspec.structs import replace
 from unreal_agent.inbox import ControlMode, Settings
 from unreal_agent.llm import Model, ReasoningEffort
 from unreal_agent.operation import Status
@@ -17,6 +18,7 @@ from tests.coordinator._helpers import (
     persist_test_run,
     settings_input,
     stop_input,
+    stop_test_adapter,
     text_response,
     tool_grace_response,
     update_tool_grace_call,
@@ -24,7 +26,7 @@ from tests.coordinator._helpers import (
 
 
 @fake_time
-async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
+async def test_coordinator_settings_do_not_wake_idle_model_and_restart_active_request() -> None:
     run = new_stop_test_run(0)
     await run.start()
     initial_model = Model(ID="initial", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.LOW)
@@ -45,26 +47,54 @@ async def test_coordinator_settings_do_not_wake_or_interrupt_model() -> None:
     assert run.request_count() == 1, "next turn did not use settings"
     assert run.calls[0].request.Model == initial_model, "next turn did not use settings"
     await run.input(
-        settings_input(
-            "next",
-            Settings(Model="next", ReasoningEffort=ReasoningEffort.HIGH),
-        )
+        settings_input("next", Settings(Model="next", ReasoningEffort=ReasoningEffort.HIGH))
     )
-    assert run.request_count() == 1, "settings interrupted or altered the active request"
-    assert not run.calls[0].canceled, "settings interrupted or altered the active request"
+    assert run.request_count() == 2, "settings did not restart the active request"
+    assert run.calls[0].canceled, "settings did not restart the active request"
+    assert not run.calls[1].canceled, "settings did not restart the active request"
+    next_model = Model(ID="next", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH)
+    want = replace(run.calls[0].request, Model=next_model)
+    assert run.calls[1].request == want, "restart did not preserve context and apply settings"
     assert run.calls[0].request.Model == initial_model, (
-        "settings interrupted or altered the active request"
+        "restart did not preserve context and apply settings"
     )
-    await run.respond(0, text_response("Hello."))
-    assert run.request_count() == 1, "settings caused an extra turn after the response"
+    await run.input(settings_input("limit", Settings(MaxOutputTokens=4096)))
+    assert run.request_count() == 3, "output token limit did not restart the active request"
+    assert run.calls[1].canceled, "output token limit did not restart the active request"
+    assert not run.calls[2].canceled, "output token limit did not restart the active request"
+    next_model = replace(next_model, MaxOutputTokens=4096)
+    want = replace(want, Model=next_model)
+    assert run.calls[2].request == want, (
+        "restart did not preserve context and apply the output token limit"
+    )
+    await run.respond(2, text_response("Hello."))
+    assert run.request_count() == 3, "settings caused an extra turn after the response"
     assert run.current._pending_inputs() == 0, "settings caused an extra turn after the response"
     await run.input(external_event("follow-up", "continue"))
-    assert run.request_count() == 2, "following turn did not use updated settings"
-    assert run.calls[1].request.Model == Model(
-        ID="next", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH
-    ), "following turn did not use updated model settings"
-    await run.respond(1, text_response("Done."))
+    assert run.request_count() == 4, "following turn did not use updated model settings"
+    assert run.calls[3].request.Model == next_model, (
+        "following turn did not use updated model settings"
+    )
+    await run.respond(3, text_response("Done."))
     await run.input(stop_input("stop", ControlMode.STOP_WHEN_IDLE))
+    run.assert_stopped()
+
+
+@fake_time
+async def test_coordinator_settings_restart_without_waiting_for_canceled_response() -> None:
+    run = new_stop_test_run(0)
+    run.dependencies.llm = stop_test_adapter(run, ignore_cancellation=True)
+    await run.start()
+    await run.input(external_event("prompt", "hello"))
+    await run.input(settings_input("settings", Settings(ReasoningEffort=ReasoningEffort.HIGH)))
+    assert run.request_count() == 2, "restart waited for the canceled request to return"
+    assert run.calls[0].canceled, "restart waited for the canceled request to return"
+    await run.respond(0, text_response("Stale response."))
+    assert run.store.appended_responses == [], "canceled response affected the replacement request"
+    assert run.current._pending_inputs() == 1, "canceled response affected the replacement request"
+    assert not run.calls[1].canceled, "canceled response affected the replacement request"
+    await run.input(stop_input("stop", ControlMode.STOP_WHEN_IDLE))
+    await run.respond(1, text_response("Done."))
     run.assert_stopped()
 
 
@@ -120,6 +150,17 @@ async def test_coordinator_settings_follow_inbox_order_and_deduplicate() -> None
     assert run.calls[0].request.Model == Model(
         ID="next", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH
     ), "duplicate rolled back the latest settings"
+    await run.input(first, last, repeated)
+    assert run.request_count() == 1, "duplicate settings restarted the active request"
+    assert not run.calls[0].canceled, "duplicate settings restarted the active request"
+    await run.input(
+        settings_input("new-first", Settings(Model="final", ReasoningEffort=ReasoningEffort.LOW)),
+        settings_input("new-last", Settings(ReasoningEffort=ReasoningEffort.MAX)),
+    )
+    assert run.request_count() == 2, "restart did not apply batched settings in inbox order"
+    assert run.calls[1].request.Model == Model(
+        ID="final", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.MAX
+    ), "restart did not apply batched settings in inbox order"
 
 
 @pytest.mark.parametrize(

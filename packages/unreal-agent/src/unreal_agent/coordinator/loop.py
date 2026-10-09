@@ -529,22 +529,27 @@ class Coordinator:
     async def _handle_inbox_input(self, input: Input) -> None:
         item = self._add_item_to_local_state(Item(Kind=ItemKind.INPUT, Data=input))
         await self._store_item_in_session_store(item)
-        if input.Kind == InputKind.CONTROL:
-            request = input.decode_control_message()
-            match request.Mode:
-                case ControlMode.UPDATE_SETTINGS:
-                    return
-                case ControlMode.STOP_HARD | ControlMode.STOP_WHEN_IDLE:
-                    self._accept_stop(request)
-                case _:
-                    pass
+        match input.Kind:
+            case InputKind.EXTERNAL:
+                self._state.call_model = True
+            case InputKind.CONTROL:
+                request = input.decode_control_message()
+                match request.Mode:
+                    case ControlMode.UPDATE_SETTINGS:
+                        if self._cancel_model is not None:
+                            self._state.call_model = True
+                        return
+                    case ControlMode.STOP_HARD | ControlMode.STOP_WHEN_IDLE:
+                        self._accept_stop(request)
+                    case _:
+                        pass
+            case _:
+                pass
         self._clear_tool_grace()
 
     async def _handle_inbox_inputs(self, inputs: Sequence[Input]) -> None:
         for input in inputs:
             await self._handle_inbox_input(input)
-            if input.Kind == InputKind.EXTERNAL:
-                self._state.call_model = True
 
     async def _handle_model_response(self, response: ModelResponse) -> list[ToolCallStatus]:
         item = self._add_item_to_local_state(Item(Kind=ItemKind.MODEL_RESPONSE, Data=response))
