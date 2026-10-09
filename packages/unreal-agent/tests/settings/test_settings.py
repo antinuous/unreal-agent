@@ -13,7 +13,14 @@ def _openai_models() -> list[Model]:
         _model("gpt-6-astra", "GPT-6 Astra", 1_050_000, 244_800),
         _model("gpt-6.1-sol", "GPT-6.1 Sol", 1_050_000, 244_800),
         _model("gpt-6-luna", "GPT-6 Luna", 1_050_000, 244_800),
+        _model("gpt-6-sol", "GPT-6 Sol", 1_050_000, 244_800),
+        _model("gpt-5.6-sol", "GPT-5.6 Sol", 1_050_000, 244_800),
+        _model("gpt-5.6-terra", "GPT-5.6 Terra", 1_050_000, 244_800),
+        _model("gpt-5.6-luna", "GPT-5.6 Luna", 1_050_000, 244_800),
     ]
+
+
+_OPENAI_ONLY_MODELS = [_model("gpt-5.6-cyber", "GPT-5.6 Cyber", 400_000, 244_800)]
 
 
 def builtin() -> Settings:
@@ -21,11 +28,31 @@ def builtin() -> Settings:
         providers={
             "anthropic": Provider(
                 info=ProviderInfo(id="anthropic", name="Anthropic"),
-                models=[_model("claude-opus-5-5", "Claude Opus 5.5", 1_000_000, 500_000)],
+                models=[
+                    _model("claude-opus-5-5", "Claude Opus 5.5", 1_000_000, 500_000),
+                    _model("claude-opus-5", "Claude Opus 5", 1_000_000, 500_000),
+                    _model("claude-sonnet-5-5", "Claude Sonnet 5.5", 1_000_000, 500_000),
+                    _model("claude-fable-5-1", "Claude Fable 5.1", 1_000_000, 500_000),
+                    _model("claude-fable-5", "Claude Fable 5", 1_000_000, 500_000),
+                    _model("claude-mythos-5-1", "Claude Mythos 5.1", 1_000_000, 500_000),
+                    _model("claude-mythos-5", "Claude Mythos 5", 1_000_000, 500_000),
+                ],
+            ),
+            "fireworks": Provider(
+                info=ProviderInfo(id="fireworks", name="Fireworks"),
+                models=[
+                    _model("accounts/fireworks/models/glm-5p3", "GLM-5.3", 1_048_576, 524_288),
+                    _model(
+                        "accounts/fireworks/models/glm-5p3-flash",
+                        "GLM-5.3 Flash",
+                        1_048_576,
+                        524_288,
+                    ),
+                ],
             ),
             "openai": Provider(
                 info=ProviderInfo(id="openai", name="OpenAI"),
-                models=_openai_models(),
+                models=_openai_models() + _OPENAI_ONLY_MODELS,
             ),
             "openai-codex": Provider(
                 info=ProviderInfo(id="openai-codex", name="OpenAI Codex"),
@@ -54,6 +81,7 @@ def test_load(tmp_path: Path) -> None:
         models=[
             _model("gpt-6-astra", "Custom Astra", 200_000, 150_000),
             *_openai_models()[1:],
+            *_OPENAI_ONLY_MODELS,
             _model("custom", "Custom model", 150_000, 75_000),
             _model("zero", "Zero threshold", 100_000, 50_000),
         ],
