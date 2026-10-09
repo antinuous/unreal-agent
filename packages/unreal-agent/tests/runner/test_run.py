@@ -31,7 +31,6 @@ from unreal_agent.runner.run import (
     LLM_MODEL_ENVIRONMENT,
     LLM_PROVIDER_ENVIRONMENT,
     load_dotenv,
-    resolve_config_directory,
     resolve_session_directory,
     run,
 )
@@ -169,6 +168,22 @@ async def test_run_main_executes_batched_messages(
             "generic-secret",
             False,
             id="generic key takes precedence",
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            " secret ",
+            "",
+            " secret ",
+            False,
+            id="key passed unchanged to client",
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            " \t ",
+            "provider-secret",
+            " \t ",
+            False,
+            id="whitespace key passed unchanged to client",
         ),
         pytest.param(
             "",
@@ -566,7 +581,9 @@ def test_resolve_session_directory_rejects_missing_state_location(
     user_home: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("HOME", "")
-    with pytest.raises(RunnerError, match="-session-directory"):
+    with pytest.raises(
+        RunnerError, match=r"set an absolute XDG_STATE_HOME or HOME; specify -session-directory"
+    ):
         resolve_session_directory(
             "", environment({"XDG_STATE_HOME": "relative/state", "HOME": user_home})
         )
@@ -667,34 +684,3 @@ async def test_run_loads_model_settings(
     assert len(requests) == 1, "no model request"
     assert model == requests[0].Model.ID
     assert requests[0].Model.CompactionThreshold == threshold
-
-
-@pytest.mark.parametrize(
-    ("xdg", "home", "want"),
-    [
-        pytest.param("/config", "/home/user", "/config/unreal-agent", id="XDG config home"),
-        pytest.param("/config", "", "/config/unreal-agent", id="XDG without home"),
-        pytest.param("", "/home/user", "/home/user/.config/unreal-agent", id="home fallback"),
-        pytest.param("", "", "/process/home/.config/unreal-agent", id="process home fallback"),
-        pytest.param(
-            "relative/config",
-            "/home/user",
-            "/home/user/.config/unreal-agent",
-            id="relative XDG ignored",
-        ),
-    ],
-)
-def test_resolve_config_directory(
-    xdg: str, home: str, want: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("HOME", "/process/home")
-    assert resolve_config_directory(environment({"XDG_CONFIG_HOME": xdg, "HOME": home})) == want
-
-
-@pytest.mark.parametrize("home", ["", "relative/home"])
-def test_resolve_config_directory_rejects_invalid_home(
-    home: str, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("HOME", "")
-    with pytest.raises(RunnerError, match="XDG_CONFIG_HOME"):
-        resolve_config_directory(environment({"HOME": home}))

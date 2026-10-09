@@ -1,15 +1,17 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Final, Protocol
 
 from unreal_agent.llm import Adapter
 from unreal_agent.operation import RemoteJobHandler
+from unreal_agent.runner.errors import RunnerError
 from unreal_agent.runner.request import Request
 from unreal_agent.runner.streams import Reader
 from unreal_agent.session import ID as SessionID
 from unreal_agent.tool import Registry, StaticTranslators
 
 __all__ = [
+    "API_KEY_ENVIRONMENT",
     "Client",
     "Config",
     "Getenv",
@@ -22,6 +24,8 @@ __all__ = [
 
 type Getenv = Callable[[str], str]
 """Go's os.Getenv: an unset variable reads as the empty string."""
+
+API_KEY_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_API_KEY"
 
 
 class Client(Adapter, Protocol):
@@ -40,6 +44,15 @@ class Provider:
     base_url: str = ""
     default_model: str = ""
     api_key_environment: str = ""
+
+    def api_key(self, getenv: Getenv) -> str:
+        """The generic key, else the provider's. Keys pass through unchanged. Raises RunnerError."""
+        if self.api_key_environment == "":
+            return ""
+        key = getenv(API_KEY_ENVIRONMENT) or getenv(self.api_key_environment)
+        if key == "":
+            raise RunnerError(f"{API_KEY_ENVIRONMENT} or {self.api_key_environment} must be set")
+        return key
 
 
 @dataclass(slots=True)

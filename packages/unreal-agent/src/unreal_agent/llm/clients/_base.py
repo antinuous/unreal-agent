@@ -59,8 +59,7 @@ class ResponsesClient:
 
 
 def require(value: str, message: str) -> str:
-    value = go_trim_space(value)
-    if not value:
+    if value == "":
         raise ValueError(message)
     return value
 

@@ -223,7 +223,7 @@ def test_new_client_requires_api_key_and_base_url(
     new_client: Callable[[str, str], ResponsesClient], name: str
 ) -> None:
     with pytest.raises(ValueError, match=f"^{name} API key must be set$"):
-        new_client(" ", "")
+        new_client("", "")
     with pytest.raises(ValueError, match=f"^{name} base URL must be set$"):
         new_client("test-key", " ")
 
@@ -692,7 +692,7 @@ ANTHROPIC_STREAM = b"".join(
 
 async def test_anthropic_client_configuration() -> None:
     with pytest.raises(ValueError, match=r"^anthropic API key must be set$"):
-        anthropic.Client(anthropic.Config(api_key=" "))
+        anthropic.Client(anthropic.Config(api_key=""))
     with pytest.raises(ValueError, match=r"^max attempts must be positive$"):
         anthropic.Client(anthropic.Config(api_key="test-key", max_attempts=0))
     with pytest.raises(ValueError, match=r'^unsupported cache TTL "10m"$'):

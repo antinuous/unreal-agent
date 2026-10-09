@@ -24,6 +24,7 @@ from unreal_agent.runner import (
     find_provider,
     run_main,
 )
+from unreal_agent.runner.config import API_KEY_ENVIRONMENT
 
 from tests.runner._helpers import (
     HTTPRequest,
@@ -49,6 +50,85 @@ _ANTHROPIC_STREAM = b"".join(
         b'{"type":"message_stop"}',
     )
 )
+
+
+@pytest.mark.parametrize(
+    ("variable", "generic", "specific", "want", "want_error"),
+    [
+        pytest.param(
+            "CUSTOM_CREDENTIAL", "", "provider-secret", "provider-secret", False, id="provider key"
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            "generic-secret",
+            "provider-secret",
+            "generic-secret",
+            False,
+            id="generic key takes precedence",
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            " \t ",
+            "provider-secret",
+            " \t ",
+            False,
+            id="whitespace generic key takes precedence",
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            " secret ",
+            "",
+            " secret ",
+            False,
+            id="generic key is passed through",
+        ),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            "",
+            " secret ",
+            " secret ",
+            False,
+            id="provider key is passed through",
+        ),
+        pytest.param(
+            "",
+            "generic-secret",
+            "provider-secret",
+            "",
+            False,
+            id="delegated authentication ignores API keys",
+        ),
+        pytest.param("CUSTOM_CREDENTIAL", "", "", "", True, id="missing key"),
+        pytest.param(
+            "CUSTOM_CREDENTIAL",
+            "",
+            " \t ",
+            " \t ",
+            False,
+            id="whitespace provider key is passed through",
+        ),
+    ],
+)
+def test_api_key(variable: str, generic: str, specific: str, want: str, want_error: bool) -> None:
+    provider = Provider(name="custom", new_client=None, api_key_environment=variable)
+    getenv = environment({API_KEY_ENVIRONMENT: generic, "CUSTOM_CREDENTIAL": specific})
+    if want_error:
+        with pytest.raises(RunnerError) as raised:
+            provider.api_key(getenv)
+        assert API_KEY_ENVIRONMENT in str(raised.value)
+        assert variable in str(raised.value)
+    else:
+        assert provider.api_key(getenv) == want
+
+
+@pytest.mark.parametrize(
+    "name",
+    [provider.name for provider in default_providers() if provider.api_key_environment],
+)
+async def test_default_providers_accept_whitespace_api_keys(name: str) -> None:
+    selected, new_client = find_provider(default_providers(), name)
+    client = new_client(" \t ", selected.base_url, 1, lambda _: "")
+    await client.aclose()
 
 
 def test_runner_anthropic_default_base_url() -> None:

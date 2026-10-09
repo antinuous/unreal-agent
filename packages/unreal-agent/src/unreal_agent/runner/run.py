@@ -20,7 +20,8 @@ from unreal_agent.llm import Model
 from unreal_agent.llm.responsesapi import DEFAULT_MAX_ATTEMPTS
 from unreal_agent.operation import LocalOperationManager
 from unreal_agent.primitives.primitive_event import run_in_thread
-from unreal_agent.runner.config import Client, Config, Getenv, ToolConfig
+from unreal_agent.runner import xdgpath
+from unreal_agent.runner.config import API_KEY_ENVIRONMENT, Client, Config, Getenv, ToolConfig
 from unreal_agent.runner.errors import RunnerError, describe, join, wrap
 from unreal_agent.runner.flags import HelpError, parse_flags
 from unreal_agent.runner.providers import find_provider
@@ -53,7 +54,6 @@ __all__ = [
     "SessionObserver",
     "load_dotenv",
     "open_datetime_log",
-    "resolve_config_directory",
     "resolve_max_attempts",
     "resolve_session_directory",
     "run",
@@ -61,9 +61,7 @@ __all__ = [
 ]
 
 DEFAULT_PROVIDER: Final = "openai"
-DEFAULT_SESSION_DIRECTORY: Final = "unreal-agent/sessions"
-DEFAULT_CONFIG_DIRECTORY: Final = "unreal-agent"
-LLM_API_KEY_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_API_KEY"
+LLM_API_KEY_ENVIRONMENT: Final = API_KEY_ENVIRONMENT
 LLM_BASE_URL_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_BASE_URL"
 LLM_MODEL_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_MODEL"
 LLM_PROVIDER_ENVIRONMENT: Final = "UNREAL_HARNESS_LLM_PROVIDER"
@@ -249,15 +247,7 @@ async def _run(
     )
     if model == "":
         raise RunnerError(f"model must be set in the request or {LLM_MODEL_ENVIRONMENT}")
-    api_key = ""
-    if selected.api_key_environment:
-        api_key = getenv(LLM_API_KEY_ENVIRONMENT)
-        if go_trim_space(api_key) == "":
-            api_key = getenv(selected.api_key_environment)
-        if go_trim_space(api_key) == "":
-            raise RunnerError(
-                f"{LLM_API_KEY_ENVIRONMENT} or {selected.api_key_environment} must be set"
-            )
+    api_key = selected.api_key(getenv)
     try:
         client = new_client(api_key, base_url, max_attempts, getenv)
     except Exception as error:
@@ -270,7 +260,7 @@ async def _run(
         ReasoningEffort=reasoning_effort(parsed.thinking_level),
     )
     try:
-        config_directory = resolve_config_directory(getenv)
+        config_directory = xdgpath.config_directory(getenv)
     except RunnerError as error:
         raise wrap("resolve settings directory", error) from error
     try:
@@ -498,37 +488,14 @@ def resolve_max_attempts(requested: int | None, getenv: Getenv) -> int:
     return max_attempts
 
 
-def resolve_config_directory(getenv: Getenv) -> str:
-    """The `unreal-agent` directory under the XDG config home. Raises RunnerError."""
-    if os.path.isabs(root := getenv("XDG_CONFIG_HOME")):
-        return go_join(root, DEFAULT_CONFIG_DIRECTORY)
-    home = getenv("HOME") or os.environ.get("HOME", "")
-    if home == "":
-        raise RunnerError(
-            "find home directory: $HOME is not defined; set an absolute XDG_CONFIG_HOME or HOME"
-        )
-    if not os.path.isabs(home):
-        raise RunnerError("set an absolute XDG_CONFIG_HOME or HOME")
-    return go_join(home, ".config", DEFAULT_CONFIG_DIRECTORY)
-
-
 def resolve_session_directory(configured: str, getenv: Getenv) -> str:
     """Raises RunnerError when no absolute state location is available."""
     if configured := go_trim_space(configured):
         return go_abs(configured)
-    state_home = getenv("XDG_STATE_HOME")
-    if not os.path.isabs(state_home):
-        user_home = getenv("HOME") or os.environ.get("HOME", "")
-        if user_home == "":
-            raise RunnerError(
-                "find home directory: $HOME is not defined; specify -session-directory to override"
-            )
-        if not os.path.isabs(user_home):
-            raise RunnerError(
-                "set an absolute XDG_STATE_HOME or HOME, or specify -session-directory"
-            )
-        state_home = go_join(user_home, ".local", "state")
-    return go_join(state_home, DEFAULT_SESSION_DIRECTORY)
+    try:
+        return xdgpath.session_directory(getenv)
+    except RunnerError as error:
+        raise RunnerError(f"{error}; specify -session-directory to override") from error
 
 
 def open_datetime_log(directory: str, now: float) -> BinaryIO:
