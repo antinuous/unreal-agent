@@ -369,6 +369,72 @@ def test_request_body_matches_go_for_empty_request() -> None:
     )
 
 
+def _tools(body: bytes) -> list[Raw]:
+    return decode(bytes(decode(body, dict[str, Raw])["tools"]), list[Raw])
+
+
+def test_request_body_omits_unset_optional_fields() -> None:
+    assert json.loads(request_body(valid_request(), "")) == {
+        "model": "gpt-test",
+        "store": False,
+        "stream": True,
+        "include": ["reasoning.encrypted_content"],
+        "input": [{"role": "user", "content": "hello"}],
+    }
+
+
+def test_function_tool_omits_empty_values() -> None:
+    body = request_body(Request(Tools=[Tool(Type=ToolType.FUNCTION, Name="empty")]), "")
+    assert bytes(_tools(body)[0]) == (
+        b'{"name":"empty","parameters":{},"strict":false,"type":"function"}'
+    )
+
+
+def test_tool_result_omits_empty_call_id() -> None:
+    item = request_input_item(
+        Item(
+            Type=ItemType.TOOL_RESULT,
+            Data=ToolResult(Output=[ToolResultOutput(Kind=ToolResultKind.TEXT, Value="done")]),
+        )
+    )
+    assert bytes(item) == (
+        b'{"output":[{"text":"done","type":"input_text"}],"type":"function_call_output"}'
+    )
+
+
+def test_request_body_preserves_tool_parameter_numbers() -> None:
+    parameters = {
+        "const": 9007199254740993,
+        "properties": {
+            "ratio": {"minimum": Raw(b"0.1234567890123456789")},
+            "large": {"maximum": Raw(b"1e1000")},
+        },
+    }
+    body = request_body(
+        Request(Tools=[Tool(Type=ToolType.FUNCTION, Name="precise", Parameters=parameters)]), ""
+    )
+    tools = _tools(body)
+    assert len(tools) == 1
+    assert bytes(decode(bytes(tools[0]), dict[str, Raw])["parameters"]) == (
+        b'{"const":9007199254740993,"properties":{"large":{"maximum":1e1000},'
+        b'"ratio":{"minimum":0.1234567890123456789}}}'
+    )
+
+
+def test_request_body_reports_tool_parameter_encoding_error() -> None:
+    request = Request(
+        Tools=[
+            Tool(
+                Type=ToolType.FUNCTION,
+                Name="invalid",
+                Parameters={"properties": Raw(b'{"broken":')},
+            )
+        ]
+    )
+    with pytest.raises(ValueError, match=r"^tool 0:"):
+        request_body(request, "")
+
+
 def test_request_body_matches_go_for_edge_values() -> None:
     request = Request(
         Model=Model(ID="m", ReasoningEffort=ReasoningEffort.HIGH),

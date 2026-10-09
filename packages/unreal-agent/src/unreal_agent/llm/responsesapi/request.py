@@ -211,7 +211,9 @@ def _request_tool(source: Tool) -> Raw:
             }
             if source.Description:
                 function["description"] = source.Description
-            return _union(function)
+            encoded = _union(function)
+            validate(bytes(encoded))
+            return encoded
         case ToolType.HOSTED:
             if source.Name == "web_search":
                 return _union({"type": "web_search"})
