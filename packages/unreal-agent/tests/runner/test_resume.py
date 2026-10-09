@@ -183,7 +183,9 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
                 control = item.Data.decode_control_message()
                 if control.Mode == ControlMode.UPDATE_SETTINGS:
                     settings += 1
-                    assert control.Parameters == Settings(Model=model, ReasoningEffort=effort)
+                    assert control.Parameters == Settings(
+                        Model=model, CompactionThreshold=0, ReasoningEffort=effort
+                    )
         assert settings == 1, "recorded settings controls, want 1"
         assert item_kinds(stdout).count(ItemKind.MODEL_RESPONSE) == 1
 

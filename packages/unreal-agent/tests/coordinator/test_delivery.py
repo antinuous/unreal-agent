@@ -1,10 +1,10 @@
-import dataclasses
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 from msgspec.structs import replace
 from unreal_agent.contextbuilder import Builder, new_builder
+from unreal_agent.coordinator.loop import inbox_source, iterator_source
 from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import ItemType, ToolCall, ToolResult
 from unreal_agent.operation import Status
@@ -112,11 +112,8 @@ async def test_coordinator_compaction_preserves_pending_inputs_on_replay(tmp_pat
     response.Response.Output.append(
         LLMItem(Type=ItemType.TOOL_CALL, Data=ToolCall(CallID="summary-call", Name="unknown"))
     )
-    current._state.call_model = True
     statuses = await current._handle_model_response(response)
-    message = "compaction response changed ordinary scheduling"
-    assert len(statuses) == 0, message
-    assert current._state.call_model, message
+    assert len(statuses) == 0, "compaction response scheduled tool calls"
     current._add_item_to_local_state(Item(Kind=ItemKind.MODEL_RESPONSE, Data=response))
     state = current._state
     message = f"compaction changed pending work: {state}"
@@ -125,14 +122,24 @@ async def test_coordinator_compaction_preserves_pending_inputs_on_replay(tmp_pat
     assert current._pending_inputs() == 3, message
     assert len(state.tool_calls) == 1, message
     assert len(state.operations) == 2, message
+    current._inputs = inbox_source(current._dependencies.inbox, current._wake.set)
+    current._updates = iterator_source(
+        current._dependencies.operations.updates(), current._wake.set
+    )
+    try:
+        call_model = await current._process_events()
+    finally:
+        await current._close()
+    assert call_model, "pending work did not schedule continuation"
     reopened = LocalFileStore(tmp_path)
     page = await reopened.items("session-1", 0, 100)
     assert page.items[-1].Data == response, "compaction response was not persisted"
     replayed = new_stop_test_run(0).current
     replayed._dependencies.sessions = reopened
     await replayed._load_history()
-    want_state = dataclasses.replace(current._state, call_model=False)
-    assert replayed._state == want_state, f"replayed state = {replayed._state}, want {want_state}"
+    assert replayed._state == current._state, (
+        f"replayed state = {replayed._state}, want {current._state}"
+    )
     builders: list[Builder] = [
         current._dependencies.context_builder,
         replayed._dependencies.context_builder,

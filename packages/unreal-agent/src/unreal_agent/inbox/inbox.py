@@ -37,6 +37,7 @@ _ReasoningEffort = ReasoningEffort
 
 class Settings(Struct):
     Model: Annotated[str, OmitZero] = ""
+    CompactionThreshold: Annotated[Int64 | None, OmitZero] = None
     MaxOutputTokens: Annotated[Int64 | None, OmitZero] = None
     ReasoningEffort: Annotated[_ReasoningEffort, OmitZero] = _ReasoningEffort.NONE
 
@@ -55,6 +56,7 @@ class _ControlEnvelope(Struct, forbid_unknown_fields=True):
 
 class _SettingsParameters(Struct, forbid_unknown_fields=True):
     Model: str | None = None
+    CompactionThreshold: Int64 | None = None
     MaxOutputTokens: Int64 | None = None
     ReasoningEffort: str | None = None
 
@@ -112,6 +114,9 @@ class Input(Struct):
                 model = parameters.Model or ""
                 if model and not go_trim_space(model):
                     raise ValueError("model ID is empty")
+                threshold = parameters.CompactionThreshold
+                if threshold is not None and threshold < 0:
+                    raise ValueError("compaction threshold must not be negative")
                 if parameters.MaxOutputTokens is not None and parameters.MaxOutputTokens <= 0:
                     raise ValueError("max output tokens must be positive")
                 return ControlMessage(
@@ -119,6 +124,7 @@ class Input(Struct):
                     Reason=reason,
                     Parameters=Settings(
                         Model=model,
+                        CompactionThreshold=threshold,
                         MaxOutputTokens=parameters.MaxOutputTokens,
                         ReasoningEffort=ReasoningEffort(effort),
                     ),

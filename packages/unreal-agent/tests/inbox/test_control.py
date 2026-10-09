@@ -40,6 +40,9 @@ async def test_inbox_settings_controls(effort: ReasoningEffort) -> None:
     [
         Settings(),
         Settings(Model="model"),
+        Settings(Model="model", CompactionThreshold=80_000),
+        Settings(CompactionThreshold=80_000),
+        Settings(CompactionThreshold=0),
         Settings(MaxOutputTokens=2048),
         Settings(Model="model", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH),
     ],
@@ -58,6 +61,7 @@ def test_settings_encoding_matches_go() -> None:
         b'{"Model":"model","MaxOutputTokens":2048,"ReasoningEffort":"high"}'
     )
     assert gojson.encode(Settings()) == b"{}"
+    assert gojson.encode(Settings(CompactionThreshold=0)) == b'{"CompactionThreshold":0}'
 
 
 def test_control_message_encoding_omits_zero_parameters() -> None:
@@ -83,6 +87,8 @@ def test_control_message_encoding_omits_zero_parameters() -> None:
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"default"}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":42}}',
         '{"Mode":"settings","Parameters":{"Model":" "}}',
+        '{"Mode":"settings","Parameters":{"Model":"model","CompactionThreshold":-1}}',
+        '{"Mode":"settings","Parameters":{"CompactionThreshold":-1}}',
         '{"Mode":"settings","Parameters":{"MaxOutputTokens":0}}',
         '{"Mode":"settings","Parameters":{"MaxOutputTokens":-1}}',
         '{"Mode":"settings","Parameters":{"SystemPrompt":"be concise"}}',
@@ -113,6 +119,10 @@ async def test_inbox_rejects_invalid_control_messages(payload: str) -> None:
         ('{"Mode":"settings","Parameters":[]}', "decode settings parameters: "),
         ('{"Mode":"settings","Parameters":{"ReasoningEffort":"turbo"}}', '"turbo"'),
         ('{"Mode":"settings","Parameters":{"Model":" "}}', "model ID is empty"),
+        (
+            '{"Mode":"settings","Parameters":{"CompactionThreshold":-1}}',
+            "compaction threshold must not be negative",
+        ),
         (
             '{"Mode":"settings","Parameters":{"MaxOutputTokens":0}}',
             "max output tokens must be positive",

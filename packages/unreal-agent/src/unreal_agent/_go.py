@@ -51,6 +51,11 @@ def go_trim_space(text: str) -> str:
     return text.strip(_SPACE)
 
 
+def go_int64(value: int) -> int:
+    """Wrap `value` to a signed 64-bit integer, as Go int64 arithmetic overflows."""
+    return (value + (1 << 63)) % (1 << 64) - (1 << 63)
+
+
 def is_go_space(rune: int) -> bool:
     return rune in _SPACE_SET
 

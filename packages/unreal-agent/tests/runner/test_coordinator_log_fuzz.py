@@ -31,11 +31,13 @@ from unreal_agent.sessionstore.localfile import Store
 from unreal_agent.tool import Registry, StaticTranslators
 
 from tests.runner._helpers import (
+    MAX_INT64,
     copy_log_response,
     decode_log_items,
     fuzz_log_response,
     fuzz_log_usage,
     log_json,
+    reaches_compaction_threshold,
     read_log_history,
     to_valid_utf8,
     wait,
@@ -151,7 +153,7 @@ async def run_coordinator_log_case(
             observer = SessionObserver(id, TeeWriter(file, stdout), cancel)
             observer_id = store.add_observer(observer.observe)
             builder = new_builder()
-            builder.set_model(Model(ID="journal-model"))
+            builder.set_model(Model(ID="journal-model", CompactionThreshold=MAX_INT64))
             model = GatedLogModel()
             operations = LocalOperationManager()
             coordinator = Coordinator(
@@ -305,6 +307,7 @@ def test_coordinator_log_matches_execution(
 ) -> None:
     size = len(text.encode())
     assume(len(actions) <= 16 and size <= 128 << 10 and len(actions) * size <= 256 << 10)
+    assume(not reaches_compaction_threshold(input, output))
     run_in_bubble(
         run_coordinator_log_case(actions, text, input, cached, written, output, reasoning)
     )

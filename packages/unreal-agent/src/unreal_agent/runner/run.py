@@ -352,6 +352,7 @@ async def _run(
         Mode=ControlMode.UPDATE_SETTINGS,
         Parameters=Settings(
             Model=model,
+            CompactionThreshold=selected_model.CompactionThreshold,
             MaxOutputTokens=parsed.max_output_tokens,
             ReasoningEffort=effort,
         ),

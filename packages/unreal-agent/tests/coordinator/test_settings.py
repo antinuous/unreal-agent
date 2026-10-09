@@ -1,17 +1,19 @@
 import pytest
 from msgspec.structs import replace
 from unreal_agent.inbox import ControlMode, Settings
-from unreal_agent.llm import Model, ReasoningEffort
+from unreal_agent.llm import Model, ReasoningEffort, Usage
 from unreal_agent.operation import Status
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import ModelResponse
 
 from tests.coordinator._helpers import (
     as_store,
+    assert_compaction_turn,
     assert_stop_result,
     caused_by,
     external_event,
     fake_time,
+    new_compaction_run,
     new_heartbeat_test_run,
     new_stop_test_run,
     new_tool_grace_test_run,
@@ -29,12 +31,18 @@ from tests.coordinator._helpers import (
 async def test_coordinator_settings_do_not_wake_idle_model_and_restart_active_request() -> None:
     run = new_stop_test_run(0)
     await run.start()
-    initial_model = Model(ID="initial", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.LOW)
+    initial_model = Model(
+        ID="initial",
+        CompactionThreshold=200_000,
+        MaxOutputTokens=2048,
+        ReasoningEffort=ReasoningEffort.LOW,
+    )
     await run.input(
         settings_input(
             "initial",
             Settings(
                 Model=initial_model.ID,
+                CompactionThreshold=initial_model.CompactionThreshold,
                 MaxOutputTokens=2048,
                 ReasoningEffort=initial_model.ReasoningEffort,
             ),
@@ -47,12 +55,22 @@ async def test_coordinator_settings_do_not_wake_idle_model_and_restart_active_re
     assert run.request_count() == 1, "next turn did not use settings"
     assert run.calls[0].request.Model == initial_model, "next turn did not use settings"
     await run.input(
-        settings_input("next", Settings(Model="next", ReasoningEffort=ReasoningEffort.HIGH))
+        settings_input(
+            "next",
+            Settings(
+                Model="next", CompactionThreshold=80_000, ReasoningEffort=ReasoningEffort.HIGH
+            ),
+        )
     )
     assert run.request_count() == 2, "settings did not restart the active request"
     assert run.calls[0].canceled, "settings did not restart the active request"
     assert not run.calls[1].canceled, "settings did not restart the active request"
-    next_model = Model(ID="next", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH)
+    next_model = Model(
+        ID="next",
+        CompactionThreshold=80_000,
+        MaxOutputTokens=2048,
+        ReasoningEffort=ReasoningEffort.HIGH,
+    )
     want = replace(run.calls[0].request, Model=next_model)
     assert run.calls[1].request == want, "restart did not preserve context and apply settings"
     assert run.calls[0].request.Model == initial_model, (
@@ -95,6 +113,40 @@ async def test_coordinator_settings_restart_without_waiting_for_canceled_respons
     assert not run.calls[1].canceled, "canceled response affected the replacement request"
     await run.input(stop_input("stop", ControlMode.STOP_WHEN_IDLE))
     await run.respond(1, text_response("Done."))
+    run.assert_stopped()
+
+
+@fake_time
+async def test_coordinator_model_switch_discards_previous_usage() -> None:
+    run = await new_compaction_run()
+    run.dependencies.context_builder.set_model(Model(ID="initial", CompactionThreshold=100_000))
+    run.dependencies.llm = stop_test_adapter(run, ignore_cancellation=True)
+    await run.start()
+    await run.input(external_event("prompt", "continue"))
+    await assert_compaction_turn(run, 1, TurnType.REGULAR)
+    await run.input(settings_input("settings", Settings(Model="next", CompactionThreshold=25_000)))
+    await assert_compaction_turn(run, 2, TurnType.REGULAR)
+    assert run.calls[0].canceled, "model switch did not replace the active request"
+    assert run.calls[1].request.Model.ID == "next", (
+        "model switch did not replace the active request"
+    )
+    stale = replace(text_response("Old model response"), Usage=Usage(InputTokens=90_000))
+    await run.respond(0, stale)
+    assert not run.dependencies.context_builder.needs_compaction(), (
+        "old model usage survived the model switch"
+    )
+    replayed = new_stop_test_run(0).current
+    replayed._dependencies.sessions = run.dependencies.sessions
+    await replayed._load_history()
+    assert not replayed._dependencies.context_builder.needs_compaction(), (
+        "replay restored checkpoints from the old model"
+    )
+    fresh = replace(text_response("New model response"), Usage=Usage(InputTokens=30_000))
+    await run.respond(1, fresh)
+    assert run.dependencies.context_builder.needs_compaction(), (
+        "new model response did not establish measured usage"
+    )
+    await run.input(stop_input("stop", ControlMode.STOP_WHEN_IDLE))
     run.assert_stopped()
 
 
@@ -215,11 +267,15 @@ async def test_coordinator_settings_replay_on_resume_and_fork(mode: str) -> None
         settings_input(
             "first",
             Settings(
-                Model="initial-model", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.LOW
+                Model="initial-model",
+                CompactionThreshold=200_000,
+                MaxOutputTokens=123,
+                ReasoningEffort=ReasoningEffort.LOW,
             ),
         ),
         settings_input("effort", Settings(ReasoningEffort=ReasoningEffort.HIGH)),
         settings_input("model", Settings(Model="saved-model")),
+        settings_input("threshold", Settings(CompactionThreshold=80_000)),
     ]:
         await store.append_input("session-1", input)
     turn = Turn(ID="parent-turn", PreviousTurnID="turn-1", Type=TurnType.REGULAR)
@@ -237,11 +293,14 @@ async def test_coordinator_settings_replay_on_resume_and_fork(mode: str) -> None
     run.dependencies.sessions = as_store(store)
     run.dependencies.restored = restored
     run.dependencies.context_builder.set_model(
-        Model(ID="model", ReasoningEffort=ReasoningEffort.MEDIUM)
+        Model(ID="model", CompactionThreshold=250_000, ReasoningEffort=ReasoningEffort.MEDIUM)
     )
     await run.start()
     assert run.request_count() == 0, "replayed settings started a turn"
     await run.input(external_event("prompt", "continue"))
     assert run.calls[0].request.Model == Model(
-        ID="saved-model", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH
+        ID="saved-model",
+        CompactionThreshold=80_000,
+        MaxOutputTokens=123,
+        ReasoningEffort=ReasoningEffort.HIGH,
     ), "latest recorded settings did not override initial configuration"

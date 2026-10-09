@@ -10,6 +10,7 @@ import asyncio
 import io
 import os
 import tempfile
+from pathlib import Path
 from typing import Any, cast
 
 from hypothesis import HealthCheck, assume, given, settings
@@ -28,6 +29,7 @@ from unreal_agent.sessionstore.localfile import Store
 from unreal_agent.tool import SKILL_USE_NAME
 
 from tests.runner._helpers import (
+    MAX_INT64,
     FakeClient,
     copy_log_response,
     decode_log_items,
@@ -35,12 +37,14 @@ from tests.runner._helpers import (
     fuzz_log_response,
     fuzz_log_usage,
     is_error,
+    reaches_compaction_threshold,
     read_log_history,
     reader,
     runner_config,
     to_valid_utf8,
     with_log_fuzz_seeds,
     without_threads,
+    write_user_settings,
 )
 from tests.runner.test_coordinator_log_fuzz import run_in_bubble
 
@@ -106,6 +110,7 @@ def assert_execution_log(
                                 settings_count += 1
                                 assert control.Parameters == Settings(
                                     Model="journal-model",
+                                    CompactionThreshold=MAX_INT64,
                                     ReasoningEffort=ReasoningEffort.HIGH,
                                 ), "logged settings differ from the runner request"
                             case _:
@@ -190,8 +195,15 @@ async def run_log_case(
     with (
         tempfile.TemporaryDirectory() as workspace,
         tempfile.TemporaryDirectory() as sessions,
+        tempfile.TemporaryDirectory() as config_home,
         without_threads(),
     ):
+        write_user_settings(
+            Path(config_home),
+            '{"providers":{"openai":{"info":{"id":"openai","name":"OpenAI"},"models":[{"id":'
+            f'"journal-model","name":"Journal model","context_window":{MAX_INT64},'
+            f'"compaction_threshold":{MAX_INT64}}}]}}}}}}',
+        )
         skill_path = os.path.join(workspace, ".harness", "skills", "journal", "SKILL.md")
         os.makedirs(os.path.dirname(skill_path), mode=0o700)
         skill_content = "---\nname: journal\ndescription: Read the journal fixture.\n---\n" + text
@@ -279,7 +291,9 @@ async def run_log_case(
                         "-tool-heartbeat-interval",
                         "0",
                     ],
-                    environment({LLM_API_KEY_ENVIRONMENT: "secret"}),
+                    environment(
+                        {"XDG_CONFIG_HOME": config_home, LLM_API_KEY_ENVIRONMENT: "secret"}
+                    ),
                     reader(encoded_request),
                     destination,
                     io.BytesIO(),
@@ -365,4 +379,5 @@ def test_run_log_matches_execution(
 ) -> None:
     size = len(text.encode())
     assume(len(actions) <= 16 and size <= 128 << 10 and len(actions) * size <= 256 << 10)
+    assume(not reaches_compaction_threshold(input, output))
     run_in_bubble(run_log_case(actions, text, input, cached, written, output, reasoning))

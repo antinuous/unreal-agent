@@ -50,6 +50,7 @@ from tests.runner._helpers import (
     parse_test_request,
     reader,
     runner_config,
+    write_user_settings,
 )
 
 
@@ -139,6 +140,7 @@ async def test_run_main_executes_batched_messages(
     assert control.Mode == ControlMode.UPDATE_SETTINGS
     assert control.Parameters == Settings(
         Model="gpt-test",
+        CompactionThreshold=64_000,
         MaxOutputTokens=2048,
         ReasoningEffort=ReasoningEffort.MEDIUM,
     )
@@ -696,9 +698,3 @@ def test_resolve_config_directory_rejects_invalid_home(
     monkeypatch.setenv("HOME", "")
     with pytest.raises(RunnerError, match="XDG_CONFIG_HOME"):
         resolve_config_directory(environment({"HOME": home}))
-
-
-def write_user_settings(config_home: Path, contents: str) -> None:
-    directory = config_home / "unreal-agent"
-    directory.mkdir(mode=0o700, exist_ok=True)
-    (directory / "settings.json").write_text(contents)

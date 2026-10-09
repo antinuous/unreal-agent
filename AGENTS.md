@@ -37,7 +37,7 @@ Modules live under `packages/unreal-agent/src/unreal_agent`:
 | `llm.responsesapi` | The OpenAI Responses API wire format, streaming, and retries |
 | `llm.messagesapi` | The Anthropic Messages API wire format, stream assembly, and retries |
 | `llm.clients.*` | Provider clients (anthropic, openai, openaicodex, openrouter, fireworks, ollama) |
-| `contextbuilder` | Model input assembly, prompts, and skills |
+| `contextbuilder` | Model input assembly, compaction, prompts, and skills |
 | `tool`, `tool.bash`, `tool.viewimage` | Tool registry, static tools, and translators |
 | `sessionstore`, `sessionstore.localfile` | Session store interface and the local file store |
 | `settings` | Model settings: bundled defaults merged with user overrides |

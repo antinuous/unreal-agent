@@ -25,6 +25,7 @@ from unreal_agent.llm import Item as LLMItem
 from unreal_agent.llm import (
     ItemType,
     Message,
+    Model,
     Request,
     RequestOptions,
     Response,
@@ -33,12 +34,14 @@ from unreal_agent.llm import (
     ToolResult,
     ToolResultKind,
     ToolResultOutput,
+    Usage,
 )
 from unreal_agent.operation import ID as OperationID
 from unreal_agent.operation import TYPE_SHELL, Operation, Spec, Status, new_value_spec
 from unreal_agent.session import ID as SessionID
 from unreal_agent.session import Session, Turn, TurnID, TurnType
 from unreal_agent.sessionstore import (
+    BEFORE_FIRST,
     Item,
     ItemData,
     ItemKind,
@@ -928,3 +931,62 @@ async def restore_test_run(run: StopTestRun, store: Store | MemoryStore | Failin
 def item_data(item: Item) -> ItemData:
     assert item.Data is not None
     return item.Data
+
+
+COMPACTION_THRESHOLD = 25_000
+
+
+async def recorded_compaction_history(store: Store | MemoryStore) -> Coordinator:
+    """Two answered turns whose usage reaches the compaction threshold."""
+    await store.create("session-1")
+    current = new_stop_test_run(0).current
+    current._dependencies.sessions = as_store(store)
+    previous: TurnID = ""
+    for index, total in enumerate([30_000, 40_000]):
+        label = chr(ord("A") + index)
+        await append_compaction_test_item(
+            current, Item(Kind=ItemKind.INPUT, Data=external_event(label, label + " input"))
+        )
+        turn = Turn(ID=label, PreviousTurnID=previous, Type=TurnType.REGULAR)
+        await append_compaction_test_item(current, Item(Kind=ItemKind.TURN, Data=turn))
+        response = replace(
+            text_response(label + " output"),
+            Usage=Usage(InputTokens=total - 1_000, OutputTokens=1_000),
+        )
+        await append_compaction_test_item(
+            current,
+            Item(
+                Kind=ItemKind.MODEL_RESPONSE, Data=ModelResponse(TurnID=turn.ID, Response=response)
+            ),
+        )
+        previous = turn.ID
+    return current
+
+
+async def append_compaction_test_item(current: Coordinator, item: Item) -> None:
+    current._add_item_to_local_state(item)
+    await current._store_item_in_session_store(item)
+
+
+async def new_compaction_run() -> StopTestRun:
+    recorded = await recorded_compaction_history(MemoryStore())
+    run = new_stop_test_run(0)
+    run.dependencies.sessions = recorded._dependencies.sessions
+    run.dependencies.context_builder.set_model(Model(CompactionThreshold=COMPACTION_THRESHOLD))
+    return run
+
+
+async def assert_compaction_turn(run: StopTestRun, count: int, kind: TurnType) -> None:
+    state = run.current._state
+    turn_type = state.current_turn_type
+    message = f"calls = {len(run.calls)}, turn = {turn_type}, want {count}/{kind} active"
+    assert len(run.calls) == count, message
+    assert state.current_turn_type == kind, message
+    assert run.current._cancel_model is not None, message
+    page = await run.dependencies.sessions.items("session-1", BEFORE_FIRST, 100)
+    turn = Turn()
+    for item in page.items:
+        if item.Kind == ItemKind.TURN:
+            turn = cast(Turn, item.Data)
+    assert state.current_turn_id == turn.ID, f"persisted turn = {turn!r}"
+    assert turn.Type == kind, f"persisted turn = {turn!r}"

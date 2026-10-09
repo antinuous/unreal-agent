@@ -6,11 +6,13 @@ import io
 import threading
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Final, cast
 from unittest import mock
 
 from msgspec.structs import replace
 from unreal_agent import gojson
+from unreal_agent._go import go_int64
 from unreal_agent.inbox import ID as InputID
 from unreal_agent.inbox import Input, InputKind
 from unreal_agent.llm import (
@@ -292,6 +294,17 @@ def log_json(value: Any) -> gojson.Raw:
 
 def to_valid_utf8(text: str) -> str:
     return text.encode("utf-8", "replace").decode("utf-8")
+
+
+def reaches_compaction_threshold(input: int, output: int) -> bool:
+    """Whether the fuzzed token count reaches the fixtures' maximum compaction threshold."""
+    return go_int64((input & MAX_INT64) + (output & MAX_INT64)) == MAX_INT64
+
+
+def write_user_settings(config_home: Path, contents: str) -> None:
+    directory = config_home / "unreal-agent"
+    directory.mkdir(mode=0o700, exist_ok=True)
+    (directory / "settings.json").write_text(contents)
 
 
 def fuzz_log_usage(

@@ -11,6 +11,12 @@ staged but not yet submitted. `commit()` moves the staged suffix into the
 prefix. A running tool call shows `TOOL_CALL_RUNNING_PAYLOAD` until a later
 result for the same call replaces its staged placeholder. `build()` returns a
 copy that later builder calls do not change.
+
+Each model response records its input plus output tokens. Once the latest
+count reaches the model's compaction threshold, `build_compaction()` asks for
+a summary of the history before the most recent 20,000 tokens of whole turns,
+and `compact(response)` returns a new builder holding that summary, the tool
+calls still pending at the cutoff, and the retained history.
 """
 
 from unreal_agent.contextbuilder.builder import PREAMBLE, TOOL_CALL_RUNNING_PAYLOAD, new_builder

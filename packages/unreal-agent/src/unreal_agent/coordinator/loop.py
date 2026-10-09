@@ -18,6 +18,7 @@ from unreal_agent.llm import (
     Request,
     RequestOptions,
     Response,
+    StopReason,
     ToolCall,
     ToolResultKind,
     ToolResultOutput,
@@ -500,22 +501,32 @@ class Coordinator:
                 ExceptionGroup("cancel operations", failures)
             )
 
-    async def _request_model_response(self) -> None:
-        self._interrupt_model()
+    def _build_model_request(self) -> tuple[Request, TurnType]:
+        builder = self._dependencies.context_builder
+        if builder.needs_compaction():
+            try:
+                return builder.build_compaction().request, TurnType.COMPACTION
+            except Exception:
+                pass
         try:
-            built = self._dependencies.context_builder.build()
+            built = builder.build()
         except Exception as error:
             raise CoordinatorError(f"build model request: {error}") from error
+        return built.request, TurnType.REGULAR
+
+    async def _request_model_response(self) -> None:
+        self._interrupt_model()
+        request, turn_type = self._build_model_request()
         turn = Turn(
             ID=str(uuid.uuid4()),
             PreviousTurnID=self._state.current_turn_id,
-            Type=TurnType.REGULAR,
+            Type=turn_type,
         )
         item = self._add_item_to_local_state(Item(Kind=ItemKind.TURN, Data=turn))
         await self._store_item_in_session_store(item)
 
         options = RequestOptions(CacheKey=self._dependencies.session_id)
-        task = asyncio.create_task(self._respond(turn.ID, built.request, options))
+        task = asyncio.create_task(self._respond(turn.ID, request, options))
         self._model_tasks.add(task)
         task.add_done_callback(partial(self._model_done, turn.ID))
         self._cancel_model = task.cancel
@@ -567,14 +578,16 @@ class Coordinator:
     async def _handle_model_response(self, response: ModelResponse) -> list[ToolCallStatus]:
         item = self._add_item_to_local_state(Item(Kind=ItemKind.MODEL_RESPONSE, Data=response))
         await self._store_item_in_session_store(item)
-        if (
-            self._state.current_turn_type == TurnType.COMPACTION
-            and response.TurnID == self._state.current_turn_id
-        ):
-            return []
         statuses = await self._schedule_tool_calls()
         self._state.call_model = _statuses_require_model_response(statuses)
         return statuses
+
+    def _apply_compaction_response(self, response: Response) -> None:
+        if response.Stop != StopReason.COMPLETE:
+            return
+        rebuilt = self._dependencies.context_builder.compact(response)
+        if rebuilt is not None:
+            self._dependencies.context_builder = rebuilt
 
     async def _handle_operation_update(self, update: Operation) -> None:
         update = self._add_operation_to_local_state(update)
@@ -664,7 +677,8 @@ class Coordinator:
                 self._state.current_turn_id = data.ID
                 self._state.current_turn_type = data.Type
                 self._state.current_turn_inputs = self._state.available_inputs
-                self._dependencies.context_builder.commit()
+                if data.Type != TurnType.COMPACTION:
+                    self._dependencies.context_builder.commit()
 
             case ItemKind.MODEL_RESPONSE:
                 if not isinstance(data, ModelResponse):
@@ -673,6 +687,7 @@ class Coordinator:
                     self._state.current_turn_type == TurnType.COMPACTION
                     and data.TurnID == self._state.current_turn_id
                 ):
+                    self._apply_compaction_response(data.Response)
                     return item
                 self._dependencies.context_builder.add_model_response(data.Response)
                 if data.TurnID == self._state.current_turn_id:

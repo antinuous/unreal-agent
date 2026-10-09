@@ -648,7 +648,7 @@ async def run_coordinator_fault_case(
         remote, Config(endpoint="https://fuzz.invalid/responses", max_attempts=1)
     )
     builder = new_builder(*registry.skills())
-    builder.set_model(Model(ID="fuzz-model"))
+    builder.set_model(Model(ID="fuzz-model", CompactionThreshold=MAX_INT64))
     for definition in registry.static_definitions():
         builder.add_tool(definition.tool)
     current = Coordinator(
@@ -756,4 +756,6 @@ def test_coordinator_faults(
     actions: bytes, mode: int, occurrence: int, text: str, tokens: int
 ) -> None:
     assume(len(actions) <= 8 and len(text.encode()) <= 4096)
+    # Skip token counts that reach the fixture's compaction threshold.
+    assume((tokens & MAX_INT64) + tokens % 997 != MAX_INT64)
     run_in_fault_bubble(lambda: run_coordinator_fault_case(actions, mode, occurrence, text, tokens))

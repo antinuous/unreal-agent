@@ -56,4 +56,19 @@ class Builder(Protocol):
 
     def commit(self) -> None: ...
 
+    def needs_compaction(self) -> bool:
+        """Report whether the latest response's measured usage reached the model's threshold."""
+        ...
+
+    def build_compaction(self) -> Result:
+        """Build the summary request. Raise ValueError when no history is eligible."""
+        ...
+
+    def compact(self, response: Response, /) -> Builder | None:
+        """Return a rebuilt builder from a summary response, leaving this one unchanged.
+
+        Return None when no history is eligible.
+        """
+        ...
+
     def build(self) -> Result: ...

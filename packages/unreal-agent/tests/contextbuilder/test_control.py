@@ -37,14 +37,36 @@ def test_builder_control_messages(mode: ControlMode, text: str) -> None:
     assert input[0].Data == Message(Role=Role.USER, Text=text)
 
 
-_INITIAL_MODEL = Model(ID="initial", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH)
+_INITIAL_MODEL = Model(
+    ID="initial",
+    CompactionThreshold=200_000,
+    MaxOutputTokens=123,
+    ReasoningEffort=ReasoningEffort.HIGH,
+)
 
 
 @pytest.mark.parametrize(
     ("settings", "model"),
     [
         pytest.param(Settings(), _INITIAL_MODEL, id="omitted"),
-        pytest.param(Settings(Model="next"), replace(_INITIAL_MODEL, ID="next"), id="model"),
+        pytest.param(
+            Settings(Model="next", CompactionThreshold=80_000),
+            replace(_INITIAL_MODEL, ID="next", CompactionThreshold=80_000),
+            id="model",
+        ),
+        pytest.param(
+            Settings(Model="next"), replace(_INITIAL_MODEL, ID="next"), id="model without threshold"
+        ),
+        pytest.param(
+            Settings(CompactionThreshold=80_000),
+            replace(_INITIAL_MODEL, CompactionThreshold=80_000),
+            id="threshold without model",
+        ),
+        pytest.param(
+            Settings(CompactionThreshold=0),
+            replace(_INITIAL_MODEL, CompactionThreshold=0),
+            id="zero threshold",
+        ),
         pytest.param(
             Settings(MaxOutputTokens=456), replace(_INITIAL_MODEL, MaxOutputTokens=456), id="limit"
         ),
@@ -72,7 +94,14 @@ def test_builder_settings_apply_supplied_fields(settings: Settings, model: Model
 
 def test_builder_settings_only_change_effort_in_subsequent_requests() -> None:
     builder = new_builder()
-    builder.set_model(Model(ID="model", MaxOutputTokens=123, ReasoningEffort=ReasoningEffort.HIGH))
+    builder.set_model(
+        Model(
+            ID="model",
+            CompactionThreshold=200_000,
+            MaxOutputTokens=123,
+            ReasoningEffort=ReasoningEffort.HIGH,
+        )
+    )
     builder.add_tool(Tool(Name="tool"))
     builder.add_model_response(
         Response(Output=[Item(Type=ItemType.PROVIDER, Data=reasoning("thought"))])

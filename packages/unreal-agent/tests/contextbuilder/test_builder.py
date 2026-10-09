@@ -27,16 +27,7 @@ from unreal_agent.llm import (
 )
 from unreal_agent.tool import Skill
 
-from tests.contextbuilder._helpers import reasoning, text, tool_result
-
-
-def with_preamble(*items: Item) -> list[Item]:
-    """The items after the preamble every builder starts with."""
-    return [Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text=PREAMBLE)), *items]
-
-
-def user(value: str) -> Item:
-    return Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text=value))
+from tests.contextbuilder._helpers import reasoning, text, tool_result, user, with_preamble
 
 
 def test_builder_adds_external_input_as_user_message() -> None:
