@@ -6,10 +6,10 @@ import pytest
 from unreal_agent import gojson
 from unreal_agent.inbox import ControlMode, Input, InputKind, Settings
 from unreal_agent.llm import Item as LLMItem
-from unreal_agent.llm import ItemType, ReasoningEffort, Response, ToolCall, ToolResult
+from unreal_agent.llm import ItemType, Message, ReasoningEffort, Response, ToolCall, ToolResult
 from unreal_agent.llm import Request as LLMRequest
 from unreal_agent.runner import Client
-from unreal_agent.runner.run import DEFAULT_SYSTEM_PROMPT, LLM_API_KEY_ENVIRONMENT
+from unreal_agent.runner.run import LLM_API_KEY_ENVIRONMENT
 from unreal_agent.sessionstore import BEFORE_FIRST, ItemKind
 from unreal_agent.sessionstore.localfile import Store
 
@@ -87,6 +87,11 @@ async def test_run_resumes_after_output_failure(
         assert not requests, "settled retry started another model request"
 
 
+def system_text(request: LLMRequest) -> str:
+    first = request.Input[0].Data
+    return first.Text if isinstance(first, Message) else ""
+
+
 @pytest.mark.parametrize("with_tool", [False, True], ids=["first-response", "tool-result"])
 async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
     with_tool: bool, tmp_path_factory: pytest.TempPathFactory
@@ -94,6 +99,7 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
     workspace = str(tmp_path_factory.mktemp("workspace"))
     sessions = str(tmp_path_factory.mktemp("sessions"))
     model, effort = "initial-model", ReasoningEffort.LOW
+    system_prompt = "initial prompt"
     message_id = "69621f8d-4f4d-49a5-8f7d-3b24fd855c01"
 
     async def run(client: Client) -> tuple[int, str, str]:
@@ -101,6 +107,7 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
             {
                 "model": model,
                 "thinking_level": str(effort),
+                "system_prompt": system_prompt,
                 "session_id": "resume-delivery",
                 "messages": [{"role": "user", "content": "run it", "message_id": message_id}],
             }
@@ -126,6 +133,8 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
         interrupted.calls += 1
         if model != request.Model.ID or request.Model.ReasoningEffort != effort:
             raise ValueError(f"initial settings = {request.Model!r}")
+        if not system_text(request).endswith("\n\n" + system_prompt):
+            raise ValueError("initial request did not use the caller's system prompt")
         if with_tool and interrupted.calls == 1:
             return Response(
                 Output=[
@@ -150,12 +159,15 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
         assert "interrupted delivery" in stderr
 
         model, effort = "resumed-model", ReasoningEffort.MAX
+        system_prompt = "resumed prompt"
         resumed = FakeClient()
 
         def resumed_respond(request: LLMRequest) -> Response:
             resumed.calls += 1
             if model != request.Model.ID or request.Model.ReasoningEffort != effort:
                 raise ValueError(f"recovered request settings = {request.Model!r}")
+            if not system_text(request).endswith("\n\n" + system_prompt):
+                raise ValueError("recovered request did not use the caller's system prompt")
             if with_tool and not has_result(request):
                 raise ValueError("missing restored result")
             return message_response("Done.")
@@ -171,9 +183,7 @@ async def test_run_main_resumes_interrupted_delivery_with_duplicate_input(
                 control = item.Data.decode_control_message()
                 if control.Mode == ControlMode.UPDATE_SETTINGS:
                     settings += 1
-                    assert control.Parameters == Settings(
-                        Model=model, SystemPrompt=DEFAULT_SYSTEM_PROMPT, ReasoningEffort=effort
-                    )
+                    assert control.Parameters == Settings(Model=model, ReasoningEffort=effort)
         assert settings == 1, "recorded settings controls, want 1"
         assert item_kinds(stdout).count(ItemKind.MODEL_RESPONSE) == 1
 

@@ -40,15 +40,8 @@ async def test_inbox_settings_controls(effort: ReasoningEffort) -> None:
     [
         Settings(),
         Settings(Model="model"),
-        Settings(SystemPrompt="be concise"),
-        Settings(SystemPrompt=""),
         Settings(MaxOutputTokens=2048),
-        Settings(
-            Model="model",
-            SystemPrompt="be concise",
-            MaxOutputTokens=2048,
-            ReasoningEffort=ReasoningEffort.HIGH,
-        ),
+        Settings(Model="model", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH),
     ],
 )
 async def test_inbox_partial_settings_controls(settings: Settings) -> None:
@@ -60,11 +53,9 @@ async def test_inbox_partial_settings_controls(settings: Settings) -> None:
 
 
 def test_settings_encoding_matches_go() -> None:
-    settings = Settings(
-        SystemPrompt="", Model="model", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH
-    )
+    settings = Settings(Model="model", MaxOutputTokens=2048, ReasoningEffort=ReasoningEffort.HIGH)
     assert gojson.encode(settings) == (
-        b'{"SystemPrompt":"","Model":"model","MaxOutputTokens":2048,"ReasoningEffort":"high"}'
+        b'{"Model":"model","MaxOutputTokens":2048,"ReasoningEffort":"high"}'
     )
     assert gojson.encode(Settings()) == b"{}"
 
@@ -94,6 +85,9 @@ def test_control_message_encoding_omits_zero_parameters() -> None:
         '{"Mode":"settings","Parameters":{"Model":" "}}',
         '{"Mode":"settings","Parameters":{"MaxOutputTokens":0}}',
         '{"Mode":"settings","Parameters":{"MaxOutputTokens":-1}}',
+        '{"Mode":"settings","Parameters":{"SystemPrompt":"be concise"}}',
+        '{"Mode":"settings","Parameters":{"SystemPrompt":""}}',
+        '{"Mode":"settings","Parameters":{"Model":"model","SystemPrompt":"be concise"}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"high","extra":true}}',
         '{"Mode":"settings","Parameters":{"ReasoningEffort":"high"},"extra":true}',
         '{"Mode":"hard","Parameters":{"ReasoningEffort":"high"}}',

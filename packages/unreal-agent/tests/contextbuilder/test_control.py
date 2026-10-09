@@ -41,27 +41,16 @@ _INITIAL_MODEL = Model(ID="initial", MaxOutputTokens=123, ReasoningEffort=Reason
 
 
 @pytest.mark.parametrize(
-    ("settings", "model", "prompt"),
+    ("settings", "model"),
     [
-        pytest.param(Settings(), _INITIAL_MODEL, "initial prompt", id="omitted"),
+        pytest.param(Settings(), _INITIAL_MODEL, id="omitted"),
+        pytest.param(Settings(Model="next"), replace(_INITIAL_MODEL, ID="next"), id="model"),
         pytest.param(
-            Settings(Model="next"), replace(_INITIAL_MODEL, ID="next"), "initial prompt", id="model"
-        ),
-        pytest.param(
-            Settings(SystemPrompt="next prompt"), _INITIAL_MODEL, "next prompt", id="prompt"
-        ),
-        pytest.param(Settings(SystemPrompt=""), _INITIAL_MODEL, "", id="clear prompt"),
-        pytest.param(
-            Settings(MaxOutputTokens=456),
-            replace(_INITIAL_MODEL, MaxOutputTokens=456),
-            "initial prompt",
-            id="limit",
+            Settings(MaxOutputTokens=456), replace(_INITIAL_MODEL, MaxOutputTokens=456), id="limit"
         ),
     ],
 )
-def test_builder_settings_apply_supplied_fields(
-    settings: Settings, model: Model, prompt: str
-) -> None:
+def test_builder_settings_apply_supplied_fields(settings: Settings, model: Model) -> None:
     builder = new_builder()
     builder.set_model(_INITIAL_MODEL)
     builder.set_system_prompt("initial prompt")
@@ -72,13 +61,7 @@ def test_builder_settings_apply_supplied_fields(
         ControlMessage(Mode=ControlMode.UPDATE_SETTINGS, Parameters=settings)
     )
     built = builder.build()
-    want_prompt = PREAMBLE + "\n\n" + prompt if prompt else PREAMBLE
-    want_input = list(original.request.Input)
-    want_input[0] = Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.SYSTEM, Text=want_prompt))
-    want = Result(
-        request=replace(original.request, Model=model, Input=want_input), report=original.report
-    )
-    assert built == want
+    assert built == Result(request=replace(original.request, Model=model), report=original.report)
     assert original.request.Model == _INITIAL_MODEL, "settings mutated an already built request"
     first = original.request.Input[0].Data
     assert isinstance(first, Message)

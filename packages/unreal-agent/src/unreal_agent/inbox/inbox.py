@@ -36,7 +36,6 @@ _ReasoningEffort = ReasoningEffort
 
 
 class Settings(Struct):
-    SystemPrompt: Annotated[str | None, OmitZero] = None
     Model: Annotated[str, OmitZero] = ""
     MaxOutputTokens: Annotated[Int64 | None, OmitZero] = None
     ReasoningEffort: Annotated[_ReasoningEffort, OmitZero] = _ReasoningEffort.NONE
@@ -55,7 +54,6 @@ class _ControlEnvelope(Struct, forbid_unknown_fields=True):
 
 
 class _SettingsParameters(Struct, forbid_unknown_fields=True):
-    SystemPrompt: str | None = None
     Model: str | None = None
     MaxOutputTokens: Int64 | None = None
     ReasoningEffort: str | None = None
@@ -120,7 +118,6 @@ class Input(Struct):
                     Mode=ControlMode.UPDATE_SETTINGS,
                     Reason=reason,
                     Parameters=Settings(
-                        SystemPrompt=parameters.SystemPrompt,
                         Model=model,
                         MaxOutputTokens=parameters.MaxOutputTokens,
                         ReasoningEffort=ReasoningEffort(effort),

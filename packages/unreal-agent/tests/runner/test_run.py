@@ -139,7 +139,6 @@ async def test_run_main_executes_batched_messages(
     assert control.Mode == ControlMode.UPDATE_SETTINGS
     assert control.Parameters == Settings(
         Model="gpt-test",
-        SystemPrompt="be concise",
         MaxOutputTokens=2048,
         ReasoningEffort=ReasoningEffort.MEDIUM,
     )

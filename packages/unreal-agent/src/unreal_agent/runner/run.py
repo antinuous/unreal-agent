@@ -348,13 +348,9 @@ async def _run(
 
     cleanups.append(close_inbox)
     effort = reasoning_effort(parsed.thinking_level)
-    system_prompt = (
-        parsed.system_prompt if parsed.system_prompt is not None else DEFAULT_SYSTEM_PROMPT
-    )
     settings = ControlMessage(
         Mode=ControlMode.UPDATE_SETTINGS,
         Parameters=Settings(
-            SystemPrompt=system_prompt,
             Model=model,
             MaxOutputTokens=parsed.max_output_tokens,
             ReasoningEffort=effort,
@@ -377,7 +373,9 @@ async def _run(
 
     builder = new_builder(*registry.skills())
     builder.set_model(selected_model)
-    builder.set_system_prompt(system_prompt)
+    builder.set_system_prompt(
+        parsed.system_prompt if parsed.system_prompt is not None else DEFAULT_SYSTEM_PROMPT
+    )
     for definition in registry.static_definitions():
         builder.add_tool(definition.tool)
 

@@ -72,8 +72,6 @@ class _Builder:
                 settings = message.Parameters
                 if not isinstance(settings, Settings):
                     raise TypeError("settings control message has no settings parameters")
-                if settings.SystemPrompt is not None:
-                    self.set_system_prompt(settings.SystemPrompt)
                 model = replace(self._model)
                 if settings.Model:
                     model.ID = settings.Model

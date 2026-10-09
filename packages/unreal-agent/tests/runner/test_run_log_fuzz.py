@@ -21,7 +21,7 @@ from unreal_agent.llm import ItemType, ReasoningEffort, Response, ToolCall
 from unreal_agent.llm import Request as LLMRequest
 from unreal_agent.operation import Status, decode_skill_use
 from unreal_agent.runner import run
-from unreal_agent.runner.run import DEFAULT_SYSTEM_PROMPT, LLM_API_KEY_ENVIRONMENT
+from unreal_agent.runner.run import LLM_API_KEY_ENVIRONMENT
 from unreal_agent.session import Turn, TurnType
 from unreal_agent.sessionstore import Item, ItemKind, ModelResponse, ToolCallStatus
 from unreal_agent.sessionstore.localfile import Store
@@ -106,7 +106,6 @@ def assert_execution_log(
                                 settings_count += 1
                                 assert control.Parameters == Settings(
                                     Model="journal-model",
-                                    SystemPrompt=DEFAULT_SYSTEM_PROMPT,
                                     ReasoningEffort=ReasoningEffort.HIGH,
                                 ), "logged settings differ from the runner request"
                             case _:
