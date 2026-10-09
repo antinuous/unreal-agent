@@ -25,6 +25,18 @@
           "name": "GPT-6 Astra",
           "context_window": 1050000,
           "compaction_threshold": 244800
+        },
+        {
+          "id": "gpt-6.1-sol",
+          "name": "GPT-6.1 Sol",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
+        },
+        {
+          "id": "gpt-6-luna",
+          "name": "GPT-6 Luna",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
         }
       ]
     },
@@ -37,6 +49,18 @@
         {
           "id": "gpt-6-astra",
           "name": "GPT-6 Astra",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
+        },
+        {
+          "id": "gpt-6.1-sol",
+          "name": "GPT-6.1 Sol",
+          "context_window": 1050000,
+          "compaction_threshold": 244800
+        },
+        {
+          "id": "gpt-6-luna",
+          "name": "GPT-6 Luna",
           "context_window": 1050000,
           "compaction_threshold": 244800
         }

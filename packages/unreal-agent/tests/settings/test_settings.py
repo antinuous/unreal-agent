@@ -4,41 +4,32 @@ import pytest
 from unreal_agent.settings import Model, Provider, ProviderInfo, Settings, SettingsError, load
 
 
+def _model(id: str, name: str, window: int, threshold: int) -> Model:
+    return Model(id=id, name=name, context_window=window, compaction_threshold=threshold)
+
+
+def _openai_models() -> list[Model]:
+    return [
+        _model("gpt-6-astra", "GPT-6 Astra", 1_050_000, 244_800),
+        _model("gpt-6.1-sol", "GPT-6.1 Sol", 1_050_000, 244_800),
+        _model("gpt-6-luna", "GPT-6 Luna", 1_050_000, 244_800),
+    ]
+
+
 def builtin() -> Settings:
     return Settings(
         providers={
             "anthropic": Provider(
                 info=ProviderInfo(id="anthropic", name="Anthropic"),
-                models=[
-                    Model(
-                        id="claude-opus-5-5",
-                        name="Claude Opus 5.5",
-                        context_window=1_000_000,
-                        compaction_threshold=500_000,
-                    )
-                ],
+                models=[_model("claude-opus-5-5", "Claude Opus 5.5", 1_000_000, 500_000)],
             ),
             "openai": Provider(
                 info=ProviderInfo(id="openai", name="OpenAI"),
-                models=[
-                    Model(
-                        id="gpt-6-astra",
-                        name="GPT-6 Astra",
-                        context_window=1_050_000,
-                        compaction_threshold=244_800,
-                    )
-                ],
+                models=_openai_models(),
             ),
             "openai-codex": Provider(
                 info=ProviderInfo(id="openai-codex", name="OpenAI Codex"),
-                models=[
-                    Model(
-                        id="gpt-6-astra",
-                        name="GPT-6 Astra",
-                        context_window=1_050_000,
-                        compaction_threshold=244_800,
-                    )
-                ],
+                models=_openai_models(),
             ),
         }
     )
@@ -61,24 +52,10 @@ def test_load(tmp_path: Path) -> None:
     want.providers["openai"] = Provider(
         info=ProviderInfo(id="openai", name="OpenAI"),
         models=[
-            Model(
-                id="gpt-6-astra",
-                name="Custom Astra",
-                context_window=200_000,
-                compaction_threshold=150_000,
-            ),
-            Model(
-                id="custom",
-                name="Custom model",
-                context_window=150_000,
-                compaction_threshold=75_000,
-            ),
-            Model(
-                id="zero",
-                name="Zero threshold",
-                context_window=100_000,
-                compaction_threshold=50_000,
-            ),
+            _model("gpt-6-astra", "Custom Astra", 200_000, 150_000),
+            *_openai_models()[1:],
+            _model("custom", "Custom model", 150_000, 75_000),
+            _model("zero", "Zero threshold", 100_000, 50_000),
         ],
     )
     assert configured == want
@@ -158,6 +135,10 @@ def test_load_merges_models_within_providers(tmp_path: Path) -> None:
     for provider, model, threshold in [
         ("openai", "gpt-6-astra", 244_800),
         ("openai-codex", "gpt-6-astra", 244_800),
+        ("openai", "gpt-6.1-sol", 244_800),
+        ("openai-codex", "gpt-6.1-sol", 244_800),
+        ("openai", "gpt-6-luna", 244_800),
+        ("openai-codex", "gpt-6-luna", 244_800),
         ("other", "gpt-6-astra", 50_000),
         ("openai", "custom", 100_000),
         ("other", "custom", 40_000),
