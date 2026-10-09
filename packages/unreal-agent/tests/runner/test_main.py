@@ -1,9 +1,12 @@
+import contextlib
 import io
+import json
 import os
+import queue
 import signal
 import subprocess
 import sys
-import time
+import threading
 from pathlib import Path
 
 import pytest
@@ -12,7 +15,13 @@ from unreal_agent.runner.__main__ import NAME, parse_request
 from unreal_agent.runner.flags import REQUEST_HELP, usage
 from unreal_agent.tool import BASH_NAME, SKILL_USE_NAME, VIEW_IMAGE_NAME
 
-from tests.runner._helpers import must_not_read_environment, reader
+from tests.runner._helpers import (
+    HTTPRequest,
+    HTTPResponse,
+    http_server,
+    must_not_read_environment,
+    reader,
+)
 
 
 async def test_parse_request_configures_static_tools() -> None:
@@ -73,43 +82,108 @@ def test_main_flag_error_exits_one() -> None:
     assert result.stderr.endswith(b"unreal-agent-runner: flag provided but not defined: -nope\n")
 
 
-def test_main_interrupt_exits_130(tmp_path: Path) -> None:
-    """SIGINT while the model request is pending cancels the run without an error event."""
-    import socket
+@pytest.mark.parametrize(
+    ("signum", "bash"),
+    [
+        pytest.param(signal.SIGINT, False, id="model/SIGINT"),
+        pytest.param(signal.SIGTERM, False, id="model/SIGTERM"),
+        pytest.param(signal.SIGINT, True, id="bash/SIGINT"),
+        pytest.param(signal.SIGTERM, True, id="bash/SIGTERM"),
+    ],
+)
+def test_runner_signals(signum: signal.Signals, bash: bool, tmp_path: Path) -> None:
+    started: queue.Queue[int] = queue.Queue()
+    release = threading.Event()
+    command = ""
+    if bash:
+        ready_path, hold_path = tmp_path / "ready", tmp_path / "hold"
+        for path in (ready_path, hold_path):
+            os.mkfifo(path, 0o600)
+        ready_fd = os.open(ready_path, os.O_RDWR)
 
-    listener = socket.socket()
-    listener.bind(("127.0.0.1", 0))
-    listener.listen()
-    port = listener.getsockname()[1]
-    environment = {
-        **os.environ,
-        "UNREAL_HARNESS_LLM_BASE_URL": f"http://127.0.0.1:{port}",
-        "OPENAI_API_KEY": "key",
-    }
-    process = subprocess.Popen(
-        _command(
-            "-workspace",
-            str(tmp_path),
-            "-session-directory",
-            str(tmp_path / "sessions"),
-            "-p",
-            "hello",
-        ),
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=environment,
-    )
-    try:
-        listener.settimeout(30)
-        connection, _ = listener.accept()
-        time.sleep(0.2)
-        process.send_signal(signal.SIGINT)
-        stdout, _ = process.communicate(timeout=30)
-        connection.close()
-    finally:
-        listener.close()
-        if process.poll() is None:
-            process.kill()
-    assert process.returncode == 130
-    assert b'"type":"error"' not in stdout
+        def read_ready() -> None:
+            with os.fdopen(ready_fd, "rb") as ready:
+                started.put(int(ready.readline()))
+
+        threading.Thread(target=read_ready, daemon=True).start()
+        command = "trap '' TERM; printf '%s\\n' \"$$\" > ready; read value < hold"
+
+    def handle(_: HTTPRequest) -> HTTPResponse:
+        if not bash:
+            started.put(0)
+            release.wait(30)
+            return HTTPResponse(status=500)
+        arguments = json.dumps({"command": command})
+        response = json.dumps(
+            {
+                "type": "response.completed",
+                "response": {
+                    "id": "response-1",
+                    "object": "response",
+                    "status": "completed",
+                    "output": [
+                        {
+                            "id": "function-1",
+                            "type": "function_call",
+                            "call_id": "call-1",
+                            "name": "Bash",
+                            "arguments": arguments,
+                            "status": "completed",
+                        }
+                    ],
+                },
+            }
+        )
+        return HTTPResponse(
+            headers={"Content-Type": "text/event-stream"}, body=f"data: {response}\n\n".encode()
+        )
+
+    with http_server(handle) as url:
+        process = subprocess.Popen(
+            _command(
+                "-workspace",
+                str(tmp_path),
+                "-session-directory",
+                str(tmp_path / "sessions"),
+                "-p",
+                "hello",
+            ),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env={
+                "HOME": str(tmp_path),
+                "XDG_CONFIG_HOME": str(tmp_path),
+                "SHELL": "/bin/sh",
+                "UNREAL_HARNESS_LLM_PROVIDER": "openai",
+                "UNREAL_HARNESS_LLM_API_KEY": "test-key",
+                "UNREAL_HARNESS_LLM_BASE_URL": url,
+                "UNREAL_HARNESS_LLM_MAX_ATTEMPTS": "1",
+            },
+        )
+        pid = 0
+        try:
+            try:
+                pid = started.get(timeout=20)
+            except queue.Empty:
+                process.kill()
+                output, _ = process.communicate()
+                pytest.fail(f"runner did not become ready; output:\n{output.decode()}")
+            if bash:
+                assert pid > 1, f"invalid Bash process group: {pid}"
+                os.killpg(pid, 0)
+            process.send_signal(signum)
+            output, _ = process.communicate(timeout=20)
+        finally:
+            release.set()
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            if pid > 1:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(pid, signal.SIGKILL)
+    assert process.returncode == 130, output.decode()
+    assert b'"type":"error"' not in output, output.decode()
+    if bash:
+        with pytest.raises(ProcessLookupError):
+            os.killpg(pid, 0)

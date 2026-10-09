@@ -1,15 +1,14 @@
 """unreal-agent-runner: execute one JSON request and write persisted session items as JSONL.
 
-SIGINT cancels the run. SIGTERM keeps the default action and terminates the
-process immediately. A write to a closed pipe on stdout or stderr kills the
-process with SIGPIPE.
+SIGINT and SIGTERM cancel the run, which exits 130 after cleanup. A write to a
+closed pipe on stdout or stderr kills the process with SIGPIPE.
 """
 
 import asyncio
 import os
 import signal
 import sys
-from typing import BinaryIO, NoReturn
+from typing import BinaryIO, Final, NoReturn
 
 from unreal_agent.runner.config import Config, ToolConfig, ToolFactory, Tools
 from unreal_agent.runner.providers import default_providers
@@ -62,6 +61,9 @@ def _getenv(name: str) -> str:
     return os.environ.get(name, "")
 
 
+_SIGNALS: Final = (signal.SIGINT, signal.SIGTERM)
+
+
 async def _main(args: list[str]) -> int:
     loop = asyncio.get_running_loop()
     task = asyncio.current_task()
@@ -74,7 +76,8 @@ async def _main(args: list[str]) -> int:
             interrupted = True
             task.cancel()
 
-    loop.add_signal_handler(signal.SIGINT, interrupt)
+    for signum in _SIGNALS:
+        loop.add_signal_handler(signum, interrupt)
     try:
         return await run_main(
             args,
@@ -85,11 +88,20 @@ async def _main(args: list[str]) -> int:
             Config(name=NAME, parse_request=parse_request, providers=default_providers()),
         )
     finally:
-        loop.remove_signal_handler(signal.SIGINT)
+        for signum in _SIGNALS:
+            loop.remove_signal_handler(signum)
 
 
 def main() -> None:
-    sys.exit(asyncio.run(_main(sys.argv[1:])))
+    code = asyncio.run(_main(sys.argv[1:]))
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.flush()
+        except BrokenPipeError:
+            _die_of_sigpipe()
+    # Like Go's os.Exit: a stdin read abandoned by cancellation must not block
+    # or crash interpreter shutdown.
+    os._exit(code)
 
 
 if __name__ == "__main__":

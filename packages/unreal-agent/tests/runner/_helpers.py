@@ -268,6 +268,15 @@ async def _inline_to_thread[T](function: Callable[..., T], /, *args: Any, **kwar
     return function(*args, **kwargs)
 
 
+def _inline_thread[T](function: Callable[[], T]) -> asyncio.Future[T]:
+    future: asyncio.Future[T] = asyncio.get_running_loop().create_future()
+    try:
+        future.set_result(function())
+    except Exception as error:
+        future.set_exception(error)
+    return future
+
+
 async def _inline_blocking[T](
     function: Callable[..., T], *args: Any, on_cancel: Callable[[], None] | None = None
 ) -> T:
@@ -276,7 +285,7 @@ async def _inline_blocking[T](
 
 @contextlib.contextmanager
 def without_threads() -> Iterator[None]:
-    """Run the store's and the file primitive's blocking work inline on the loop thread.
+    """Run the store's, the file primitive's, and the stdin read's blocking work inline.
 
     looptime advances fake time whenever the loop is idle, including while a
     worker thread runs, so fake-time tests keep all work on the loop.
@@ -284,6 +293,7 @@ def without_threads() -> Iterator[None]:
     with (
         mock.patch.object(asyncio, "to_thread", _inline_to_thread),
         mock.patch("unreal_agent.primitives.file.run_blocking", _inline_blocking),
+        mock.patch("unreal_agent.runner.run.run_in_thread", _inline_thread),
     ):
         yield
 

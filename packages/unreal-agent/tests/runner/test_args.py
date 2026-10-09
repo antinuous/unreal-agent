@@ -1,4 +1,7 @@
+import asyncio
 import io
+import os
+import threading
 
 import pytest
 from unreal_agent import gojson
@@ -18,6 +21,91 @@ from tests.runner._helpers import (
     runner_config,
     user_messages,
 )
+
+
+class _PipeReader:
+    def __init__(self, read_error: Exception | None) -> None:
+        read_fd, self.write_fd = os.pipe()
+        self.file = os.fdopen(read_fd, "rb")
+        self.read_error = read_error
+        self.started = threading.Event()
+        self.finished = threading.Event()
+
+    def read(self) -> bytes:
+        self.started.set()
+        try:
+            raw = self.file.read()
+        finally:
+            self.finished.set()
+        if self.read_error is not None:
+            raise self.read_error
+        return raw
+
+    def close_writer(self) -> None:
+        if self.write_fd >= 0:
+            os.close(self.write_fd)
+            self.write_fd = -1
+
+    def close(self) -> None:
+        self.close_writer()
+        if self.started.is_set():
+            self.finished.wait(5)
+        self.file.close()
+
+
+@pytest.mark.parametrize(
+    ("input", "cancel", "read_error", "want_code", "want_output"),
+    [
+        pytest.param("", True, None, 130, "", id="empty/cancel"),
+        pytest.param('{"prompt":"hello', True, None, 130, "", id="partial/cancel"),
+        pytest.param('{"prompt":"hello"}\n', True, None, 130, "", id="complete/cancel"),
+        pytest.param("", False, None, 1, "empty input", id="empty/EOF"),
+        pytest.param("{", False, None, 1, "invalid JSON", id="invalid JSON/EOF"),
+        pytest.param(
+            '{"messages":[]}',
+            False,
+            None,
+            1,
+            "messages must not be empty",
+            id="invalid request/EOF",
+        ),
+        pytest.param(
+            "", False, OSError("broken input"), 1, "read input: broken input", id="read error"
+        ),
+    ],
+)
+async def test_run_main_stdin(
+    input: str, cancel: bool, read_error: Exception | None, want_code: int, want_output: str
+) -> None:
+    stdin = _PipeReader(read_error)
+    stdout, stderr = io.BytesIO(), io.BytesIO()
+    try:
+        task = asyncio.create_task(
+            run_main(
+                [],
+                lambda _: "",
+                stdin,
+                stdout,
+                stderr,
+                Config(name="test-runner", parse_request=parse_test_request),
+            )
+        )
+        assert await asyncio.to_thread(stdin.started.wait, 5), "runner did not read stdin"
+        os.write(stdin.write_fd, input.encode())
+        if cancel:
+            task.cancel()
+        else:
+            stdin.close_writer()
+        async with asyncio.timeout(5):
+            code = await task
+    finally:
+        stdin.close()
+    assert code == want_code, stderr.getvalue()
+    if not want_output:
+        assert stdout.getvalue() == b"", stdout.getvalue()
+        assert stderr.getvalue() == b"", stderr.getvalue()
+    else:
+        assert want_output.encode() in stdout.getvalue(), stdout.getvalue()
 
 
 @pytest.mark.parametrize(

@@ -166,7 +166,7 @@ and `unreal-agent-runner: <error>` to stderr.
 | --- | --- |
 | `0` | The session finished, or help was printed. |
 | `1` | The run failed. |
-| `130` | Interrupted by SIGINT. |
+| `130` | Interrupted by SIGINT or SIGTERM. |
 
 ### Docker
 

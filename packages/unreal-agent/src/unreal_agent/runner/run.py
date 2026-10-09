@@ -19,6 +19,7 @@ from unreal_agent.inbox import ControlMessage, ControlMode, Inbox, Input, InputK
 from unreal_agent.llm import Model
 from unreal_agent.llm.responsesapi import DEFAULT_MAX_ATTEMPTS
 from unreal_agent.operation import LocalOperationManager
+from unreal_agent.primitives.primitive_event import run_in_thread
 from unreal_agent.runner.config import Client, Config, Getenv, ToolConfig
 from unreal_agent.runner.errors import RunnerError, describe, join, wrap
 from unreal_agent.runner.flags import HelpError, parse_flags
@@ -133,6 +134,12 @@ async def run_main(
 type _Cleanup = Callable[[], Awaitable[None]]
 
 
+async def _read_input(input: Reader) -> bytes:
+    # A dedicated daemon thread, not the executor: a blocked stdin read can
+    # outlive cancellation until the process exits, and must not delay that exit.
+    return await run_in_thread(input.read)
+
+
 async def run(
     args: list[str],
     getenv: Getenv,
@@ -218,6 +225,12 @@ async def _run(
         input = io.BytesIO(encoded)
     elif options.arguments:
         input = io.BytesIO(os.fsencode(options.arguments[0]))
+    else:
+        try:
+            raw = await _read_input(input)
+        except Exception as error:
+            raise wrap("read input", error) from error
+        input = io.BytesIO(raw)
     parsed, new_tools = config.parse_request(input)
     if new_tools is None:
         raise RunnerError("request parser returned no tool factory")
