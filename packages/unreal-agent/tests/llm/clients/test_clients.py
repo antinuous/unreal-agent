@@ -27,9 +27,11 @@ from unreal_agent.llm import (
     ToolResultKind,
     ToolResultOutput,
     ToolType,
+    messagesapi,
 )
 from unreal_agent.llm.clients import (
     ResponsesClient,
+    anthropic,
     fireworks,
     ollama,
     openai,
@@ -180,11 +182,12 @@ def hello(model: str) -> Request:
             fireworks.Config(api_key="k", base_url="http://x", max_attempts=0)
         ),
         lambda: ollama.Client(ollama.Config(max_attempts=0)),
+        lambda: anthropic.Client(anthropic.Config(api_key="k", max_attempts=0)),
     ],
-    ids=["openai", "openrouter", "fireworks", "ollama"],
+    ids=["openai", "openrouter", "fireworks", "ollama", "anthropic"],
 )
 def test_new_client_creates_no_http_client_when_configuration_fails(
-    new_client: Callable[[], ResponsesClient], monkeypatch: pytest.MonkeyPatch
+    new_client: Callable[[], object], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     created = 0
     original = remote_module.new_remote_http_client
@@ -536,7 +539,7 @@ def test_codex_client_rejects_max_output_tokens_before_sending() -> None:
     async def run() -> None:
         config = openaicodex.Config(access_token="opaque", account_id="account")
         async with openaicodex.Client(config) as client:
-            with pytest.raises(ValueError, match="codex does not support max_output_tokens"):
+            with pytest.raises(ValueError, match=r"codex does not support max_output_tokens"):
                 await client.respond(Request(Model=Model(MaxOutputTokens=1)), RequestOptions())
 
     asyncio.run(run())
@@ -556,7 +559,7 @@ def test_codex_client_configuration_validation() -> None:
         "http://user:pass@127.0.0.1:1234",
         "file:///tmp/auth",
     ):
-        with pytest.raises(ValueError, match="codex base URL must be"):
+        with pytest.raises(ValueError, match=r"codex base URL must be"):
             openaicodex.validate_base_url(url)
     for config in (
         openaicodex.Config(),
@@ -565,7 +568,7 @@ def test_codex_client_configuration_validation() -> None:
             access_token="opaque", account_id="account", base_url="https://evil.example"
         ),
     ):
-        with pytest.raises(ValueError, match="must be"):
+        with pytest.raises(ValueError, match=r"must be"):
             openaicodex.Client(config)
 
 
@@ -658,3 +661,93 @@ async def test_providers_only_return_terminal_response(name: str) -> None:
         4,
     )
     assert "partial" not in message.Text
+
+
+ANTHROPIC_STREAM = b"".join(
+    b"event: " + name + b"\ndata: " + data + b"\n\n"
+    for name, data in (
+        (
+            b"message_start",
+            b'{"type":"message_start","message":{"type":"message","id":"msg-1",'
+            b'"role":"assistant","content":[],"usage":{"input_tokens":1,"output_tokens":0}}}',
+        ),
+        (
+            b"content_block_start",
+            b'{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}',
+        ),
+        (
+            b"content_block_delta",
+            b'{"type":"content_block_delta","index":0,"delta":{"type":"text_delta",'
+            b'"text":"Hello"}}',
+        ),
+        (b"content_block_stop", b'{"type":"content_block_stop","index":0}'),
+        (
+            b"message_delta",
+            b'{"type":"message_delta","delta":{"stop_reason":"end_turn"},'
+            b'"usage":{"output_tokens":2}}',
+        ),
+        (b"message_stop", b'{"type":"message_stop"}'),
+    )
+)
+
+
+async def test_anthropic_client_configuration() -> None:
+    with pytest.raises(ValueError, match=r"^anthropic API key must be set$"):
+        anthropic.Client(anthropic.Config(api_key=" "))
+    with pytest.raises(ValueError, match=r"^max attempts must be positive$"):
+        anthropic.Client(anthropic.Config(api_key="test-key", max_attempts=0))
+    client = anthropic.Client(anthropic.Config(api_key="test-key"))
+    assert client.adapter.endpoint == "https://api.anthropic.com/v1/messages"
+    await client.aclose()
+
+
+async def test_anthropic_client_calls_messages_api() -> None:
+    def handler(request: ServerRequest, writer: ResponseWriter) -> None:
+        assert request.method == "POST"
+        assert request.path == "/v1/messages"
+        assert request.headers["X-Api-Key"] == "test-key"
+        assert request.headers["Anthropic-Version"] == "2023-06-01"
+        assert request.headers["Content-Type"] == "application/json"
+        assert request.headers["Accept"] == "text/event-stream"
+        body = request.json()
+        assert body["model"] == "claude-test"
+        assert body["stream"] is True
+        write_sse(writer, ANTHROPIC_STREAM)
+
+    exchanges: list[messagesapi.Exchange] = []
+    with serve(handler) as server:
+        async with anthropic.Client(
+            anthropic.Config(
+                api_key="test-key", base_url=server.url + "/v1/", trace=exchanges.append
+            )
+        ) as client:
+            response = await client.respond(hello("claude-test"), RequestOptions())
+    assert response.ID == "msg-1"
+    assert cast(Message, (response.Output or [])[0].Data).Text == "Hello"
+    [exchange] = exchanges
+    assert exchange.status_code == 200
+    assert json.loads(exchange.response_body) == json.loads(
+        '{"type":"message","id":"msg-1","role":"assistant",'
+        '"content":[{"type":"text","text":"Hello"}],"stop_reason":"end_turn",'
+        '"usage":{"input_tokens":1,"output_tokens":2}}'
+    )
+    assert b"test-key" not in exchange.request_body, "trace includes authentication"
+
+
+async def test_anthropic_client_surfaces_authentication_error() -> None:
+    def handler(_: ServerRequest, writer: ResponseWriter) -> None:
+        writer.set_header("Content-Type", "application/json")
+        writer.write_header(401)
+        writer.write(
+            b'{"type":"error","error":{"type":"authentication_error",'
+            b'"message":"API key is invalid."},"request_id":null}'
+        )
+
+    with serve(handler) as server:
+        async with anthropic.Client(
+            anthropic.Config(api_key="test-key", base_url=server.url)
+        ) as client:
+            with pytest.raises(messagesapi.APIError) as raised:
+                await client.respond(hello("claude-test"), RequestOptions())
+    error = raised.value
+    assert (error.type, error.status_code, error.request_id) == ("authentication_error", 401, "")

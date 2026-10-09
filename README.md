@@ -134,7 +134,7 @@ Supply `messages` or `prompt`.
 
 | Variable | Description |
 | --- | --- |
-| `UNREAL_HARNESS_LLM_PROVIDER` | `openai` (default), `openai-codex`, `openrouter`, `fireworks`, or `ollama`. |
+| `UNREAL_HARNESS_LLM_PROVIDER` | `openai` (default), `anthropic`, `openai-codex`, `openrouter`, `fireworks`, or `ollama`. |
 | `UNREAL_HARNESS_LLM_MODEL` | Model when the request has none. Only `openai` has a default (`gpt-6-astra`). |
 | `UNREAL_HARNESS_LLM_BASE_URL` | Overrides the provider's base URL. |
 | `UNREAL_HARNESS_LLM_API_KEY` | API key for any provider that takes one. Wins over the provider variable. |
@@ -145,6 +145,7 @@ Supply `messages` or `prompt`.
 | Provider | Credentials | Base URL |
 | --- | --- | --- |
 | `openai` | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
+| `anthropic` | `ANTHROPIC_API_KEY` | `https://api.anthropic.com/v1` |
 | `openai-codex` | `OPENAI_CODEX_ACCESS_TOKEN` and `OPENAI_CODEX_ACCOUNT_ID`, or `OPENAI_CODEX_AUTH_FILE`, or `$CODEX_HOME/auth.json` (default `~/.codex/auth.json`) | `https://chatgpt.com/backend-api/codex` |
 | `openrouter` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
 | `fireworks` | `FIREWORKS_API_KEY` | `https://api.fireworks.ai/inference/v1` |

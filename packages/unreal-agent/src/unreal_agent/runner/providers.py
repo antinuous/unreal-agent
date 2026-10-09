@@ -1,9 +1,15 @@
 import dataclasses
 
-from unreal_agent.llm.clients import fireworks, ollama, openai, openaicodex, openrouter
+from unreal_agent.llm.clients import anthropic, fireworks, ollama, openai, openaicodex, openrouter
 from unreal_agent.runner.config import Client, Getenv, Provider
 
 __all__ = ["default_providers"]
+
+
+def _anthropic(api_key: str, base_url: str, max_attempts: int, _: Getenv) -> Client:
+    return anthropic.Client(
+        anthropic.Config(api_key=api_key, base_url=base_url, max_attempts=max_attempts)
+    )
 
 
 def _ollama(_: str, base_url: str, max_attempts: int, __: Getenv) -> Client:
@@ -37,6 +43,12 @@ def _fireworks(api_key: str, base_url: str, max_attempts: int, _: Getenv) -> Cli
 
 def default_providers() -> list[Provider]:
     return [
+        Provider(
+            name="anthropic",
+            base_url=anthropic.DEFAULT_BASE_URL,
+            api_key_environment="ANTHROPIC_API_KEY",
+            new_client=_anthropic,
+        ),
         Provider(name="ollama", base_url=ollama.BASE_URL, new_client=_ollama),
         Provider(
             name="openai",
