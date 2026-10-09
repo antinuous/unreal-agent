@@ -3,6 +3,7 @@ import random
 import uuid
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Final
 
 import httpx
@@ -45,6 +46,7 @@ __all__ = [
     "MAX_SSE_FRAME_BYTES",
     "MODEL_RESPONSE_IDLE_TIMEOUT",
     "REMOTE_SOURCE",
+    "CacheTTL",
     "Config",
     "Exchange",
     "MessagesAdapter",
@@ -60,6 +62,16 @@ MAX_ERROR_BODY_BYTES: Final = 1 << 20
 _FALLBACK_BETA: Final = "server-side-fallback-2026-07-01"
 
 
+class CacheTTL(StrEnum):
+    NONE = ""
+    FIVE_MINUTES = "5m"
+    ONE_HOUR = "1h"
+
+    @staticmethod
+    def is_valid(value: str) -> bool:
+        return value in CacheTTL._value2member_map_
+
+
 @dataclass(frozen=True, slots=True)
 class Exchange:
     """One traced exchange: the request JSON and the assembled response JSON or provider error."""
@@ -73,14 +85,16 @@ class Exchange:
 class Config:
     """Adapter configuration.
 
-    `max_attempts` None uses DEFAULT_MAX_ATTEMPTS. `clock` and `jitter` drive
+    `fallback` None enables server-side fallback. `max_attempts` None uses
+    DEFAULT_MAX_ATTEMPTS. `clock` and `jitter` drive
     retry backoff and default to the timer primitive's wall clock and
     `random.random`.
     """
 
     endpoint: str = ""
     headers: Mapping[str, Sequence[str]] = field(default_factory=dict)
-    fallback: bool = False
+    fallback: bool | None = None
+    cache_ttl: str = CacheTTL.NONE
     max_attempts: int | None = None
     trace: Callable[[Exchange], None] | None = None
     clock: Callable[[], Timestamp] | None = None
@@ -100,6 +114,8 @@ def check_config(config: Config) -> int:
     """Validate the configuration and return the attempt limit. Raises ValueError."""
     if not go_trim_space(config.endpoint):
         raise ValueError("messages API endpoint must be set")
+    if not CacheTTL.is_valid(config.cache_ttl):
+        raise ValueError(f"unsupported cache TTL {go_quote(config.cache_ttl)}")
     max_attempts = DEFAULT_MAX_ATTEMPTS if config.max_attempts is None else config.max_attempts
     if max_attempts <= 0:
         raise ValueError("max attempts must be positive")
@@ -119,18 +135,19 @@ class MessagesAdapter:
             if name.lower() != "accept"
         }
         self.headers["Accept"] = ["text/event-stream"]
-        if config.fallback:
+        self.fallback = True if config.fallback is None else config.fallback
+        if self.fallback:
             name = next(
                 (n for n in self.headers if n.lower() == "anthropic-beta"), "Anthropic-Beta"
             )
             self.headers.setdefault(name, []).append(_FALLBACK_BETA)
-        self.fallback = config.fallback
+        self.cache_ttl = config.cache_ttl
         self.trace = config.trace
         self._clock = config.clock or (lambda: _timer.wall_clock())
         self._jitter = config.jitter or random.random
 
     async def respond(self, request: Request, options: RequestOptions) -> Response:
-        body = request_body(request, fallback=self.fallback)
+        body = request_body(request, fallback=self.fallback, cache_ttl=self.cache_ttl)
         result = await self._exchange(body)
         if self.trace is not None and result.body:
             self.trace(Exchange(body, result.status, result.body))

@@ -39,10 +39,10 @@ DEFAULT_MAX_OUTPUT_TOKENS: Final = 128_000
 _IMAGE_MEDIA_TYPES: Final = ("image/png", "image/jpeg", "image/gif", "image/webp")
 
 
-def request_body(request: Request, *, fallback: bool = False) -> bytes:
+def request_body(request: Request, *, fallback: bool = False, cache_ttl: str = "") -> bytes:
     """Encode the streaming request body. Raises ValueError for unsupported input."""
     try:
-        params = request_params(request)
+        params = request_params(request, cache_ttl)
         if fallback:
             params["fallbacks"] = "default"
         return encode(params, deterministic=True)
@@ -50,7 +50,7 @@ def request_body(request: Request, *, fallback: bool = False) -> bytes:
         raise ValueError(f"encode messages request: {error}") from error
 
 
-def request_params(request: Request) -> dict[str, Any]:
+def request_params(request: Request, cache_ttl: str = "") -> dict[str, Any]:
     if not go_trim_space(request.Model.ID):
         raise ValueError("model must be set")
     max_tokens = DEFAULT_MAX_OUTPUT_TOKENS
@@ -58,8 +58,11 @@ def request_params(request: Request) -> dict[str, Any]:
         max_tokens = request.Model.MaxOutputTokens
         if max_tokens <= 0:
             raise ValueError(f"invalid max output tokens {max_tokens}")
+    cache_control = {"type": "ephemeral"}
+    if cache_ttl:
+        cache_control["ttl"] = cache_ttl
     params: dict[str, Any] = {
-        "cache_control": {"type": "ephemeral"},
+        "cache_control": cache_control,
         "max_tokens": max_tokens,
         "model": request.Model.ID,
         "stream": True,

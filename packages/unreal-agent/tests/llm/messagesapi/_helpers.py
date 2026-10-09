@@ -17,7 +17,7 @@ from unreal_agent.llm import (
     ToolResultKind,
     ToolResultOutput,
 )
-from unreal_agent.llm.messagesapi import Config, MessagesAdapter, request_body
+from unreal_agent.llm.messagesapi import CacheTTL, Config, MessagesAdapter, request_body
 from unreal_agent.llm.messagesapi.stream import StreamingState
 from unreal_agent.llm.responsesapi._wire import trim_space
 from unreal_agent.primitives import RemoteClient, sse_data
@@ -66,7 +66,7 @@ def response_body(stop: str, content: str) -> bytes:
 
 
 def encode_request(request: Request) -> tuple[bytes, dict[str, Any]]:
-    body = request_body(request)
+    body = request_body(request, cache_ttl=CacheTTL.FIVE_MINUTES)
     return body, json.loads(body)
 
 

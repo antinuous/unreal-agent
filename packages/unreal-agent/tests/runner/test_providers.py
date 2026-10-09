@@ -298,9 +298,64 @@ async def test_runner_codex_uses_only_responses_api(
 
 
 @pytest.mark.parametrize(
+    ("value", "want"),
+    [
+        pytest.param("", "", id="unset"),
+        pytest.param("5m", "5m", id="5m"),
+        pytest.param("1h", "1h", id="1h"),
+    ],
+)
+async def test_anthropic_cache_ttl_configuration(value: str, want: str) -> None:
+    cache_controls: list[dict[str, str]] = []
+
+    def handle(request: HTTPRequest) -> HTTPResponse:
+        cache_controls.append(json.loads(request.body)["cache_control"])
+        stream = "".join(
+            f"data: {event}\n\n"
+            for event in (
+                '{"type":"message_start","message":{"id":"cache-ttl","type":"message",'
+                '"role":"assistant","content":[],"usage":{"input_tokens":1,"output_tokens":0}}}',
+                '{"type":"message_delta","delta":{"stop_reason":"end_turn"},'
+                '"usage":{"output_tokens":0}}',
+                '{"type":"message_stop"}',
+            )
+        )
+        return HTTPResponse(headers={"Content-Type": "text/event-stream"}, body=stream.encode())
+
+    _, new_client = find_provider(default_providers(), "anthropic")
+    with http_server(handle) as url:
+        client = new_client(
+            "test-key", url, 1, lambda name: value if name == "ANTHROPIC_CACHE_TTL" else ""
+        )
+        try:
+            request = Request(
+                Model=Model(ID="claude-test"),
+                Input=[Item(Type=ItemType.MESSAGE, Data=Message(Role=Role.USER, Text="Hello"))],
+            )
+            await client.respond(request, RequestOptions())
+        finally:
+            await client.aclose()
+    [cache_control] = cache_controls
+    assert cache_control["type"] == "ephemeral"
+    assert cache_control.get("ttl", "") == want, cache_control
+
+
+@pytest.mark.parametrize("value", ["default", "10m"])
+def test_anthropic_rejects_invalid_cache_ttl_configuration(value: str) -> None:
+    selected, new_client = find_provider(default_providers(), "anthropic")
+    with pytest.raises(ValueError, match=f'^ANTHROPIC_CACHE_TTL must be 5m or 1h, got "{value}"$'):
+        new_client(
+            "test-key",
+            selected.base_url,
+            1,
+            lambda name: value if name == "ANTHROPIC_CACHE_TTL" else "",
+        )
+
+
+@pytest.mark.parametrize(
     ("value", "enabled"),
     [
-        pytest.param("", False, id="disabled"),
+        pytest.param("", True, id="default_enabled"),
         pytest.param("0", False, id="disabled_zero"),
         pytest.param("false", False, id="disabled_false"),
         pytest.param("1", True, id="enabled_one"),
@@ -321,7 +376,7 @@ async def test_anthropic_fallback_configuration_and_continuation(value: str, ena
         beta = request.headers.get("anthropic-beta", "")
         if not enabled:
             if "fallbacks" in body or beta:
-                problems.append("fallback enabled without configuration")
+                problems.append("fallback enabled despite explicit opt-out")
         else:
             if body.get("fallbacks") != "default" or beta != "server-side-fallback-2026-07-01":
                 problems.append(f"fallbacks = {body.get('fallbacks')!r}, beta = {beta!r}")

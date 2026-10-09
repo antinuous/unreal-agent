@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 from unreal_agent._go import go_parse_bool, go_quote
 from unreal_agent.llm.clients import anthropic, fireworks, ollama, openai, openaicodex, openrouter
+from unreal_agent.llm.messagesapi import CacheTTL
 from unreal_agent.runner.config import Client, Getenv, Provider
 from unreal_agent.runner.errors import RunnerError
 
@@ -10,7 +11,10 @@ __all__ = ["default_providers", "find_provider"]
 
 
 def _anthropic(api_key: str, base_url: str, max_attempts: int, getenv: Getenv) -> Client:
-    fallback = False
+    cache_ttl = getenv("ANTHROPIC_CACHE_TTL")
+    if not CacheTTL.is_valid(cache_ttl):
+        raise ValueError(f"ANTHROPIC_CACHE_TTL must be 5m or 1h, got {go_quote(cache_ttl)}")
+    fallback: bool | None = None
     if value := getenv("ANTHROPIC_FALLBACK"):
         try:
             fallback = go_parse_bool(value)
@@ -18,7 +22,11 @@ def _anthropic(api_key: str, base_url: str, max_attempts: int, getenv: Getenv) -
             raise ValueError(f"parse ANTHROPIC_FALLBACK: {error}") from error
     return anthropic.Client(
         anthropic.Config(
-            api_key=api_key, base_url=base_url, max_attempts=max_attempts, fallback=fallback
+            api_key=api_key,
+            base_url=base_url,
+            max_attempts=max_attempts,
+            fallback=fallback,
+            cache_ttl=cache_ttl,
         )
     )
 

@@ -695,6 +695,8 @@ async def test_anthropic_client_configuration() -> None:
         anthropic.Client(anthropic.Config(api_key=" "))
     with pytest.raises(ValueError, match=r"^max attempts must be positive$"):
         anthropic.Client(anthropic.Config(api_key="test-key", max_attempts=0))
+    with pytest.raises(ValueError, match=r'^unsupported cache TTL "10m"$'):
+        anthropic.Client(anthropic.Config(api_key="test-key", cache_ttl="10m"))
     client = anthropic.Client(anthropic.Config(api_key="test-key"))
     assert client.adapter.endpoint == "https://api.anthropic.com/v1/messages"
     await client.aclose()
@@ -708,16 +710,22 @@ async def test_anthropic_client_calls_messages_api() -> None:
         assert request.headers["Anthropic-Version"] == "2023-06-01"
         assert request.headers["Content-Type"] == "application/json"
         assert request.headers["Accept"] == "text/event-stream"
+        assert request.headers["Anthropic-Beta"] == "server-side-fallback-2026-07-01"
         body = request.json()
         assert body["model"] == "claude-test"
         assert body["stream"] is True
+        assert body["fallbacks"] == "default"
+        assert body["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
         write_sse(writer, ANTHROPIC_STREAM)
 
     exchanges: list[messagesapi.Exchange] = []
     with serve(handler) as server:
         async with anthropic.Client(
             anthropic.Config(
-                api_key="test-key", base_url=server.url + "/v1/", trace=exchanges.append
+                api_key="test-key",
+                base_url=server.url + "/v1/",
+                cache_ttl=messagesapi.CacheTTL.ONE_HOUR,
+                trace=exchanges.append,
             )
         ) as client:
             response = await client.respond(hello("claude-test"), RequestOptions())

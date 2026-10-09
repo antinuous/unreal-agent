@@ -23,6 +23,7 @@ from unreal_agent.llm.messagesapi import (
     MAX_SSE_FRAME_BYTES,
     MODEL_RESPONSE_IDLE_TIMEOUT,
     APIError,
+    CacheTTL,
     Config,
     Exchange,
     MessagesAdapter,
@@ -87,8 +88,25 @@ async def test_adapter_validates_configuration() -> None:
                     remote,
                     Config(endpoint="http://example.invalid/messages", max_attempts=attempts),
                 )
+        for ttl, quoted in (("10m", '"10m"'), ("default", '"default"')):
+            with pytest.raises(ValueError, match=f"^unsupported cache TTL {quoted}$"):
+                MessagesAdapter(
+                    remote, Config(endpoint="http://example.invalid/messages", cache_ttl=ttl)
+                )
     finally:
         await remote.aclose()
+
+
+async def test_adapter_applies_cache_ttl() -> None:
+    bodies: list[bytes] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(await request.aread())
+        return reply(body=live_stream("text"))
+
+    await respond(new_adapter(handler, cache_ttl=CacheTTL.ONE_HOUR))
+    [body] = bodies
+    assert json.loads(body)["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
 
 
 async def test_adapter_remote_request() -> None:
@@ -102,7 +120,13 @@ async def test_adapter_remote_request() -> None:
     assert first.correlation_id != second.correlation_id
     assert first.source == "llm.messagesapi"
     assert first.method == "POST"
-    assert first.headers == {"X-Api-Key": ["key"], "Accept": ["text/event-stream"]}
+    assert first.headers == {
+        "X-Api-Key": ["key"],
+        "Accept": ["text/event-stream"],
+        "Anthropic-Beta": ["server-side-fallback-2026-07-01"],
+    }
+    disabled = new_adapter(unused, fallback=False).remote_request(b"body")
+    assert disabled.headers == {"Accept": ["text/event-stream"]}
     assert first.response_idle_timeout == MODEL_RESPONSE_IDLE_TIMEOUT
     assert first.retry_policy.max_attempts == 1
     assert first.sse is not None

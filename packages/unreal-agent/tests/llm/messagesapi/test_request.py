@@ -1,3 +1,4 @@
+import json
 import re
 from typing import Any, cast
 
@@ -20,7 +21,7 @@ from unreal_agent.llm import (
     ToolResultOutput,
     ToolType,
 )
-from unreal_agent.llm.messagesapi import request_body
+from unreal_agent.llm.messagesapi import CacheTTL, request_body
 from unreal_agent.llm.messagesapi._wire import parse_any
 from unreal_agent.llm.messagesapi.request import request_input, request_tool_output
 
@@ -124,6 +125,24 @@ def test_request_defaults_and_efforts(effort: str) -> None:
         assert wire["thinking"]["type"] == "adaptive", body
         assert wire["output_config"]["effort"] == effort, body
     assert "tools" not in wire
+
+
+@pytest.mark.parametrize(
+    ("ttl", "fallback"),
+    [
+        pytest.param(CacheTTL.NONE, False, id="unset"),
+        pytest.param(CacheTTL.FIVE_MINUTES, False, id="5m"),
+        pytest.param(CacheTTL.ONE_HOUR, False, id="1h"),
+        pytest.param(CacheTTL.FIVE_MINUTES, True, id="fallback"),
+    ],
+)
+def test_request_cache_ttl(ttl: CacheTTL, fallback: bool) -> None:
+    wire = json.loads(request_body(valid_request(), fallback=fallback, cache_ttl=ttl))
+    want = {"type": "ephemeral"}
+    if ttl:
+        want["ttl"] = str(ttl)
+    assert wire["cache_control"] == want
+    assert (wire.get("fallbacks") == "default") == fallback
 
 
 @pytest.mark.parametrize("order", [("a", "b"), ("b", "a")])

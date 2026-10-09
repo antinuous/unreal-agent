@@ -15,7 +15,7 @@ from unreal_agent.llm import (
     ToolResultKind,
     ToolResultOutput,
 )
-from unreal_agent.llm.messagesapi import decode_response, request_body
+from unreal_agent.llm.messagesapi import CacheTTL, decode_response, request_body
 from unreal_agent.llm.messagesapi._wire import parse_any
 from unreal_agent.llm.messagesapi.stream import StreamingState
 
@@ -93,7 +93,7 @@ def test_fallback_continuation_persists_and_replays(streaming: bool) -> None:
     builder.add_tool_result(
         "call", [ToolResultOutput(Kind=ToolResultKind.TEXT, Value="Done")], False
     )
-    encoded = request_body(builder.build().request, fallback=True)
+    encoded = request_body(builder.build().request, fallback=True, cache_ttl=CacheTTL.FIVE_MINUTES)
     replay: dict[str, Any] = parse_any(encoded)
     messages = replay["messages"]
     assert len(messages) == 3, encoded
